@@ -73,11 +73,12 @@ motion-detector/
 
 ### Frontend (apps/web)
 - Framework: React with TypeScript
-- Styling: CSS Modules
-- State Management: Zustand or Redux Toolkit
+- Styling: CSS Modules with modern design system
+- State Management: Zustand for simple state management
 - Build Tool: Vite
 - Motion Detection: Browser-based OpenCV.js or MediaPipe
 - Video Processing: WebRTC for camera access and frame analysis
+- UI Design: Dark theme with glass morphism and smooth animations
 
 ### Backend (apps/api)
 - Runtime: Python 3.9+
@@ -110,6 +111,8 @@ motion-detector/
 - `VITE_AI_ANALYSIS_RATE` - Max AI analysis requests per minute
 - `VITE_FRAME_COMPRESSION_QUALITY` - WebP compression quality (0.1-1.0)
 - `VITE_ENABLE_WEBWORKERS` - Enable WebWorkers for heavy processing
+- `VITE_ENABLE_ANIMATIONS` - Enable UI animations and effects
+- `VITE_THEME_MODE` - UI theme (dark/light, default: dark)
 
 ### API Server
 - `DATABASE_URL` - MySQL connection string
@@ -177,6 +180,7 @@ motion-detector/
 - Event recording with AI-generated detailed analysis
 - Two-tier alert system: immediate client alerts + server AI analysis
 - Cross-platform browser and mobile support
+- Modern, stylish user interface with dark theme and animations
 
 ### Performance
 - Client-side motion detection eliminates server processing load
@@ -216,6 +220,38 @@ motion-detector/
 - Ollama model management and version control
 - Environment-specific configurations
 - CI/CD pipeline integration with Ollama health checks
+
+## User Experience Design
+
+### MVP Interface Design
+- **Single Screen Application**: Full-screen video feed with minimal controls
+- **Ultra-Simple Controls**: Motion toggle (ON/OFF) and sensitivity slider only
+- **No Complex Features**: No user accounts, history logs, or settings pages for MVP
+- **Focus**: Perfect the core experience of motion detection → alert → AI insight
+
+### Visual Design System
+- **Theme**: Dark mode with neon accent colors (cyan/purple)
+- **Typography**: Modern font (Inter or Poppins) with varied weights
+- **Layout**: Glass morphism effects with rounded corners and subtle shadows
+- **Animations**: Smooth transitions, slide-in popups, and satisfying interactions
+
+### Interactive Elements
+- **Video Display**: Full-screen camera feed with subtle glow effect when motion detected
+- **Motion Toggle**: Smooth animated toggle with satisfying click feedback
+- **Sensitivity Slider**: Color-coded gradient slider (green → yellow → red)
+- **Alert Popups**: Modern card-based notifications with smooth animations
+- **AI Analysis**: Typing animation for text reveal with confidence percentage bars
+
+### User Flow
+1. **Main Interface**: Live video feed with motion toggle and sensitivity slider
+2. **Motion Detection**: Instant popup alert with timestamp and dismiss button
+3. **AI Analysis**: Delayed stylish card showing LLaVA insights with confidence score
+4. **Visual Feedback**: Pulsing glow around video during motion events
+
+### Responsive Design
+- **Desktop**: Full-screen immersive experience
+- **Mobile**: Touch-optimized controls with haptic feedback simulation
+- **Tablet**: Adaptive layout maintaining visual hierarchy
 
 ### Architecture Flow
 1. **Client Layer:** Browser/mobile detects motion → immediate local alert
