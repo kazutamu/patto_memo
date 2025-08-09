@@ -23,33 +23,39 @@ motion-detector/
 ## Development Commands
 
 ### Setup
+
 - `npm install` - Install all dependencies
 - `npm run setup` - Initial project setup
 
 ### Development
+
 - `npm run dev` - Start all development servers
 - `npm run dev:web` - Start React web app
 - `npm run dev:api` - Start FastAPI server
 
 ### Build & Test
+
 - `npm run build` - Build all applications
 - `npm run test` - Run all tests
 - `npm run lint` - Run linting
 - `npm run type-check` - Run TypeScript type checking
 
 ### Deployment
+
 - `npm run deploy:staging` - Deploy to staging
 - `npm run deploy:prod` - Deploy to production
 
 ## Code Standards
 
 ### General
+
 - Use TypeScript for all code
 - Follow ESLint and Prettier configurations
 - Write tests for all new features
 - Use conventional commits
 
 ### Python Backend Standards
+
 - Use Pydantic models for all data validation and serialization
 - Define clear request/response schemas for all API endpoints
 - Use Pydantic BaseModel for configuration and settings
@@ -57,6 +63,7 @@ motion-detector/
 - Use Pydantic's Field() for additional constraints and documentation
 
 ### Naming Conventions
+
 - Files: kebab-case (`motion-detector.ts`)
 - Components: PascalCase (`MotionDetector.tsx`)
 - CSS Modules: kebab-case (`motion-detector.module.css`)
@@ -65,6 +72,7 @@ motion-detector/
 - Constants: UPPER_SNAKE_CASE (`MAX_DETECTION_THRESHOLD`)
 
 ### Import Organization
+
 1. External libraries
 2. Internal packages (`@motion-detector/shared`)
 3. Relative imports
@@ -72,6 +80,7 @@ motion-detector/
 ## Technology Stack
 
 ### Frontend (apps/web)
+
 - Framework: React with TypeScript
 - Styling: CSS Modules with modern design system
 - State Management: Zustand for simple state management
@@ -81,6 +90,7 @@ motion-detector/
 - UI Design: Dark theme with glass morphism and smooth animations
 
 ### Backend (apps/api)
+
 - Runtime: Python 3.9+
 - Framework: FastAPI
 - Database: MySQL with SQLAlchemy
@@ -92,10 +102,12 @@ motion-detector/
 - Background Processing: Celery/RQ for async LLaVA analysis
 
 ### Mobile (apps/mobile) - Future
+
 - Framework: React Native with TypeScript
 - Navigation: React Navigation
 
 ### Shared (packages/)
+
 - Monorepo: npm workspaces
 - Package Manager: npm
 - Testing: Jest + Testing Library (Frontend), pytest (Backend)
@@ -103,6 +115,7 @@ motion-detector/
 ## Environment Variables
 
 ### Web App
+
 - `VITE_API_URL` - API base URL
 - `VITE_WS_URL` - WebSocket URL for real-time updates
 - `VITE_MOTION_SENSITIVITY` - Default motion detection sensitivity (0.1-1.0)
@@ -115,6 +128,7 @@ motion-detector/
 - `VITE_THEME_MODE` - UI theme (dark/light, default: dark)
 
 ### API Server
+
 - `DATABASE_URL` - MySQL connection string
 - `JWT_SECRET` - JWT signing secret
 - `PORT` - Server port (default: 8000)
@@ -127,11 +141,13 @@ motion-detector/
 ## Database
 
 ### Schema Management
+
 - Use Alembic for database migrations
 - Run `alembic revision --autogenerate -m "description"` for new migrations
 - Run `alembic upgrade head` to apply migrations
 
 ### Conventions
+
 - Table names: snake_case plural (`motion_events`)
 - Column names: snake_case (`created_at`)
 - Foreign keys: `{table}_id` (`user_id`)
@@ -139,6 +155,7 @@ motion-detector/
 ## API Design
 
 ### REST Endpoints
+
 - Use RESTful conventions
 - Prefix with `/api/v1/`
 - Use proper HTTP status codes
@@ -147,6 +164,7 @@ motion-detector/
 - Type-safe JSON serialization/deserialization
 
 ### Real-time Features
+
 - Use WebSocket for live motion detection updates
 - Implement FastAPI WebSocket endpoints
 - Pydantic models for WebSocket message validation
@@ -156,11 +174,13 @@ motion-detector/
 ## Security
 
 ### Authentication
+
 - Use JWT tokens with proper expiration
 - Implement refresh token rotation
 - Secure password hashing with bcrypt
 
 ### Data Protection
+
 - Pydantic validation for all inputs (automatic)
 - Use parameterized queries with SQLAlchemy
 - Implement rate limiting
@@ -171,6 +191,7 @@ motion-detector/
 ## Motion Detection Specific
 
 ### Core Features
+
 - Client-side motion detection using webcam and mobile cameras
 - Browser-based real-time motion analysis (OpenCV.js/MediaPipe)
 - Event-driven architecture (motion events sent to backend)
@@ -183,6 +204,7 @@ motion-detector/
 - Modern, stylish user interface with dark theme and animations
 
 ### Performance
+
 - Client-side motion detection eliminates server processing load
 - Significance filtering reduces AI analysis to ~5-10% of motion events
 - Efficient browser-based frame processing (WebWorkers for heavy operations)
@@ -196,12 +218,14 @@ motion-detector/
 - Use Redis for job queuing and caching model results
 
 ### Camera Integration
+
 - WebRTC for browser-based webcam access
 - Mobile camera API integration
 - Real-time frame streaming via WebSocket
 - Support for multiple simultaneous camera feeds
 
 ### LLaVA Integration via Ollama
+
 - Background processing architecture with job queues
 - Ollama server setup and model management
 - HTTP API client for LLaVA inference requests
@@ -214,6 +238,7 @@ motion-detector/
 - Processing priority queue (recent events first)
 
 ### Deployment
+
 - Docker containerization for application services
 - Separate Ollama server container with LLaVA model
 - Cloud platform deployment on standard instances
@@ -224,18 +249,21 @@ motion-detector/
 ## User Experience Design
 
 ### MVP Interface Design
+
 - **Single Screen Application**: Full-screen video feed with minimal controls
 - **Ultra-Simple Controls**: Motion toggle (ON/OFF) and sensitivity slider only
 - **No Complex Features**: No user accounts, history logs, or settings pages for MVP
 - **Focus**: Perfect the core experience of motion detection → alert → AI insight
 
 ### Visual Design System
+
 - **Theme**: Dark mode with neon accent colors (cyan/purple)
 - **Typography**: Modern font (Inter or Poppins) with varied weights
 - **Layout**: Glass morphism effects with rounded corners and subtle shadows
 - **Animations**: Smooth transitions, slide-in popups, and satisfying interactions
 
 ### Interactive Elements
+
 - **Video Display**: Full-screen camera feed with subtle glow effect when motion detected
 - **Motion Toggle**: Smooth animated toggle with satisfying click feedback
 - **Sensitivity Slider**: Color-coded gradient slider (green → yellow → red)
@@ -243,12 +271,14 @@ motion-detector/
 - **AI Analysis**: Typing animation for text reveal with confidence percentage bars
 
 ### User Flow
+
 1. **Main Interface**: Live video feed with motion toggle and sensitivity slider
 2. **Motion Detection**: Instant popup alert with timestamp and dismiss button
 3. **AI Analysis**: Delayed stylish card showing LLaVA insights with confidence score
 4. **Visual Feedback**: Pulsing glow around video during motion events
 
 ### Responsive Design
+
 - **Desktop**: Full-screen immersive experience
 - **Mobile**: Touch-optimized controls with haptic feedback simulation
 - **Tablet**: Adaptive layout maintaining visual hierarchy
@@ -258,6 +288,7 @@ motion-detector/
 ### Clean Code Architecture
 
 #### Code Organization Principles
+
 - **Single Responsibility**: Each component handles one specific concern
 - **DRY (Don't Repeat Yourself)**: Shared logic in common packages
 - **Type Safety**: Strict TypeScript + Pydantic validation everywhere
@@ -265,6 +296,7 @@ motion-detector/
 - **Separation of Concerns**: Clear boundaries between UI, business logic, and data
 
 #### Monorepo Structure
+
 ```
 packages/
 ├── shared/           # Common types, constants, utilities
@@ -288,6 +320,7 @@ packages/
 ### Technical Debt Prevention
 
 #### Quality Gates
+
 - **Pre-commit Hooks**: ESLint, Prettier, TypeScript compilation, and tests
 - **100% TypeScript Strict Mode**: No `any` types allowed in production code
 - **Test Coverage**: Minimum 80% coverage for all new code
@@ -296,6 +329,7 @@ packages/
 - **Performance Budgets**: Bundle size limits and runtime performance thresholds
 
 #### Development Workflow
+
 1. **Feature Branch Development**: No direct commits to main branch
 2. **Test-Driven Development**: Write tests before implementation
 3. **Continuous Integration**: Automated testing and quality checks
@@ -305,28 +339,29 @@ packages/
 ### Reusable Component Strategy
 
 #### Frontend Patterns
+
 ```typescript
 // Base UI Components (packages/ui)
-<Toggle 
-  enabled={motionEnabled} 
-  onToggle={handleMotionToggle} 
-  variant="motion" 
+<Toggle
+  enabled={motionEnabled}
+  onToggle={handleMotionToggle}
+  variant="motion"
 />
 
-<SensitivitySlider 
-  value={sensitivity} 
+<SensitivitySlider
+  value={sensitivity}
   onChange={setSensitivity}
-  colorScheme="gradient" 
+  colorScheme="gradient"
 />
 
-<AlertPopup 
+<AlertPopup
   type="motion"
   message={alertMessage}
   timestamp={alertTime}
   onDismiss={handleDismiss}
 />
 
-<AIAnalysisCard 
+<AIAnalysisCard
   confidence={analysisConfidence}
   text={analysisText}
   timestamp={analysisTime}
@@ -334,6 +369,7 @@ packages/
 ```
 
 #### Backend Patterns
+
 ```python
 # Reusable Pydantic Models (shared schemas)
 class MotionEvent(BaseModel):
@@ -359,7 +395,9 @@ async def submit_motion_event(event: MotionEvent):
 ### Incremental Evolution Strategy
 
 #### Phase 1: MVP Foundation (Weeks 1-6)
+
 **Build Core, Avoid Over-Engineering**
+
 - Single camera motion detection component
 - Basic Zustand state management
 - Simple WebSocket service
@@ -367,14 +405,18 @@ async def submit_motion_event(event: MotionEvent):
 - Basic error handling patterns
 
 #### Phase 2: Feature Extension (Weeks 7-14)
+
 **Extend, Don't Rebuild**
+
 - Multi-camera support: Extend existing components with array-based props
 - User authentication: Add auth layer without changing core components
 - Enhanced AI analysis: Extend existing models, maintain API contracts
 - Motion history: Add data layer, reuse existing UI components
 
 #### Phase 3: Scale and Optimize (Weeks 15-20)
+
 **Planned Refactoring**
+
 - Performance optimization with profiling data
 - Advanced features using established patterns
 - Systematic refactoring based on usage patterns
@@ -383,14 +425,16 @@ async def submit_motion_event(event: MotionEvent):
 ### Anti-Patterns to Avoid
 
 #### ❌ Technical Debt Creators
+
 - **Copy-Paste Development**: Duplicating components with minor variations
 - **Hardcoded Values**: Embedding configuration directly in code
-- **God Components**: Large components handling multiple responsibilities  
+- **God Components**: Large components handling multiple responsibilities
 - **Tight Coupling**: Direct dependencies between unrelated modules
 - **Skip Type Definitions**: Using `any` or skipping Pydantic models
 - **Mixed Concerns**: Business logic embedded in UI components
 
 #### ✅ Clean Code Practices
+
 - **Configurable Base Components**: Single component with props for variations
 - **Centralized Configuration**: Environment variables and constants files
 - **Composable Architecture**: Small, focused components with clear interfaces
@@ -401,6 +445,7 @@ async def submit_motion_event(event: MotionEvent):
 ### Quality Assurance Framework
 
 #### Automated Testing Strategy
+
 - **Unit Tests**: All utility functions and business logic (Jest)
 - **Component Tests**: UI components with user interaction testing (Testing Library)
 - **Integration Tests**: API endpoints and database operations (pytest)
@@ -408,6 +453,7 @@ async def submit_motion_event(event: MotionEvent):
 - **Performance Tests**: Memory usage and motion detection latency benchmarks
 
 #### Code Quality Metrics
+
 - **Complexity Score**: Maximum cyclomatic complexity of 10 per function
 - **Duplication Rate**: Less than 5% code duplication (SonarQube analysis)
 - **Type Safety**: 100% TypeScript strict mode compliance
@@ -415,6 +461,7 @@ async def submit_motion_event(event: MotionEvent):
 - **Documentation**: 90%+ coverage of public APIs and components
 
 #### Continuous Monitoring
+
 - **Performance Metrics**: Motion detection latency, AI analysis time, WebSocket responsiveness
 - **Error Tracking**: Real-time error monitoring and alerting
 - **Usage Analytics**: Feature usage patterns to guide development priorities
@@ -423,6 +470,7 @@ async def submit_motion_event(event: MotionEvent):
 ## Development Workflow & Git Standards
 
 ### Default Implementation Process
+
 When implementing any new feature or component, follow this standard workflow:
 
 1. **Code Implementation**
@@ -431,7 +479,7 @@ When implementing any new feature or component, follow this standard workflow:
    - Follow the reusable component strategies outlined above
    - Include unit tests with minimum 80% coverage
 
-2. **Quality Assurance** 
+2. **Quality Assurance**
    - Run linting and formatting (`npm run lint`, `npm run format`)
    - Execute type checking (`npm run type-check`)
    - Run all relevant tests (`npm run test`)
@@ -451,6 +499,7 @@ When implementing any new feature or component, follow this standard workflow:
    - **Documentation**: Update relevant documentation if needed
 
 ### Commit Message Format
+
 ```
 <type>(<scope>): <description>
 
@@ -464,24 +513,29 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 **Scopes**: motion-detection, ui, websocket, api, config
 
 ### Branch Naming Convention
+
 - **Features**: `feature/motion-detection-component`
 - **Bug fixes**: `fix/websocket-reconnection`
 - **Documentation**: `docs/api-documentation`
 - **Refactoring**: `refactor/component-optimization`
 
 ### Pull Request Template
+
 ```markdown
 ## Summary
+
 - Brief description of changes
 - Key implementation details
 
 ## Test Plan
+
 - [ ] Unit tests pass
 - [ ] Integration tests pass
 - [ ] Manual testing completed
 - [ ] Performance impact assessed
 
 ## Implementation Notes
+
 - Architecture decisions made
 - Any technical debt considerations
 - Future enhancement opportunities
@@ -490,6 +544,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 ```
 
 ### Automated Quality Gates
+
 - **Pre-commit hooks** verify code quality
 - **CI/CD pipeline** runs full test suite
 - **Code coverage** must meet minimum thresholds
@@ -498,6 +553,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 - **Linting and formatting** must pass
 
 ### Default Development Rules
+
 1. **No direct commits to main branch**
 2. **All implementations include comprehensive tests**
 3. **Pull requests are the standard for all changes**
@@ -509,6 +565,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 This workflow ensures consistent, high-quality development while maintaining the clean architecture and preventing technical debt accumulation.
 
 ### Architecture Flow
+
 1. **Client Layer:** Browser/mobile detects motion → immediate local alert
 2. **Filtering Layer:** Client determines if motion is significant enough for AI analysis
 3. **Frame Transmission:** Only significant motion frames sent to backend (compressed)
@@ -517,6 +574,7 @@ This workflow ensures consistent, high-quality development while maintaining the
 6. **Notification Layer:** Enhanced alerts with AI insights sent back to client
 
 ### Frame Streaming Architecture
+
 - **Motion Detection:** Client-side only (no data transmission)
 - **Significance Filtering:** Client determines high-confidence motion events
 - **Frame Transmission:** Compressed frames (WebP/JPEG) via WebSocket for significant events only
@@ -526,6 +584,7 @@ This workflow ensures consistent, high-quality development while maintaining the
 ## System Architecture
 
 ### Service Topology
+
 - API Gateway (Nginx/Traefik) for request routing and SSL termination
 - Load Balancer for horizontal scaling of API instances
 - Message Broker (Redis) with dead letter queues for background jobs
@@ -533,6 +592,7 @@ This workflow ensures consistent, high-quality development while maintaining the
 - Service health monitoring and discovery
 
 ### Communication Patterns
+
 - Synchronous: REST APIs for motion event submission and user management
 - Asynchronous: Redis queues for LLaVA background processing
 - Real-time: WebSocket connections for sending motion events and receiving AI insights
@@ -541,12 +601,14 @@ This workflow ensures consistent, high-quality development while maintaining the
 ## Scalability Architecture
 
 ### Horizontal Scaling Strategy
+
 - API Layer: Stateless FastAPI containers behind load balancer
 - Worker Layer: Auto-scaling LLaVA processing workers
 - Database Layer: MySQL with read replicas and connection pooling
 - Cache Layer: Redis for job queues and session management
 
 ### Resource Management
+
 - LLaVA Worker Pools: Separate CPU-intensive worker containers
 - Memory Management: Frame buffering with automatic cleanup
 - Database Connection Pools: Connection limits and timeout handling
@@ -555,12 +617,14 @@ This workflow ensures consistent, high-quality development while maintaining the
 ## Data Architecture
 
 ### Data Flow Patterns
+
 - Client Streaming: Live camera feeds → client-side motion detection → events
 - Event Processing: Motion events (with frame data) sent to backend → stored as metadata
 - No File Storage: Frames processed in-memory (client + server) and discarded
 - Queue Management: Background job processing with Redis for AI analysis
 
 ### Storage Strategy
+
 - Transactional Data: MySQL for motion events metadata
 - Session Data: Redis for WebSocket connections and job queues
 - No Binary Storage: Frames exist only during processing
@@ -569,12 +633,14 @@ This workflow ensures consistent, high-quality development while maintaining the
 ## Observability Architecture
 
 ### Monitoring Stack
+
 - Metrics: Prometheus + Grafana for system metrics
 - Logging: Structured logging with log aggregation
 - Health Checks: FastAPI health endpoints for all services
 - Alerting: Critical system alerts and notifications
 
 ### Key Metrics
+
 - Motion Detection: Detection frequency, processing latency
 - LLaVA Processing: Queue depth, processing time, success rates
 - System Health: CPU/memory usage, response times, error rates
@@ -583,12 +649,14 @@ This workflow ensures consistent, high-quality development while maintaining the
 ## Reliability Architecture
 
 ### Fault Tolerance Patterns
+
 - Circuit Breakers: Protect against LLaVA model failures
 - Retry Policies: Exponential backoff for transient failures
 - Graceful Degradation: Motion detection continues without AI analysis
 - Queue Management: Dead letter queues for failed LLaVA jobs
 
 ### Recovery Mechanisms
+
 - Health Checks: Container liveness and readiness probes
 - Auto-restart: Failed workers automatically restarted
 - Memory Management: Automatic cleanup of stale frames
@@ -597,12 +665,14 @@ This workflow ensures consistent, high-quality development while maintaining the
 ## Infrastructure Architecture
 
 ### Container Orchestration
+
 - Docker containers for all services
 - Environment-specific configurations
 - Auto-scaling based on CPU and queue metrics
 - No persistent volumes needed (stateless processing)
 
 ### Security Architecture
+
 - JWT authentication with proper token management
 - Rate limiting per user/IP
 - CORS policies for web app integration
