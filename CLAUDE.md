@@ -420,6 +420,94 @@ async def submit_motion_event(event: MotionEvent):
 - **Usage Analytics**: Feature usage patterns to guide development priorities
 - **Technical Debt Assessment**: Monthly code quality reviews and refactoring planning
 
+## Development Workflow & Git Standards
+
+### Default Implementation Process
+When implementing any new feature or component, follow this standard workflow:
+
+1. **Code Implementation**
+   - Write clean, tested code following the architecture patterns
+   - Implement with proper TypeScript/Pydantic typing
+   - Follow the reusable component strategies outlined above
+   - Include unit tests with minimum 80% coverage
+
+2. **Quality Assurance** 
+   - Run linting and formatting (`npm run lint`, `npm run format`)
+   - Execute type checking (`npm run type-check`)
+   - Run all relevant tests (`npm run test`)
+   - Verify performance meets specified budgets
+
+3. **Git Operations**
+   - Create feature branch from main (`git checkout -b feature/motion-detection`)
+   - Stage and commit changes with conventional commit messages
+   - Push branch to remote repository
+   - Create pull request with comprehensive description
+
+4. **Pull Request Standards**
+   - **Title**: Clear, descriptive summary of changes
+   - **Description**: Include summary, test plan, and implementation notes
+   - **Review Requirements**: All PRs require code review before merge
+   - **CI/CD**: All automated checks must pass
+   - **Documentation**: Update relevant documentation if needed
+
+### Commit Message Format
+```
+<type>(<scope>): <description>
+
+<optional body>
+
+🤖 Generated with Claude Code
+Co-Authored-By: Claude <noreply@anthropic.com>
+```
+
+**Types**: feat, fix, docs, style, refactor, test, chore
+**Scopes**: motion-detection, ui, websocket, api, config
+
+### Branch Naming Convention
+- **Features**: `feature/motion-detection-component`
+- **Bug fixes**: `fix/websocket-reconnection`
+- **Documentation**: `docs/api-documentation`
+- **Refactoring**: `refactor/component-optimization`
+
+### Pull Request Template
+```markdown
+## Summary
+- Brief description of changes
+- Key implementation details
+
+## Test Plan
+- [ ] Unit tests pass
+- [ ] Integration tests pass
+- [ ] Manual testing completed
+- [ ] Performance impact assessed
+
+## Implementation Notes
+- Architecture decisions made
+- Any technical debt considerations
+- Future enhancement opportunities
+
+🤖 Generated with Claude Code
+```
+
+### Automated Quality Gates
+- **Pre-commit hooks** verify code quality
+- **CI/CD pipeline** runs full test suite
+- **Code coverage** must meet minimum thresholds
+- **Performance budgets** enforced automatically
+- **Security scanning** for dependencies
+- **Linting and formatting** must pass
+
+### Default Development Rules
+1. **No direct commits to main branch**
+2. **All implementations include comprehensive tests**
+3. **Pull requests are the standard for all changes**
+4. **Code review is mandatory before merge**
+5. **Documentation updates accompany feature changes**
+6. **Performance impact must be assessed and approved**
+7. **Technical debt is tracked and managed proactively**
+
+This workflow ensures consistent, high-quality development while maintaining the clean architecture and preventing technical debt accumulation.
+
 ### Architecture Flow
 1. **Client Layer:** Browser/mobile detects motion → immediate local alert
 2. **Filtering Layer:** Client determines if motion is significant enough for AI analysis
