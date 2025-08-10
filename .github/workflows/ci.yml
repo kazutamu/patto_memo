@@ -195,6 +195,109 @@ jobs:
         curl -f http://localhost:8000/health || exit 1
         docker stop api-test
 
+  # Docker Smoke Test
+  docker-smoke-test:
+    name: Docker Smoke Test
+    runs-on: ubuntu-latest
+    needs: [backend-test]
+    timeout-minutes: 15
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install root dependencies
+      run: npm ci
+
+    - name: Start services with Docker Compose
+      run: |
+        npm run dev:docker &
+        COMPOSE_PID=$!
+        echo "COMPOSE_PID=$COMPOSE_PID" >> $GITHUB_ENV
+        
+        # Wait for services to be ready
+        echo "Waiting for services to start..."
+        sleep 45
+
+    - name: Check service health
+      run: |
+        # Test API health endpoint
+        echo "Testing API health..."
+        max_attempts=10
+        attempt=0
+        while [ $attempt -lt $max_attempts ]; do
+          if curl -f http://localhost:8000/health; then
+            echo "✅ API health check passed"
+            break
+          fi
+          echo "Attempt $((attempt+1))/$max_attempts failed, retrying in 5s..."
+          sleep 5
+          attempt=$((attempt+1))
+        done
+        
+        if [ $attempt -eq $max_attempts ]; then
+          echo "❌ API health check failed after $max_attempts attempts"
+          exit 1
+        fi
+
+    - name: Test API endpoints
+      run: |
+        # Test motion events endpoint
+        echo "Testing motion events endpoint..."
+        curl -f http://localhost:8000/api/v1/motion/events || (echo "❌ Motion events endpoint failed" && exit 1)
+        echo "✅ Motion events endpoint passed"
+        
+        # Test motion settings endpoint  
+        echo "Testing motion settings endpoint..."
+        curl -f http://localhost:8000/api/v1/motion/settings || (echo "❌ Motion settings endpoint failed" && exit 1)
+        echo "✅ Motion settings endpoint passed"
+
+    - name: Test web application
+      run: |
+        # Test web app availability
+        echo "Testing web application..."
+        max_attempts=5
+        attempt=0
+        while [ $attempt -lt $max_attempts ]; do
+          if curl -f http://localhost:3000; then
+            echo "✅ Web application is accessible"
+            break
+          fi
+          echo "Attempt $((attempt+1))/$max_attempts failed, retrying in 5s..."
+          sleep 5
+          attempt=$((attempt+1))
+        done
+        
+        if [ $attempt -eq $max_attempts ]; then
+          echo "❌ Web application not accessible after $max_attempts attempts"
+          exit 1
+        fi
+
+    - name: Check Docker container logs
+      if: always()
+      run: |
+        echo "=== API Container Logs ==="
+        docker-compose -f docker/docker-compose.yml logs api || true
+        echo ""
+        echo "=== Web Container Logs ==="
+        docker-compose -f docker/docker-compose.yml logs web || true
+
+    - name: Cleanup Docker services
+      if: always()
+      run: |
+        echo "Stopping Docker services..."
+        docker-compose -f docker/docker-compose.yml down -v --remove-orphans || true
+        docker system prune -f || true
+
   # Integration Tests
   integration-test:
     name: Integration Tests
@@ -337,7 +440,7 @@ jobs:
   ci-success:
     name: CI Success
     runs-on: ubuntu-latest
-    needs: [backend-test, security-scan, npm-security, docker-build, integration-test, code-quality, build]
+    needs: [backend-test, security-scan, npm-security, docker-build, docker-smoke-test, integration-test, code-quality, build]
     if: always()
     
     steps:
@@ -357,6 +460,10 @@ jobs:
         fi
         if [[ "${{ needs.docker-build.result }}" != "success" ]]; then
           echo "❌ Docker build failed"
+          exit 1
+        fi
+        if [[ "${{ needs.docker-smoke-test.result }}" != "success" ]]; then
+          echo "❌ Docker smoke test failed"
           exit 1
         fi
         if [[ "${{ needs.integration-test.result }}" != "success" ]]; then
@@ -382,6 +489,7 @@ jobs:
         echo "- ✅ Security scans (Safety, Bandit, Semgrep)" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ NPM security audit" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ Docker build validation" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Docker smoke test (full stack)" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ Integration testing" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ Code quality checks (Black, isort, flake8)" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ Application build validation" >> $GITHUB_STEP_SUMMARY
