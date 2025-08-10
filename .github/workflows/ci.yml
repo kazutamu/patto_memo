@@ -236,13 +236,15 @@ jobs:
 
     - name: Start services with Docker Compose
       run: |
-        npm run dev:docker &
-        COMPOSE_PID=$!
-        echo "COMPOSE_PID=$COMPOSE_PID" >> $GITHUB_ENV
+        echo "Starting Docker Compose services..."
+        docker compose -f docker/docker-compose.yml up --build -d
         
         # Wait for services to be ready
         echo "Waiting for services to start..."
-        sleep 45
+        sleep 30
+        
+        echo "Checking if containers started successfully..."
+        docker compose -f docker/docker-compose.yml ps
 
     - name: Check service health
       run: |
@@ -253,7 +255,7 @@ jobs:
         
         # Check Docker Compose services status
         echo "Docker Compose services status:"
-        docker-compose -f docker/docker-compose.yml ps
+        docker compose -f docker/docker compose.yml ps
         echo ""
         
         # Test API health endpoint
@@ -274,10 +276,10 @@ jobs:
           echo "❌ API health check failed after $max_attempts attempts"
           echo ""
           echo "=== API Container Logs ==="
-          docker-compose -f docker/docker-compose.yml logs api
+          docker compose -f docker/docker compose.yml logs api
           echo ""
           echo "=== Web Container Logs ==="
-          docker-compose -f docker/docker-compose.yml logs web
+          docker compose -f docker/docker compose.yml logs web
           exit 1
         fi
 
@@ -318,16 +320,16 @@ jobs:
       if: always()
       run: |
         echo "=== API Container Logs ==="
-        docker-compose -f docker/docker-compose.yml logs api || true
+        docker compose -f docker/docker-compose.yml logs api || true
         echo ""
         echo "=== Web Container Logs ==="
-        docker-compose -f docker/docker-compose.yml logs web || true
+        docker compose -f docker/docker-compose.yml logs web || true
 
     - name: Cleanup Docker services
       if: always()
       run: |
         echo "Stopping Docker services..."
-        docker-compose -f docker/docker-compose.yml down -v --remove-orphans || true
+        docker compose -f docker/docker-compose.yml down -v --remove-orphans || true
         docker system prune -f || true
 
   # Integration Tests
