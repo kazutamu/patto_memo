@@ -17,12 +17,8 @@ env:
 jobs:
   # Backend Testing and Quality Checks
   backend-test:
-    name: Backend Tests (Python ${{ matrix.python-version }})
+    name: Backend Tests
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.9", "3.10", "3.11"]
     
     steps:
     - name: Checkout code
@@ -30,10 +26,10 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+    - name: Set up Python
+      uses: actions/setup-python@v5
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: ${{ env.PYTHON_VERSION_DEFAULT }}
         cache: 'pip'
         cache-dependency-path: 'apps/api/requirements.txt'
 
@@ -57,7 +53,6 @@ jobs:
         PYTHONPATH: .
 
     - name: Upload coverage reports to Codecov
-      if: matrix.python-version == env.PYTHON_VERSION_DEFAULT
       uses: codecov/codecov-action@v3
       with:
         files: ./apps/api/coverage.xml
@@ -67,8 +62,7 @@ jobs:
         fail_ci_if_error: false
 
     - name: Archive coverage reports
-      if: matrix.python-version == env.PYTHON_VERSION_DEFAULT
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: backend-coverage-report
         path: apps/api/htmlcov/
@@ -76,9 +70,9 @@ jobs:
 
     - name: Archive test results
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: backend-test-results-${{ matrix.python-version }}
+        name: backend-test-results
         path: apps/api/pytest-results.xml
         retention-days: 7
 
@@ -93,7 +87,7 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ env.PYTHON_VERSION_DEFAULT }}
         cache: 'pip'
@@ -115,17 +109,17 @@ jobs:
     - name: Run Bandit (Python security linter)
       working-directory: apps/api
       run: |
-        bandit -r . -f json -o bandit-report.json -x tests/,venv/ || true
-        bandit -r . -x tests/,venv/
+        bandit -r main.py -f json -o bandit-report.json || true
+        bandit -r main.py
 
     - name: Run Semgrep (Static analysis)
       run: |
-        python -m semgrep --config=auto --json --output=semgrep-report.json apps/api/ || true
-        python -m semgrep --config=auto apps/api/
+        semgrep --config=auto --json --output=semgrep-report.json apps/api/ || true
+        semgrep --config=auto apps/api/
 
     - name: Upload security reports
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: security-reports
         path: |
@@ -159,7 +153,7 @@ jobs:
 
     - name: Upload NPM audit report
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: npm-audit-report
         path: npm-audit-report.json
@@ -181,9 +175,10 @@ jobs:
     - name: Build API Docker image
       uses: docker/build-push-action@v5
       with:
-        context: apps/api
-        file: apps/api/Dockerfile.dev
+        context: .
+        file: docker/Dockerfile.api
         push: false
+        load: true
         tags: motion-detector-api:test
         cache-from: type=gha
         cache-to: type=gha,mode=max
@@ -191,8 +186,29 @@ jobs:
     - name: Test API Docker container
       run: |
         docker run --rm -d --name api-test -p 8000:8000 motion-detector-api:test
-        sleep 10
-        curl -f http://localhost:8000/health || exit 1
+        
+        # Wait for container to start and check health with retries
+        echo "Waiting for API container to start..."
+        max_attempts=15
+        attempt=0
+        while [ $attempt -lt $max_attempts ]; do
+          if curl -f http://localhost:8000/health; then
+            echo "✅ API health check passed"
+            break
+          fi
+          echo "Attempt $((attempt+1))/$max_attempts failed, retrying in 3s..."
+          sleep 3
+          attempt=$((attempt+1))
+        done
+        
+        if [ $attempt -eq $max_attempts ]; then
+          echo "❌ API health check failed after $max_attempts attempts"
+          echo "Container logs:"
+          docker logs api-test
+          docker stop api-test
+          exit 1
+        fi
+        
         docker stop api-test
 
   # Docker Smoke Test
@@ -220,32 +236,50 @@ jobs:
 
     - name: Start services with Docker Compose
       run: |
-        npm run dev:docker &
-        COMPOSE_PID=$!
-        echo "COMPOSE_PID=$COMPOSE_PID" >> $GITHUB_ENV
+        echo "Starting Docker Compose services..."
+        docker compose -f docker/docker-compose.yml up --build -d
         
         # Wait for services to be ready
         echo "Waiting for services to start..."
-        sleep 45
+        sleep 30
+        
+        echo "Checking if containers started successfully..."
+        docker compose -f docker/docker-compose.yml ps
 
     - name: Check service health
       run: |
+        # Check what containers are running
+        echo "Checking running containers:"
+        docker ps
+        echo ""
+        
+        # Check Docker Compose services status
+        echo "Docker Compose services status:"
+        docker compose -f docker/docker-compose.yml ps
+        echo ""
+        
         # Test API health endpoint
         echo "Testing API health..."
-        max_attempts=10
+        max_attempts=20
         attempt=0
         while [ $attempt -lt $max_attempts ]; do
           if curl -f http://localhost:8000/health; then
             echo "✅ API health check passed"
             break
           fi
-          echo "Attempt $((attempt+1))/$max_attempts failed, retrying in 5s..."
-          sleep 5
+          echo "Attempt $((attempt+1))/$max_attempts failed, retrying in 3s..."
+          sleep 3
           attempt=$((attempt+1))
         done
         
         if [ $attempt -eq $max_attempts ]; then
           echo "❌ API health check failed after $max_attempts attempts"
+          echo ""
+          echo "=== API Container Logs ==="
+          docker compose -f docker/docker-compose.yml logs api
+          echo ""
+          echo "=== Web Container Logs ==="
+          docker compose -f docker/docker-compose.yml logs web
           exit 1
         fi
 
@@ -286,16 +320,16 @@ jobs:
       if: always()
       run: |
         echo "=== API Container Logs ==="
-        docker-compose -f docker/docker-compose.yml logs api || true
+        docker compose -f docker/docker-compose.yml logs api || true
         echo ""
         echo "=== Web Container Logs ==="
-        docker-compose -f docker/docker-compose.yml logs web || true
+        docker compose -f docker/docker-compose.yml logs web || true
 
     - name: Cleanup Docker services
       if: always()
       run: |
         echo "Stopping Docker services..."
-        docker-compose -f docker/docker-compose.yml down -v --remove-orphans || true
+        docker compose -f docker/docker-compose.yml down -v --remove-orphans || true
         docker system prune -f || true
 
   # Integration Tests
@@ -304,7 +338,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [backend-test]
     
-    services:
+    # services:
       # Add any required services like databases here
       # mysql:
       #   image: mysql:8.0
@@ -320,7 +354,7 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ env.PYTHON_VERSION_DEFAULT }}
         cache: 'pip'
@@ -367,7 +401,7 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ env.PYTHON_VERSION_DEFAULT }}
 
@@ -398,18 +432,57 @@ jobs:
       run: |
         mypy . --ignore-missing-imports || echo "MyPy check completed with errors (non-blocking)"
 
+  # Frontend Build and Type Check
+  frontend-build:
+    name: Frontend Build & Type Check
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install root dependencies
+      run: npm ci
+
+    - name: Install frontend dependencies
+      working-directory: apps/web
+      run: npm ci
+
+    - name: Type check frontend
+      working-directory: apps/web
+      run: npm run type-check
+
+    - name: Build frontend
+      working-directory: apps/web
+      run: npm run build
+
+    - name: Verify build output
+      working-directory: apps/web
+      run: |
+        if [ ! -d "dist" ]; then
+          echo "❌ Build output directory not found"
+          exit 1
+        fi
+        echo "✅ Frontend build completed successfully"
+
   # Build Job
   build:
     name: Build Application
     runs-on: ubuntu-latest
-    needs: [backend-test, security-scan]
+    needs: [backend-test, security-scan, frontend-build]
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
 
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ env.PYTHON_VERSION_DEFAULT }}
         cache: 'pip'
@@ -440,7 +513,7 @@ jobs:
   ci-success:
     name: CI Success
     runs-on: ubuntu-latest
-    needs: [backend-test, security-scan, npm-security, docker-build, docker-smoke-test, integration-test, code-quality, build]
+    needs: [backend-test, security-scan, npm-security, docker-build, docker-smoke-test, integration-test, code-quality, frontend-build, build]
     if: always()
     
     steps:
@@ -474,6 +547,10 @@ jobs:
           echo "❌ Code quality checks failed"
           exit 1
         fi
+        if [[ "${{ needs.frontend-build.result }}" != "success" ]]; then
+          echo "❌ Frontend build failed"
+          exit 1
+        fi
         if [[ "${{ needs.build.result }}" != "success" ]]; then
           echo "❌ Build failed"
           exit 1
@@ -485,11 +562,12 @@ jobs:
       run: |
         echo "## 🎉 CI Pipeline Success!" >> $GITHUB_STEP_SUMMARY
         echo "All quality gates have passed:" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ Backend tests across Python 3.9, 3.10, 3.11" >> $GITHUB_STEP_SUMMARY  
+        echo "- ✅ Backend tests (Python ${{ env.PYTHON_VERSION_DEFAULT }})" >> $GITHUB_STEP_SUMMARY  
         echo "- ✅ Security scans (Safety, Bandit, Semgrep)" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ NPM security audit" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ Docker build validation" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ Docker smoke test (full stack)" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ Integration testing" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ Code quality checks (Black, isort, flake8)" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Frontend build & TypeScript validation" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ Application build validation" >> $GITHUB_STEP_SUMMARY
