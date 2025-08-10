@@ -398,11 +398,50 @@ jobs:
       run: |
         mypy . --ignore-missing-imports || echo "MyPy check completed with errors (non-blocking)"
 
+  # Frontend Build and Type Check
+  frontend-build:
+    name: Frontend Build & Type Check
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install root dependencies
+      run: npm ci
+
+    - name: Install frontend dependencies
+      working-directory: apps/web
+      run: npm ci
+
+    - name: Type check frontend
+      working-directory: apps/web
+      run: npm run type-check
+
+    - name: Build frontend
+      working-directory: apps/web
+      run: npm run build
+
+    - name: Verify build output
+      working-directory: apps/web
+      run: |
+        if [ ! -d "dist" ]; then
+          echo "❌ Build output directory not found"
+          exit 1
+        fi
+        echo "✅ Frontend build completed successfully"
+
   # Build Job
   build:
     name: Build Application
     runs-on: ubuntu-latest
-    needs: [backend-test, security-scan]
+    needs: [backend-test, security-scan, frontend-build]
     
     steps:
     - name: Checkout code
@@ -440,7 +479,7 @@ jobs:
   ci-success:
     name: CI Success
     runs-on: ubuntu-latest
-    needs: [backend-test, security-scan, npm-security, docker-build, docker-smoke-test, integration-test, code-quality, build]
+    needs: [backend-test, security-scan, npm-security, docker-build, docker-smoke-test, integration-test, code-quality, frontend-build, build]
     if: always()
     
     steps:
@@ -474,6 +513,10 @@ jobs:
           echo "❌ Code quality checks failed"
           exit 1
         fi
+        if [[ "${{ needs.frontend-build.result }}" != "success" ]]; then
+          echo "❌ Frontend build failed"
+          exit 1
+        fi
         if [[ "${{ needs.build.result }}" != "success" ]]; then
           echo "❌ Build failed"
           exit 1
@@ -492,4 +535,5 @@ jobs:
         echo "- ✅ Docker smoke test (full stack)" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ Integration testing" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ Code quality checks (Black, isort, flake8)" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Frontend build & TypeScript validation" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ Application build validation" >> $GITHUB_STEP_SUMMARY
