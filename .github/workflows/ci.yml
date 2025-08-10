@@ -114,8 +114,8 @@ jobs:
 
     - name: Run Semgrep (Static analysis)
       run: |
-        python -m semgrep --config=auto --json --output=semgrep-report.json apps/api/ || true
-        python -m semgrep --config=auto apps/api/
+        semgrep --config=auto --json --output=semgrep-report.json apps/api/ || true
+        semgrep --config=auto apps/api/
 
     - name: Upload security reports
       if: always()
