@@ -1,0 +1,21 @@
+[flake8]
+max-line-length = 88
+max-complexity = 10
+extend-ignore = 
+    # E203: Whitespace before ':' (conflicts with black)
+    E203,
+    # W503: Line break occurred before a binary operator (conflicts with black)
+    W503,
+    # E501: Line too long (handled by black)
+    E501
+exclude = 
+    venv,
+    __pycache__,
+    .pytest_cache,
+    htmlcov,
+    build,
+    dist,
+    .git
+per-file-ignores =
+    # Allow unused imports in __init__.py files
+    __init__.py:F401

@@ -5,10 +5,11 @@ This document outlines the comprehensive testing strategy for the Motion Detecto
 ## Overview
 
 The testing setup includes:
-- **Frontend Testing**: Vitest + React Testing Library
-- **Backend Testing**: pytest + FastAPI TestClient
-- **CI/CD Pipeline**: GitHub Actions with automated quality gates
-- **Coverage Reporting**: Code coverage for both frontend and backend
+- **Backend Testing**: pytest + FastAPI TestClient with comprehensive coverage
+- **CI/CD Pipeline**: GitHub Actions with automated quality gates and security scanning
+- **Coverage Reporting**: Code coverage with 80% minimum requirement
+- **Security Scanning**: Dependency vulnerability scanning and static analysis
+- **Code Quality**: Automated linting, formatting, and type checking
 
 ## Quick Start
 
@@ -22,8 +23,15 @@ npm test
 # Run tests with coverage
 npm run test:coverage
 
-# Run tests in watch mode (frontend only)
-npm run test:watch
+# Run linting and formatting
+npm run lint
+npm run format
+
+# Run security scans
+npm run security:scan
+
+# Full CI check (tests + linting + security + build)
+npm run ci:check
 ```
 
 ## Frontend Testing (React/TypeScript)
@@ -140,29 +148,34 @@ def test_create_invalid_event(client):
 ## GitHub Actions CI/CD Pipeline
 
 ### Pipeline Structure
-The CI/CD pipeline runs on every pull request and push to main:
+The CI/CD pipeline (`.github/workflows/ci.yml`) runs on every pull request and push to main with the following jobs:
 
-1. **Frontend Job**: Type checking, testing, building
-2. **Backend Job**: Testing across Python versions (3.9, 3.10, 3.11)
-3. **Integration Job**: End-to-end API testing
-4. **Security Job**: Dependency auditing and security checks
-5. **Build Job**: Docker image building and testing
-6. **PR Check**: Final status aggregation
+1. **Backend Testing**: Comprehensive test suite across Python 3.9, 3.10, 3.11
+2. **Security Scanning**: Multi-layered security analysis (Safety, Bandit, Semgrep)
+3. **NPM Security**: Dependency vulnerability scanning for Node packages
+4. **Docker Build**: Container build validation and testing
+5. **Integration Testing**: End-to-end API validation with live services
+6. **Code Quality**: Linting, formatting, and type checking (Black, isort, flake8)
+7. **Build Validation**: Application startup and import validation
+8. **CI Success**: Final status aggregation and quality gate enforcement
 
 ### Quality Gates
-- ✅ All tests must pass
-- ✅ Type checking must pass
-- ✅ Build must succeed
-- ✅ Security scans must complete
-- ✅ Integration tests must pass
+- ✅ **Backend Tests**: 302+ test cases across Python 3.9, 3.10, 3.11
+- ✅ **Code Coverage**: 80% minimum requirement with detailed reporting
+- ✅ **Security Scanning**: Safety (dependencies), Bandit (code), Semgrep (static analysis)
+- ✅ **Code Quality**: Black formatting, isort imports, flake8 linting compliance
+- ✅ **Docker Build**: Container builds and runs successfully
+- ✅ **Integration Tests**: Live API endpoint validation
+- ✅ **NPM Security**: No high/critical vulnerabilities in dependencies
 
 ### Pipeline Features
-- **Parallel Execution**: Frontend and backend tests run simultaneously
-- **Matrix Testing**: Backend tests across multiple Python versions
-- **Coverage Reporting**: Codecov integration for coverage tracking
-- **Artifact Generation**: Deployment summaries and build artifacts
-- **Security Scanning**: npm audit, safety (Python), secret detection
-- **Docker Testing**: Container build validation
+- **Parallel Execution**: Multiple jobs run simultaneously for faster feedback
+- **Matrix Testing**: Backend tests across Python 3.9, 3.10, 3.11 versions
+- **Security Multi-Layer**: Safety, Bandit, Semgrep, and npm audit scanning
+- **Coverage Reporting**: Codecov integration with HTML artifact generation
+- **Artifact Management**: Test results, coverage reports, security scan results
+- **Docker Validation**: Container build testing with health checks
+- **Quality Enforcement**: All checks must pass before merge approval
 
 ## Test Configuration Files
 
