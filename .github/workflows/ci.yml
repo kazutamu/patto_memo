@@ -246,22 +246,38 @@ jobs:
 
     - name: Check service health
       run: |
+        # Check what containers are running
+        echo "Checking running containers:"
+        docker ps
+        echo ""
+        
+        # Check Docker Compose services status
+        echo "Docker Compose services status:"
+        docker-compose -f docker/docker-compose.yml ps
+        echo ""
+        
         # Test API health endpoint
         echo "Testing API health..."
-        max_attempts=10
+        max_attempts=20
         attempt=0
         while [ $attempt -lt $max_attempts ]; do
           if curl -f http://localhost:8000/health; then
             echo "✅ API health check passed"
             break
           fi
-          echo "Attempt $((attempt+1))/$max_attempts failed, retrying in 5s..."
-          sleep 5
+          echo "Attempt $((attempt+1))/$max_attempts failed, retrying in 3s..."
+          sleep 3
           attempt=$((attempt+1))
         done
         
         if [ $attempt -eq $max_attempts ]; then
           echo "❌ API health check failed after $max_attempts attempts"
+          echo ""
+          echo "=== API Container Logs ==="
+          docker-compose -f docker/docker-compose.yml logs api
+          echo ""
+          echo "=== Web Container Logs ==="
+          docker-compose -f docker/docker-compose.yml logs web
           exit 1
         fi
 
