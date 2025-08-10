@@ -15,10 +15,10 @@ motion-detector/
 │   ├── mobile/               # Mobile application → See apps/mobile/CLAUDE.md
 │   └── api/                  # Backend API server → See apps/api/CLAUDE.md
 ├── packages/                 # Shared packages/libraries
-│   ├── shared/               # Shared utilities, types → See packages/shared/CLAUDE.md
-│   ├── ui/                   # UI components → See packages/ui/CLAUDE.md
-│   └── config/               # Configurations → See packages/config/CLAUDE.md
-├── docs/                     # Documentation → See docs/CLAUDE.md
+│   ├── shared/               # Shared utilities, types
+│   ├── ui/                   # UI components
+│   └── config/               # Configurations
+├── docs/                     # Documentation
 ├── scripts/                  # Build/deployment scripts → See scripts/CLAUDE.md
 ├── docker/                   # Docker configurations → See docker/CLAUDE.md
 └── .github/                  # GitHub workflows
@@ -32,17 +32,16 @@ motion-detector/
 - **[API Backend](apps/api/CLAUDE.md)** - FastAPI, Pydantic, LLaVA integration, WebSocket
 - **[Mobile App](apps/mobile/CLAUDE.md)** - React Native, native modules, mobile optimization
 
-### Shared Package Guidelines
-
-- **[Shared Utilities](packages/shared/CLAUDE.md)** - Types, constants, utilities, validation
-- **[UI Components](packages/ui/CLAUDE.md)** - Design system, components, animations
-- **[Configuration](packages/config/CLAUDE.md)** - Build configs, environments, tooling
-
 ### Infrastructure & Operations
 
-- **[Documentation](docs/CLAUDE.md)** - Documentation standards, API specs, architecture
 - **[Docker & Deployment](docker/CLAUDE.md)** - Containerization, deployment strategies
 - **[Scripts & Automation](scripts/CLAUDE.md)** - Build scripts, deployment, maintenance
+
+### Shared Packages
+
+- **Shared Utilities** (`packages/shared/`) - Common types, constants, utilities, validation
+- **UI Components** (`packages/ui/`) - Design system, components, animations  
+- **Configuration** (`packages/config/`) - Build configs, environments, tooling
 
 ## Core Development Commands
 
@@ -61,7 +60,7 @@ motion-detector/
 
 ### Quality Assurance
 
-- `npm run lint` - Run linting (config: [packages/config/CLAUDE.md](packages/config/CLAUDE.md))
+- `npm run lint` - Run linting (config in `packages/config/`)
 - `npm run type-check` - Run TypeScript type checking
 - `npm run test:e2e` - Run end-to-end tests
 
@@ -75,7 +74,7 @@ motion-detector/
 ### Code Quality Standards
 - **TypeScript**: Strict mode enabled across all applications
 - **Testing**: 80% minimum coverage requirement  
-- **Linting**: ESLint + Prettier configurations (see [packages/config/CLAUDE.md](packages/config/CLAUDE.md))
+- **Linting**: ESLint + Prettier configurations (in `packages/config/`)
 - **Commits**: Conventional commit format
 
 ### Naming Conventions (Project-Wide)
@@ -85,9 +84,9 @@ motion-detector/
 - **Constants**: UPPER_SNAKE_CASE (`MAX_DETECTION_THRESHOLD`)
 
 ### Architecture Patterns
-- **Frontend**: Component-driven development (see [packages/ui/CLAUDE.md](packages/ui/CLAUDE.md))
+- **Frontend**: Component-driven development (see [apps/web/CLAUDE.md](apps/web/CLAUDE.md))
 - **Backend**: Pydantic models for all data validation (see [apps/api/CLAUDE.md](apps/api/CLAUDE.md))
-- **Shared**: Type-safe utilities and constants (see [packages/shared/CLAUDE.md](packages/shared/CLAUDE.md))
+- **Shared**: Type-safe utilities and constants (in `packages/shared/`)
 
 ## Technology Stack Overview
 
@@ -121,7 +120,7 @@ Environment variables and configuration are managed per application and package:
 
 - **Web App Environment**: See [apps/web/CLAUDE.md](apps/web/CLAUDE.md) for `VITE_*` variables
 - **API Server Environment**: See [apps/api/CLAUDE.md](apps/api/CLAUDE.md) for database, JWT, Ollama config
-- **Configuration Management**: See [packages/config/CLAUDE.md](packages/config/CLAUDE.md) for environment handling
+- **Configuration Management**: Build configs and environment handling in `packages/config/`
 
 ## System Architecture Summary
 
