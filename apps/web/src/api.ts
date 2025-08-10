@@ -1,0 +1,56 @@
+import { MotionEvent, MotionEventCreate, MotionSettings } from './types';
+
+const API_BASE_URL = '/api/v1';
+
+class ApiError extends Error {
+  constructor(public status: number, message: string) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
+async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
+  const url = `${API_BASE_URL}${endpoint}`;
+  
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...options?.headers,
+      },
+      ...options,
+    });
+
+    if (!response.ok) {
+      throw new ApiError(response.status, `HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    throw new ApiError(0, `Network error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+export const api = {
+  // Get motion events
+  getMotionEvents: async (limit?: number): Promise<MotionEvent[]> => {
+    const params = limit ? `?limit=${limit}` : '';
+    return request<MotionEvent[]>(`/motion/events${params}`);
+  },
+
+  // Create a new motion event
+  createMotionEvent: async (event: MotionEventCreate): Promise<MotionEvent> => {
+    return request<MotionEvent>('/motion/events', {
+      method: 'POST',
+      body: JSON.stringify(event),
+    });
+  },
+
+  // Get motion detection settings
+  getMotionSettings: async (): Promise<MotionSettings> => {
+    return request<MotionSettings>('/motion/settings');
+  },
+};
