@@ -1,6 +1,7 @@
-from fastapi import FastAPI
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import Any, Dict, List
+
+from fastapi import FastAPI
 from pydantic import BaseModel
 
 app = FastAPI()
