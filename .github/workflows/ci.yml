@@ -178,6 +178,7 @@ jobs:
         context: .
         file: docker/Dockerfile.api
         push: false
+        load: true
         tags: motion-detector-api:test
         cache-from: type=gha
         cache-to: type=gha,mode=max
