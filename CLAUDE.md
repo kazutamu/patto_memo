@@ -1,680 +1,180 @@
 # Motion Detector - Development Guidelines
 
-## Project Structure
+## Overview
 
-This project follows a monorepo structure with the following organization:
+This is the main development guidelines file for the Motion Detector project. For detailed guidelines specific to each part of the system, see the distributed CLAUDE.md files in each directory.
+
+## Project Structure & Documentation
+
+This project follows a monorepo structure with distributed documentation:
 
 ```
 motion-detector/
 ├── apps/                     # Application packages
-│   ├── web/                  # Frontend web application
-│   ├── mobile/               # Mobile application (future)
-│   └── api/                  # Backend API server
+│   ├── web/                  # Frontend web application → See apps/web/CLAUDE.md
+│   ├── mobile/               # Mobile application → See apps/mobile/CLAUDE.md
+│   └── api/                  # Backend API server → See apps/api/CLAUDE.md
 ├── packages/                 # Shared packages/libraries
-│   ├── shared/               # Shared utilities, types, constants
-│   ├── ui/                   # Shared UI components
-│   └── config/               # Shared configurations
+│   ├── shared/               # Shared utilities, types
+│   ├── ui/                   # UI components
+│   └── config/               # Configurations
 ├── docs/                     # Documentation
-├── scripts/                  # Build/deployment scripts
-├── docker/                   # Docker configurations
+├── scripts/                  # Build/deployment scripts → See scripts/CLAUDE.md
+├── docker/                   # Docker configurations → See docker/CLAUDE.md
 └── .github/                  # GitHub workflows
 ```
 
-## Development Commands
+## Quick Reference
 
-### Setup
+### Application-Specific Guidelines
+
+- **[Web Frontend](apps/web/CLAUDE.md)** - React, Vite, motion detection, UI/UX design
+- **[API Backend](apps/api/CLAUDE.md)** - FastAPI, Pydantic, LLaVA integration, WebSocket
+- **[Mobile App](apps/mobile/CLAUDE.md)** - React Native, native modules, mobile optimization
+
+### Infrastructure & Operations
+
+- **[Docker & Deployment](docker/CLAUDE.md)** - Containerization, deployment strategies
+- **[Scripts & Automation](scripts/CLAUDE.md)** - Build scripts, deployment, maintenance
+
+### Shared Packages
+
+- **Shared Utilities** (`packages/shared/`) - Common types, constants, utilities, validation
+- **UI Components** (`packages/ui/`) - Design system, components, animations  
+- **Configuration** (`packages/config/`) - Build configs, environments, tooling
+
+## Core Development Commands
+
+### Quick Start
 
 - `npm install` - Install all dependencies
-- `npm run setup` - Initial project setup
-
-### Development
-
+- `npm run setup` - Initial project setup (see [scripts/CLAUDE.md](scripts/CLAUDE.md))
 - `npm run dev` - Start all development servers
-- `npm run dev:web` - Start React web app
-- `npm run dev:api` - Start FastAPI server
 
-### Build & Test
+### Development Workflow
 
-- `npm run build` - Build all applications
-- `npm run test` - Run all tests
-- `npm run lint` - Run linting
+- `npm run dev:web` - Start React web app (details: [apps/web/CLAUDE.md](apps/web/CLAUDE.md))
+- `npm run dev:api` - Start FastAPI server (details: [apps/api/CLAUDE.md](apps/api/CLAUDE.md))
+- `npm run build` - Build all applications (details: [scripts/CLAUDE.md](scripts/CLAUDE.md))
+- `npm run test` - Run all tests (details: [scripts/CLAUDE.md](scripts/CLAUDE.md))
+
+### Quality Assurance
+
+- `npm run lint` - Run linting (config in `packages/config/`)
 - `npm run type-check` - Run TypeScript type checking
+- `npm run test:e2e` - Run end-to-end tests
 
 ### Deployment
 
-- `npm run deploy:staging` - Deploy to staging
-- `npm run deploy:prod` - Deploy to production
+- `npm run deploy:staging` - Deploy to staging (details: [docker/CLAUDE.md](docker/CLAUDE.md))
+- `npm run deploy:prod` - Deploy to production (details: [docker/CLAUDE.md](docker/CLAUDE.md))
+
+## Cross-Cutting Standards
+
+### Code Quality Standards
+- **TypeScript**: Strict mode enabled across all applications
+- **Testing**: 80% minimum coverage requirement  
+- **Linting**: ESLint + Prettier configurations (in `packages/config/`)
+- **Commits**: Conventional commit format
+
+### Naming Conventions (Project-Wide)
+- **Files**: kebab-case (`motion-detector.ts`)
+- **Components**: PascalCase (`MotionDetector.tsx`) 
+- **Variables/Functions**: camelCase (`detectMotion`)
+- **Constants**: UPPER_SNAKE_CASE (`MAX_DETECTION_THRESHOLD`)
+
+### Architecture Patterns
+- **Frontend**: Component-driven development (see [apps/web/CLAUDE.md](apps/web/CLAUDE.md))
+- **Backend**: Pydantic models for all data validation (see [apps/api/CLAUDE.md](apps/api/CLAUDE.md))
+- **Shared**: Type-safe utilities and constants (in `packages/shared/`)
+
+## Technology Stack Overview
+
+### Frontend Stack
+- **Framework**: React with TypeScript
+- **Build**: Vite with modern tooling
+- **Styling**: CSS Modules with dark theme design system
+- **Motion Detection**: Browser-based OpenCV.js/MediaPipe
+- **Details**: See [apps/web/CLAUDE.md](apps/web/CLAUDE.md)
+
+### Backend Stack  
+- **Framework**: FastAPI with Python 3.9+
+- **Database**: MySQL with SQLAlchemy
+- **AI Integration**: LLaVA via Ollama for scene analysis
+- **Validation**: Pydantic models for all data schemas
+- **Details**: See [apps/api/CLAUDE.md](apps/api/CLAUDE.md)
+
+### Mobile Stack (Future)
+- **Framework**: React Native with TypeScript
+- **Details**: See [apps/mobile/CLAUDE.md](apps/mobile/CLAUDE.md)
+
+### Infrastructure
+- **Monorepo**: npm workspaces
+- **Containerization**: Docker with multi-stage builds
+- **Deployment**: Kubernetes & Docker Compose
+- **Details**: See [docker/CLAUDE.md](docker/CLAUDE.md)
+
+## Environment Configuration
+
+Environment variables and configuration are managed per application and package:
+
+- **Web App Environment**: See [apps/web/CLAUDE.md](apps/web/CLAUDE.md) for `VITE_*` variables
+- **API Server Environment**: See [apps/api/CLAUDE.md](apps/api/CLAUDE.md) for database, JWT, Ollama config
+- **Configuration Management**: Build configs and environment handling in `packages/config/`
+
+## System Architecture Summary
+
+### Motion Detection Flow
+1. **Client-Side Detection**: Browser/mobile detects motion → immediate local alert
+2. **Significance Filtering**: Client determines high-confidence events for AI analysis  
+3. **Frame Transmission**: Only significant frames sent to backend (compressed)
+4. **AI Processing**: LLaVA via Ollama analyzes frames → generates descriptions
+5. **Enhanced Alerts**: AI insights sent back to client via WebSocket
+
+### Database & API Design
+- **Database Management**: Alembic migrations, snake_case conventions
+- **API Standards**: RESTful `/api/v1/` endpoints with Pydantic validation
+- **Real-time**: WebSocket for motion events and AI analysis results
+- **Details**: See [apps/api/CLAUDE.md](apps/api/CLAUDE.md)
+
+### Security & Performance
+- **Authentication**: JWT with refresh tokens, bcrypt password hashing
+- **Performance**: Client-side filtering reduces AI analysis to ~5-10% of events
+- **Bandwidth**: WebP compression reduces transmission by 80-90%
+- **Details**: See [apps/api/CLAUDE.md](apps/api/CLAUDE.md) and [docker/CLAUDE.md](docker/CLAUDE.md)
+
+## Cross-Cutting Standards
+
+### Code Quality
+- **TypeScript**: Strict mode everywhere, no `any` types in production
+- **Testing**: 80% minimum coverage across all applications
+- **Commits**: Conventional format with Claude Code attribution
+- **Reviews**: All changes require peer review before merge
+
+### Git Workflow
+- **Branch Strategy**: Feature branches from main, no direct commits
+- **Pull Requests**: Automated quality gates must pass
+- **Quality Standards**: Pre-commit hooks, CI/CD pipeline, coverage requirements
+
+## Key Principles
+
+### Architecture Principles
+- **Client-Side Processing**: Motion detection happens in browser/mobile
+- **Selective AI Analysis**: Only significant events (~5-10%) sent for AI processing  
+- **Event-Driven**: Real-time WebSocket communication for alerts and AI insights
+- **Scalable Design**: Stateless services, horizontal scaling, efficient resource usage
+
+### Development Principles
+- **Type Safety**: TypeScript + Pydantic validation throughout
+- **Component Reusability**: Shared UI components and utilities
+- **Clean Architecture**: Clear separation of concerns, dependency injection
+- **Performance First**: Client-side filtering, compression, efficient processing
 
-## Code Standards
+## Getting Started
 
-### General
+1. **Read This Overview**: Understand the distributed documentation structure
+2. **Choose Your Focus**: Navigate to specific CLAUDE.md files for detailed guidance
+3. **Setup Environment**: Use [scripts/CLAUDE.md](scripts/CLAUDE.md) for development setup
+4. **Follow Standards**: Apply the cross-cutting standards throughout development
 
-- Use TypeScript for all code
-- Follow ESLint and Prettier configurations
-- Write tests for all new features
-- Use conventional commits
-
-### Python Backend Standards
-
-- Use Pydantic models for all data validation and serialization
-- Define clear request/response schemas for all API endpoints
-- Use Pydantic BaseModel for configuration and settings
-- Implement custom validators for domain-specific validation
-- Use Pydantic's Field() for additional constraints and documentation
-
-### Naming Conventions
-
-- Files: kebab-case (`motion-detector.ts`)
-- Components: PascalCase (`MotionDetector.tsx`)
-- CSS Modules: kebab-case (`motion-detector.module.css`)
-- Variables/Functions: camelCase (`detectMotion`)
-- CSS Classes: kebab-case (`motion-container`, `alert-badge`)
-- Constants: UPPER_SNAKE_CASE (`MAX_DETECTION_THRESHOLD`)
-
-### Import Organization
-
-1. External libraries
-2. Internal packages (`@motion-detector/shared`)
-3. Relative imports
-
-## Technology Stack
-
-### Frontend (apps/web)
-
-- Framework: React with TypeScript
-- Styling: CSS Modules with modern design system
-- State Management: Zustand for simple state management
-- Build Tool: Vite
-- Motion Detection: Browser-based OpenCV.js or MediaPipe
-- Video Processing: WebRTC for camera access and frame analysis
-- UI Design: Dark theme with glass morphism and smooth animations
-
-### Backend (apps/api)
-
-- Runtime: Python 3.9+
-- Framework: FastAPI
-- Database: MySQL with SQLAlchemy
-- Data Validation: Pydantic for all API models and data schemas
-- Authentication: JWT
-- Video Processing: Lightweight frame processing utilities
-- Scene Analysis: LLaVA via Ollama for batch processing
-- ML Framework: Ollama API client for LLaVA integration
-- Background Processing: Celery/RQ for async LLaVA analysis
-
-### Mobile (apps/mobile) - Future
-
-- Framework: React Native with TypeScript
-- Navigation: React Navigation
-
-### Shared (packages/)
-
-- Monorepo: npm workspaces
-- Package Manager: npm
-- Testing: Jest + Testing Library (Frontend), pytest (Backend)
-
-## Environment Variables
-
-### Web App
-
-- `VITE_API_URL` - API base URL
-- `VITE_WS_URL` - WebSocket URL for real-time updates
-- `VITE_MOTION_SENSITIVITY` - Default motion detection sensitivity (0.1-1.0)
-- `VITE_DETECTION_INTERVAL` - Frame analysis interval (ms)
-- `VITE_SIGNIFICANCE_THRESHOLD` - Threshold for triggering AI analysis (0.1-1.0)
-- `VITE_AI_ANALYSIS_RATE` - Max AI analysis requests per minute
-- `VITE_FRAME_COMPRESSION_QUALITY` - WebP compression quality (0.1-1.0)
-- `VITE_ENABLE_WEBWORKERS` - Enable WebWorkers for heavy processing
-- `VITE_ENABLE_ANIMATIONS` - Enable UI animations and effects
-- `VITE_THEME_MODE` - UI theme (dark/light, default: dark)
-
-### API Server
-
-- `DATABASE_URL` - MySQL connection string
-- `JWT_SECRET` - JWT signing secret
-- `PORT` - Server port (default: 8000)
-- `ENVIRONMENT` - Environment (development/staging/production)
-- `ALLOWED_ORIGINS` - CORS allowed origins
-- `OLLAMA_API_URL` - Ollama server API endpoint (default: http://localhost:11434)
-- `OLLAMA_MODEL` - LLaVA model name in Ollama (e.g., llava:7b, llava:13b)
-- `OLLAMA_TIMEOUT` - API request timeout for LLaVA analysis
-
-## Database
-
-### Schema Management
-
-- Use Alembic for database migrations
-- Run `alembic revision --autogenerate -m "description"` for new migrations
-- Run `alembic upgrade head` to apply migrations
-
-### Conventions
-
-- Table names: snake_case plural (`motion_events`)
-- Column names: snake_case (`created_at`)
-- Foreign keys: `{table}_id` (`user_id`)
-
-## API Design
-
-### REST Endpoints
-
-- Use RESTful conventions
-- Prefix with `/api/v1/`
-- Use proper HTTP status codes
-- Pydantic models for all request/response validation
-- Auto-generated OpenAPI schema from Pydantic models
-- Type-safe JSON serialization/deserialization
-
-### Real-time Features
-
-- Use WebSocket for live motion detection updates
-- Implement FastAPI WebSocket endpoints
-- Pydantic models for WebSocket message validation
-- Type-safe WebSocket event serialization
-- Handle connection management and reconnection logic
-
-## Security
-
-### Authentication
-
-- Use JWT tokens with proper expiration
-- Implement refresh token rotation
-- Secure password hashing with bcrypt
-
-### Data Protection
-
-- Pydantic validation for all inputs (automatic)
-- Use parameterized queries with SQLAlchemy
-- Implement rate limiting
-- Set proper CORS policies
-- Field-level validation and sanitization with Pydantic
-- Custom validators for motion detection data
-
-## Motion Detection Specific
-
-### Core Features
-
-- Client-side motion detection using webcam and mobile cameras
-- Browser-based real-time motion analysis (OpenCV.js/MediaPipe)
-- Event-driven architecture (motion events sent to backend)
-- LLaVA-powered intelligent scene analysis (server-side batch processing)
-- Natural language event descriptions and summaries
-- Configurable detection sensitivity and thresholds (client-side)
-- Event recording with AI-generated detailed analysis
-- Two-tier alert system: immediate client alerts + server AI analysis
-- Cross-platform browser and mobile support
-- Modern, stylish user interface with dark theme and animations
-
-### Performance
-
-- Client-side motion detection eliminates server processing load
-- Significance filtering reduces AI analysis to ~5-10% of motion events
-- Efficient browser-based frame processing (WebWorkers for heavy operations)
-- Compressed frame transmission (WebP/JPEG) reduces bandwidth by 80-90%
-- Event-driven backend processing (only significant motion events)
-- Background job queue for LLaVA analysis (non-blocking)
-- Ollama API calls for LLaVA inference (offloaded processing)
-- Intelligent batching of significant frames for AI efficiency
-- Cache Ollama API results to reduce redundant analysis
-- Optimize database queries with proper indexing
-- Use Redis for job queuing and caching model results
-
-### Camera Integration
-
-- WebRTC for browser-based webcam access
-- Mobile camera API integration
-- Real-time frame streaming via WebSocket
-- Support for multiple simultaneous camera feeds
-
-### LLaVA Integration via Ollama
-
-- Background processing architecture with job queues
-- Ollama server setup and model management
-- HTTP API client for LLaVA inference requests
-- Pydantic models for Ollama request/response validation
-- Efficient prompt engineering for scene analysis
-- Frame preprocessing and base64 encoding for API
-- Result parsing and confidence scoring with Pydantic
-- Fallback mechanisms for Ollama server failures
-- Connection pooling and timeout handling
-- Processing priority queue (recent events first)
-
-### Deployment
-
-- Docker containerization for application services
-- Separate Ollama server container with LLaVA model
-- Cloud platform deployment on standard instances
-- Ollama model management and version control
-- Environment-specific configurations
-- CI/CD pipeline integration with Ollama health checks
-
-## User Experience Design
-
-### MVP Interface Design
-
-- **Single Screen Application**: Full-screen video feed with minimal controls
-- **Ultra-Simple Controls**: Motion toggle (ON/OFF) and sensitivity slider only
-- **No Complex Features**: No user accounts, history logs, or settings pages for MVP
-- **Focus**: Perfect the core experience of motion detection → alert → AI insight
-
-### Visual Design System
-
-- **Theme**: Dark mode with neon accent colors (cyan/purple)
-- **Typography**: Modern font (Inter or Poppins) with varied weights
-- **Layout**: Glass morphism effects with rounded corners and subtle shadows
-- **Animations**: Smooth transitions, slide-in popups, and satisfying interactions
-
-### Interactive Elements
-
-- **Video Display**: Full-screen camera feed with subtle glow effect when motion detected
-- **Motion Toggle**: Smooth animated toggle with satisfying click feedback
-- **Sensitivity Slider**: Color-coded gradient slider (green → yellow → red)
-- **Alert Popups**: Modern card-based notifications with smooth animations
-- **AI Analysis**: Typing animation for text reveal with confidence percentage bars
-
-### User Flow
-
-1. **Main Interface**: Live video feed with motion toggle and sensitivity slider
-2. **Motion Detection**: Instant popup alert with timestamp and dismiss button
-3. **AI Analysis**: Delayed stylish card showing LLaVA insights with confidence score
-4. **Visual Feedback**: Pulsing glow around video during motion events
-
-### Responsive Design
-
-- **Desktop**: Full-screen immersive experience
-- **Mobile**: Touch-optimized controls with haptic feedback simulation
-- **Tablet**: Adaptive layout maintaining visual hierarchy
-
-## Implementation Strategy
-
-### Clean Code Architecture
-
-#### Code Organization Principles
-
-- **Single Responsibility**: Each component handles one specific concern
-- **DRY (Don't Repeat Yourself)**: Shared logic in common packages
-- **Type Safety**: Strict TypeScript + Pydantic validation everywhere
-- **Configuration Driven**: No hardcoded values, use environment variables
-- **Separation of Concerns**: Clear boundaries between UI, business logic, and data
-
-#### Monorepo Structure
-
-```
-packages/
-├── shared/           # Common types, constants, utilities
-│   ├── types/        # TypeScript interfaces and types
-│   ├── constants/    # Application constants
-│   └── utils/        # Shared utility functions
-├── ui/               # Reusable UI components
-│   ├── components/   # Base components (Toggle, Slider, Button)
-│   ├── hooks/        # Custom React hooks
-│   └── styles/       # Shared CSS modules and themes
-├── motion-core/      # Motion detection logic
-│   ├── detection/    # OpenCV.js/MediaPipe integration
-│   ├── analysis/     # Motion analysis algorithms
-│   └── filtering/    # Significance filtering logic
-└── websocket/        # WebSocket communication service
-    ├── client/       # WebSocket client implementation
-    ├── events/       # Event type definitions
-    └── handlers/     # Message handlers
-```
-
-### Technical Debt Prevention
-
-#### Quality Gates
-
-- **Pre-commit Hooks**: ESLint, Prettier, TypeScript compilation, and tests
-- **100% TypeScript Strict Mode**: No `any` types allowed in production code
-- **Test Coverage**: Minimum 80% coverage for all new code
-- **Code Review**: All changes require peer review before merge
-- **Automated Dependency Updates**: Weekly dependency freshness checks
-- **Performance Budgets**: Bundle size limits and runtime performance thresholds
-
-#### Development Workflow
-
-1. **Feature Branch Development**: No direct commits to main branch
-2. **Test-Driven Development**: Write tests before implementation
-3. **Continuous Integration**: Automated testing and quality checks
-4. **Performance Monitoring**: Real-time metrics from day one
-5. **Regular Refactoring**: Scheduled technical debt assessment and cleanup
-
-### Reusable Component Strategy
-
-#### Frontend Patterns
-
-```typescript
-// Base UI Components (packages/ui)
-<Toggle
-  enabled={motionEnabled}
-  onToggle={handleMotionToggle}
-  variant="motion"
-/>
-
-<SensitivitySlider
-  value={sensitivity}
-  onChange={setSensitivity}
-  colorScheme="gradient"
-/>
-
-<AlertPopup
-  type="motion"
-  message={alertMessage}
-  timestamp={alertTime}
-  onDismiss={handleDismiss}
-/>
-
-<AIAnalysisCard
-  confidence={analysisConfidence}
-  text={analysisText}
-  timestamp={analysisTime}
-/>
-```
-
-#### Backend Patterns
-
-```python
-# Reusable Pydantic Models (shared schemas)
-class MotionEvent(BaseModel):
-    timestamp: datetime
-    confidence: float = Field(ge=0.0, le=1.0)
-    analysis: Optional[str] = None
-    camera_id: str
-    significance_score: float
-
-class MotionConfig(BaseModel):
-    sensitivity: float = Field(ge=0.1, le=1.0)
-    significance_threshold: float = Field(ge=0.1, le=1.0)
-    ai_analysis_enabled: bool = True
-
-# Reusable Decorators and Middleware
-@validate_motion_data
-@rate_limit_by_user
-@log_performance
-async def submit_motion_event(event: MotionEvent):
-    pass
-```
-
-### Incremental Evolution Strategy
-
-#### Phase 1: MVP Foundation (Weeks 1-6)
-
-**Build Core, Avoid Over-Engineering**
-
-- Single camera motion detection component
-- Basic Zustand state management
-- Simple WebSocket service
-- Essential UI components only
-- Basic error handling patterns
-
-#### Phase 2: Feature Extension (Weeks 7-14)
-
-**Extend, Don't Rebuild**
-
-- Multi-camera support: Extend existing components with array-based props
-- User authentication: Add auth layer without changing core components
-- Enhanced AI analysis: Extend existing models, maintain API contracts
-- Motion history: Add data layer, reuse existing UI components
-
-#### Phase 3: Scale and Optimize (Weeks 15-20)
-
-**Planned Refactoring**
-
-- Performance optimization with profiling data
-- Advanced features using established patterns
-- Systematic refactoring based on usage patterns
-- Scalability improvements with clear migration paths
-
-### Anti-Patterns to Avoid
-
-#### ❌ Technical Debt Creators
-
-- **Copy-Paste Development**: Duplicating components with minor variations
-- **Hardcoded Values**: Embedding configuration directly in code
-- **God Components**: Large components handling multiple responsibilities
-- **Tight Coupling**: Direct dependencies between unrelated modules
-- **Skip Type Definitions**: Using `any` or skipping Pydantic models
-- **Mixed Concerns**: Business logic embedded in UI components
-
-#### ✅ Clean Code Practices
-
-- **Configurable Base Components**: Single component with props for variations
-- **Centralized Configuration**: Environment variables and constants files
-- **Composable Architecture**: Small, focused components with clear interfaces
-- **Dependency Injection**: Loose coupling through interfaces and services
-- **Strict Typing**: Complete type coverage with runtime validation
-- **Layered Architecture**: Clear separation between presentation and business logic
-
-### Quality Assurance Framework
-
-#### Automated Testing Strategy
-
-- **Unit Tests**: All utility functions and business logic (Jest)
-- **Component Tests**: UI components with user interaction testing (Testing Library)
-- **Integration Tests**: API endpoints and database operations (pytest)
-- **E2E Tests**: Critical user flows with motion detection simulation (Playwright)
-- **Performance Tests**: Memory usage and motion detection latency benchmarks
-
-#### Code Quality Metrics
-
-- **Complexity Score**: Maximum cyclomatic complexity of 10 per function
-- **Duplication Rate**: Less than 5% code duplication (SonarQube analysis)
-- **Type Safety**: 100% TypeScript strict mode compliance
-- **API Validation**: 100% Pydantic model coverage for all endpoints
-- **Documentation**: 90%+ coverage of public APIs and components
-
-#### Continuous Monitoring
-
-- **Performance Metrics**: Motion detection latency, AI analysis time, WebSocket responsiveness
-- **Error Tracking**: Real-time error monitoring and alerting
-- **Usage Analytics**: Feature usage patterns to guide development priorities
-- **Technical Debt Assessment**: Monthly code quality reviews and refactoring planning
-
-## Development Workflow & Git Standards
-
-### Default Implementation Process
-
-When implementing any new feature or component, follow this standard workflow:
-
-1. **Code Implementation**
-   - Write clean, tested code following the architecture patterns
-   - Implement with proper TypeScript/Pydantic typing
-   - Follow the reusable component strategies outlined above
-   - Include unit tests with minimum 80% coverage
-
-2. **Quality Assurance**
-   - Run linting and formatting (`npm run lint`, `npm run format`)
-   - Execute type checking (`npm run type-check`)
-   - Run all relevant tests (`npm run test`)
-   - Verify performance meets specified budgets
-
-3. **Git Operations**
-   - Create feature branch from main (`git checkout -b feature/motion-detection`)
-   - Stage and commit changes with conventional commit messages
-   - Push branch to remote repository
-   - Create pull request with comprehensive description
-
-4. **Pull Request Standards**
-   - **Title**: Clear, descriptive summary of changes
-   - **Description**: Include summary, test plan, and implementation notes
-   - **Review Requirements**: All PRs require code review before merge
-   - **CI/CD**: All automated checks must pass
-   - **Documentation**: Update relevant documentation if needed
-
-### Commit Message Format
-
-```
-<type>(<scope>): <description>
-
-<optional body>
-
-🤖 Generated with Claude Code
-Co-Authored-By: Claude <noreply@anthropic.com>
-```
-
-**Types**: feat, fix, docs, style, refactor, test, chore
-**Scopes**: motion-detection, ui, websocket, api, config
-
-### Branch Naming Convention
-
-- **Features**: `feature/motion-detection-component`
-- **Bug fixes**: `fix/websocket-reconnection`
-- **Documentation**: `docs/api-documentation`
-- **Refactoring**: `refactor/component-optimization`
-
-### Pull Request Template
-
-```markdown
-## Summary
-
-- Brief description of changes
-- Key implementation details
-
-## Test Plan
-
-- [ ] Unit tests pass
-- [ ] Integration tests pass
-- [ ] Manual testing completed
-- [ ] Performance impact assessed
-
-## Implementation Notes
-
-- Architecture decisions made
-- Any technical debt considerations
-- Future enhancement opportunities
-
-🤖 Generated with Claude Code
-```
-
-### Automated Quality Gates
-
-- **Pre-commit hooks** verify code quality
-- **CI/CD pipeline** runs full test suite
-- **Code coverage** must meet minimum thresholds
-- **Performance budgets** enforced automatically
-- **Security scanning** for dependencies
-- **Linting and formatting** must pass
-
-### Default Development Rules
-
-1. **No direct commits to main branch**
-2. **All implementations include comprehensive tests**
-3. **Pull requests are the standard for all changes**
-4. **Code review is mandatory before merge**
-5. **Documentation updates accompany feature changes**
-6. **Performance impact must be assessed and approved**
-7. **Technical debt is tracked and managed proactively**
-
-This workflow ensures consistent, high-quality development while maintaining the clean architecture and preventing technical debt accumulation.
-
-### Architecture Flow
-
-1. **Client Layer:** Browser/mobile detects motion → immediate local alert
-2. **Filtering Layer:** Client determines if motion is significant enough for AI analysis
-3. **Frame Transmission:** Only significant motion frames sent to backend (compressed)
-4. **Processing Layer:** Backend queues significant frames for Ollama analysis
-5. **Intelligence Layer:** Ollama processes frames via API → generates descriptions
-6. **Notification Layer:** Enhanced alerts with AI insights sent back to client
-
-### Frame Streaming Architecture
-
-- **Motion Detection:** Client-side only (no data transmission)
-- **Significance Filtering:** Client determines high-confidence motion events
-- **Frame Transmission:** Compressed frames (WebP/JPEG) via WebSocket for significant events only
-- **Selective Processing:** Only ~5-10% of motion events trigger AI analysis
-- **Bandwidth Optimization:** Typical usage ~50KB per significant event vs ~500KB per frame
-
-## System Architecture
-
-### Service Topology
-
-- API Gateway (Nginx/Traefik) for request routing and SSL termination
-- Load Balancer for horizontal scaling of API instances
-- Message Broker (Redis) with dead letter queues for background jobs
-- In-memory frame processing (no persistent storage)
-- Service health monitoring and discovery
-
-### Communication Patterns
-
-- Synchronous: REST APIs for motion event submission and user management
-- Asynchronous: Redis queues for LLaVA background processing
-- Real-time: WebSocket connections for sending motion events and receiving AI insights
-- Event-driven: Client-side motion detection + server-side event processing
-
-## Scalability Architecture
-
-### Horizontal Scaling Strategy
-
-- API Layer: Stateless FastAPI containers behind load balancer
-- Worker Layer: Auto-scaling LLaVA processing workers
-- Database Layer: MySQL with read replicas and connection pooling
-- Cache Layer: Redis for job queues and session management
-
-### Resource Management
-
-- LLaVA Worker Pools: Separate CPU-intensive worker containers
-- Memory Management: Frame buffering with automatic cleanup
-- Database Connection Pools: Connection limits and timeout handling
-- Queue Management: Partition queues by camera/priority
-
-## Data Architecture
-
-### Data Flow Patterns
-
-- Client Streaming: Live camera feeds → client-side motion detection → events
-- Event Processing: Motion events (with frame data) sent to backend → stored as metadata
-- No File Storage: Frames processed in-memory (client + server) and discarded
-- Queue Management: Background job processing with Redis for AI analysis
-
-### Storage Strategy
-
-- Transactional Data: MySQL for motion events metadata
-- Session Data: Redis for WebSocket connections and job queues
-- No Binary Storage: Frames exist only during processing
-- Time-series Events: Motion event logs with timestamps
-
-## Observability Architecture
-
-### Monitoring Stack
-
-- Metrics: Prometheus + Grafana for system metrics
-- Logging: Structured logging with log aggregation
-- Health Checks: FastAPI health endpoints for all services
-- Alerting: Critical system alerts and notifications
-
-### Key Metrics
-
-- Motion Detection: Detection frequency, processing latency
-- LLaVA Processing: Queue depth, processing time, success rates
-- System Health: CPU/memory usage, response times, error rates
-- WebSocket: Active connections, message throughput
-
-## Reliability Architecture
-
-### Fault Tolerance Patterns
-
-- Circuit Breakers: Protect against LLaVA model failures
-- Retry Policies: Exponential backoff for transient failures
-- Graceful Degradation: Motion detection continues without AI analysis
-- Queue Management: Dead letter queues for failed LLaVA jobs
-
-### Recovery Mechanisms
-
-- Health Checks: Container liveness and readiness probes
-- Auto-restart: Failed workers automatically restarted
-- Memory Management: Automatic cleanup of stale frames
-- Connection Recovery: WebSocket reconnection handling
-
-## Infrastructure Architecture
-
-### Container Orchestration
-
-- Docker containers for all services
-- Environment-specific configurations
-- Auto-scaling based on CPU and queue metrics
-- No persistent volumes needed (stateless processing)
-
-### Security Architecture
-
-- JWT authentication with proper token management
-- Rate limiting per user/IP
-- CORS policies for web app integration
-- Input validation and sanitization
-- No sensitive data storage (frames discarded after processing)
+For implementation details, architecture specifics, and operational procedures, refer to the distributed CLAUDE.md files in each directory.
