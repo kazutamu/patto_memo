@@ -186,8 +186,29 @@ jobs:
     - name: Test API Docker container
       run: |
         docker run --rm -d --name api-test -p 8000:8000 motion-detector-api:test
-        sleep 10
-        curl -f http://localhost:8000/health || exit 1
+        
+        # Wait for container to start and check health with retries
+        echo "Waiting for API container to start..."
+        max_attempts=15
+        attempt=0
+        while [ $attempt -lt $max_attempts ]; do
+          if curl -f http://localhost:8000/health; then
+            echo "✅ API health check passed"
+            break
+          fi
+          echo "Attempt $((attempt+1))/$max_attempts failed, retrying in 3s..."
+          sleep 3
+          attempt=$((attempt+1))
+        done
+        
+        if [ $attempt -eq $max_attempts ]; then
+          echo "❌ API health check failed after $max_attempts attempts"
+          echo "Container logs:"
+          docker logs api-test
+          docker stop api-test
+          exit 1
+        fi
+        
         docker stop api-test
 
   # Docker Smoke Test
