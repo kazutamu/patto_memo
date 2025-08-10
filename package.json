@@ -8,7 +8,8 @@
     "packages/*"
   ],
   "scripts": {
-    "setup": "npm run setup:backend",
+    "setup": "npm run setup:frontend && npm run setup:backend",
+    "setup:frontend": "cd apps/web && npm install",
     "setup:backend": "cd apps/api && python -m venv venv && (source venv/bin/activate || venv\\Scripts\\activate) && pip install -r requirements.txt",
     "dev": "concurrently \"npm run dev:api\" \"npm run dev:web\"",
     "dev:web": "cd apps/web && npm run dev",
@@ -16,10 +17,18 @@
     "dev:docker": "docker-compose -f docker-compose.dev.yml up --build",
     "build": "npm run build:web",
     "build:web": "cd apps/web && npm run build",
-    "type-check": "cd apps/web && npm run type-check",
-    "test": "cd apps/web && npm run test",
+    "type-check": "npm run type-check:web",
+    "type-check:web": "cd apps/web && npm run type-check",
+    "test": "npm run test:backend",
+    "test:backend": "cd apps/api && (source venv/bin/activate || venv\\Scripts\\activate) && python -m pytest tests/ -v",
+    "test:coverage": "npm run test:coverage:backend",
+    "test:coverage:backend": "cd apps/api && (source venv/bin/activate || venv\\Scripts\\activate) && pip install pytest-cov && python -m pytest tests/ --cov=. --cov-report=term --cov-report=html",
+    "lint": "echo 'Backend linting not configured yet'",
+    "ci:check": "npm run type-check && npm run test && npm run build",
     "clean": "rm -rf node_modules apps/*/node_modules packages/*/node_modules",
-    "clean:backend": "cd apps/api && rm -rf venv __pycache__ .pytest_cache",
+    "clean:backend": "cd apps/api && rm -rf venv __pycache__ .pytest_cache htmlcov .coverage",
+    "clean:frontend": "cd apps/web && rm -rf node_modules dist",
+    "clean:all": "npm run clean && npm run clean:backend && npm run clean:frontend",
     "stop": "pkill -f \"uvicorn\\|vite\" || true"
   },
   "devDependencies": {
