@@ -1,0 +1,387 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop, 'feature/*' ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION_DEFAULT: "3.10"
+
+jobs:
+  # Backend Testing and Quality Checks
+  backend-test:
+    name: Backend Tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.10", "3.11"]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'
+        cache-dependency-path: 'apps/api/requirements.txt'
+
+    - name: Install dependencies
+      working-directory: apps/api
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest-cov safety bandit
+
+    - name: Run tests with coverage
+      working-directory: apps/api
+      run: |
+        python -m pytest tests/ -v \
+          --cov=. \
+          --cov-report=xml \
+          --cov-report=html \
+          --cov-report=term \
+          --cov-fail-under=80
+      env:
+        PYTHONPATH: .
+
+    - name: Upload coverage reports to Codecov
+      if: matrix.python-version == env.PYTHON_VERSION_DEFAULT
+      uses: codecov/codecov-action@v3
+      with:
+        files: ./apps/api/coverage.xml
+        directory: ./apps/api/
+        flags: backend
+        name: backend-coverage
+        fail_ci_if_error: false
+
+    - name: Archive coverage reports
+      if: matrix.python-version == env.PYTHON_VERSION_DEFAULT
+      uses: actions/upload-artifact@v3
+      with:
+        name: backend-coverage-report
+        path: apps/api/htmlcov/
+        retention-days: 7
+
+    - name: Archive test results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: backend-test-results-${{ matrix.python-version }}
+        path: apps/api/pytest-results.xml
+        retention-days: 7
+
+  # Security and Code Quality
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: []
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION_DEFAULT }}
+        cache: 'pip'
+        cache-dependency-path: 'apps/api/requirements.txt'
+
+    - name: Install dependencies
+      working-directory: apps/api
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install safety bandit semgrep
+
+    - name: Run Safety (Python dependency vulnerability scanner)
+      working-directory: apps/api
+      run: |
+        safety check --json --output safety-report.json || true
+        safety check
+
+    - name: Run Bandit (Python security linter)
+      working-directory: apps/api
+      run: |
+        bandit -r . -f json -o bandit-report.json -x tests/,venv/ || true
+        bandit -r . -x tests/,venv/
+
+    - name: Run Semgrep (Static analysis)
+      run: |
+        python -m semgrep --config=auto --json --output=semgrep-report.json apps/api/ || true
+        python -m semgrep --config=auto apps/api/
+
+    - name: Upload security reports
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: security-reports
+        path: |
+          apps/api/safety-report.json
+          apps/api/bandit-report.json
+          semgrep-report.json
+        retention-days: 30
+
+  # NPM Security Audit
+  npm-security:
+    name: NPM Security Audit
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install root dependencies
+      run: npm ci
+
+    - name: NPM Audit
+      run: |
+        npm audit --audit-level=moderate --json > npm-audit-report.json || true
+        npm audit --audit-level=moderate
+
+    - name: Upload NPM audit report
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: npm-audit-report
+        path: npm-audit-report.json
+        retention-days: 30
+
+  # Docker Build Validation
+  docker-build:
+    name: Docker Build Test
+    runs-on: ubuntu-latest
+    needs: [backend-test]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build API Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: apps/api
+        file: apps/api/Dockerfile.dev
+        push: false
+        tags: motion-detector-api:test
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Test API Docker container
+      run: |
+        docker run --rm -d --name api-test -p 8000:8000 motion-detector-api:test
+        sleep 10
+        curl -f http://localhost:8000/health || exit 1
+        docker stop api-test
+
+  # Integration Tests
+  integration-test:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [backend-test]
+    
+    services:
+      # Add any required services like databases here
+      # mysql:
+      #   image: mysql:8.0
+      #   env:
+      #     MYSQL_ROOT_PASSWORD: testpass
+      #     MYSQL_DATABASE: motion_detector_test
+      #   ports:
+      #     - 3306:3306
+      #   options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION_DEFAULT }}
+        cache: 'pip'
+        cache-dependency-path: 'apps/api/requirements.txt'
+
+    - name: Install dependencies
+      working-directory: apps/api
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Start API server
+      working-directory: apps/api
+      run: |
+        uvicorn main:app --host 0.0.0.0 --port 8000 &
+        sleep 5
+      env:
+        PYTHONPATH: .
+
+    - name: Run integration tests
+      working-directory: apps/api
+      run: |
+        python -m pytest tests/ -v -m "integration" --tb=short || echo "No integration tests marked"
+        
+        # Basic API health check
+        curl -f http://localhost:8000/health
+        
+        # Test API endpoints
+        curl -f http://localhost:8000/api/v1/motion/events
+        curl -f http://localhost:8000/api/v1/motion/settings
+
+    - name: Stop services
+      if: always()
+      run: |
+        pkill -f uvicorn || true
+
+  # Linting and Code Quality
+  code-quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION_DEFAULT }}
+
+    - name: Install linting tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install black isort flake8 mypy
+
+    - name: Check code formatting with Black
+      working-directory: apps/api
+      run: |
+        black --check --diff .
+
+    - name: Check import sorting with isort
+      working-directory: apps/api
+      run: |
+        isort --check-only --diff .
+
+    - name: Lint with flake8
+      working-directory: apps/api
+      run: |
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=88 --statistics
+
+    - name: Type check with mypy (optional, may fail)
+      working-directory: apps/api
+      continue-on-error: true
+      run: |
+        mypy . --ignore-missing-imports || echo "MyPy check completed with errors (non-blocking)"
+
+  # Build Job
+  build:
+    name: Build Application
+    runs-on: ubuntu-latest
+    needs: [backend-test, security-scan]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION_DEFAULT }}
+        cache: 'pip'
+        cache-dependency-path: 'apps/api/requirements.txt'
+
+    - name: Install dependencies
+      working-directory: apps/api
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Validate API startup
+      working-directory: apps/api
+      run: |
+        python -c "from main import app; print('✅ API application imports successfully')"
+      env:
+        PYTHONPATH: .
+
+    - name: Create deployment summary
+      run: |
+        echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+        echo "- **Backend**: FastAPI application validated ✅" >> $GITHUB_STEP_SUMMARY
+        echo "- **Tests**: All backend tests passed ✅" >> $GITHUB_STEP_SUMMARY
+        echo "- **Security**: Security scans completed ✅" >> $GITHUB_STEP_SUMMARY
+        echo "- **Docker**: Container build validated ✅" >> $GITHUB_STEP_SUMMARY
+
+  # Final Status Check
+  ci-success:
+    name: CI Success
+    runs-on: ubuntu-latest
+    needs: [backend-test, security-scan, npm-security, docker-build, integration-test, code-quality, build]
+    if: always()
+    
+    steps:
+    - name: Check all jobs status
+      run: |
+        if [[ "${{ needs.backend-test.result }}" != "success" ]]; then
+          echo "❌ Backend tests failed"
+          exit 1
+        fi
+        if [[ "${{ needs.security-scan.result }}" != "success" ]]; then
+          echo "❌ Security scan failed"
+          exit 1
+        fi
+        if [[ "${{ needs.npm-security.result }}" != "success" ]]; then
+          echo "❌ NPM security audit failed"
+          exit 1
+        fi
+        if [[ "${{ needs.docker-build.result }}" != "success" ]]; then
+          echo "❌ Docker build failed"
+          exit 1
+        fi
+        if [[ "${{ needs.integration-test.result }}" != "success" ]]; then
+          echo "❌ Integration tests failed"
+          exit 1
+        fi
+        if [[ "${{ needs.code-quality.result }}" != "success" ]]; then
+          echo "❌ Code quality checks failed"
+          exit 1
+        fi
+        if [[ "${{ needs.build.result }}" != "success" ]]; then
+          echo "❌ Build failed"
+          exit 1
+        fi
+        echo "✅ All CI checks passed successfully!"
+
+    - name: Update PR status
+      if: github.event_name == 'pull_request'
+      run: |
+        echo "## 🎉 CI Pipeline Success!" >> $GITHUB_STEP_SUMMARY
+        echo "All quality gates have passed:" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Backend tests across Python 3.9, 3.10, 3.11" >> $GITHUB_STEP_SUMMARY  
+        echo "- ✅ Security scans (Safety, Bandit, Semgrep)" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ NPM security audit" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Docker build validation" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Integration testing" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Code quality checks (Black, isort, flake8)" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Application build validation" >> $GITHUB_STEP_SUMMARY

@@ -12,23 +12,24 @@ dummy_motion_events = [
         "timestamp": "2025-08-10T10:30:00Z",
         "confidence": 0.85,
         "duration": 2.3,
-        "description": "Person detected at front entrance"
+        "description": "Person detected at front entrance",
     },
     {
         "id": 2,
         "timestamp": "2025-08-10T11:15:30Z",
         "confidence": 0.72,
         "duration": 1.8,
-        "description": "Animal movement in garden area"
+        "description": "Animal movement in garden area",
     },
     {
         "id": 3,
         "timestamp": "2025-08-10T12:45:15Z",
         "confidence": 0.91,
         "duration": 3.1,
-        "description": "Vehicle movement detected"
-    }
+        "description": "Vehicle movement detected",
+    },
 ]
+
 
 # Pydantic models for request/response validation
 class MotionEventCreate(BaseModel):
@@ -36,12 +37,14 @@ class MotionEventCreate(BaseModel):
     duration: float
     description: str = ""
 
+
 class MotionEvent(BaseModel):
     id: int
     timestamp: str
     confidence: float
     duration: float
     description: str
+
 
 class MotionSettings(BaseModel):
     detection_enabled: bool
@@ -62,10 +65,14 @@ def get_motion_events(limit: int = 10):
     Get recent motion detection events
     """
     events = dummy_motion_events.copy()
-    
+
+    # Handle zero limit
+    if limit == 0:
+        return []
+
     # Apply limit
     events = events[-limit:]
-    
+
     return events
 
 
@@ -80,12 +87,12 @@ def create_motion_event(event: MotionEventCreate):
         "timestamp": datetime.now().isoformat() + "Z",
         "confidence": event.confidence,
         "duration": event.duration,
-        "description": event.description
+        "description": event.description,
     }
-    
+
     # Add to dummy data store
     dummy_motion_events.append(new_event)
-    
+
     return new_event
 
 
@@ -99,5 +106,5 @@ def get_motion_settings():
         "sensitivity": 0.7,
         "min_confidence": 0.6,
         "recording_enabled": True,
-        "alert_notifications": True
+        "alert_notifications": True,
     }
