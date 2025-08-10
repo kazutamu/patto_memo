@@ -1,15 +1,13 @@
-version: '3.8'
-
 services:
   # React Frontend
   web:
     build:
-      context: ./apps/web
-      dockerfile: Dockerfile.dev
+      context: ..
+      dockerfile: docker/Dockerfile.web
     ports:
-      - "5173:5173"
+      - "3000:3000"
     volumes:
-      - ./apps/web:/app
+      - ../apps/web:/app
       - /app/node_modules
     environment:
       - VITE_API_URL=http://localhost:8000
@@ -19,12 +17,12 @@ services:
   # FastAPI Backend
   api:
     build:
-      context: ./apps/api
-      dockerfile: Dockerfile.dev
+      context: ..
+      dockerfile: docker/Dockerfile.api
     ports:
       - "8000:8000"
     volumes:
-      - ./apps/api:/app
+      - ../apps/api:/app
     environment:
       - ENVIRONMENT=development
       - RELOAD=true
