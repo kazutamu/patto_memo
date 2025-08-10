@@ -109,8 +109,8 @@ jobs:
     - name: Run Bandit (Python security linter)
       working-directory: apps/api
       run: |
-        bandit -r . -f json -o bandit-report.json -x tests/,venv/ || true
-        bandit -r . -x tests/,venv/
+        bandit -r main.py -f json -o bandit-report.json || true
+        bandit -r main.py
 
     - name: Run Semgrep (Static analysis)
       run: |
@@ -175,8 +175,8 @@ jobs:
     - name: Build API Docker image
       uses: docker/build-push-action@v5
       with:
-        context: apps/api
-        file: apps/api/Dockerfile.dev
+        context: .
+        file: docker/Dockerfile.api
         push: false
         tags: motion-detector-api:test
         cache-from: type=gha

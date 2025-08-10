@@ -9,7 +9,7 @@ class TestHealthEndpoint:
     def test_health_check(self, client: TestClient):
         """Test that health check returns ok status."""
         response = client.get("/health")
-        
+
         assert response.status_code == 200
         assert response.json() == {"status": "ok"}
 
@@ -20,12 +20,12 @@ class TestMotionEventsEndpoints:
     def test_get_motion_events_default(self, client: TestClient):
         """Test getting motion events with default limit."""
         response = client.get("/api/v1/motion/events")
-        
+
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
         assert len(data) <= 10  # Default limit
-        
+
         # Check structure of first event if any exist
         if data:
             event = data[0]
@@ -38,7 +38,7 @@ class TestMotionEventsEndpoints:
     def test_get_motion_events_with_limit(self, client: TestClient):
         """Test getting motion events with custom limit."""
         response = client.get("/api/v1/motion/events?limit=2")
-        
+
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
@@ -47,39 +47,38 @@ class TestMotionEventsEndpoints:
     def test_get_motion_events_limit_zero(self, client: TestClient):
         """Test getting motion events with zero limit."""
         response = client.get("/api/v1/motion/events?limit=0")
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data == []
 
-    def test_create_motion_event_valid(self, client: TestClient, sample_motion_event_create):
+    def test_create_motion_event_valid(
+        self, client: TestClient, sample_motion_event_create
+    ):
         """Test creating a valid motion event."""
         initial_count = len(dummy_motion_events)
-        
+
         response = client.post("/api/v1/motion/events", json=sample_motion_event_create)
-        
+
         assert response.status_code == 200
         data = response.json()
-        
+
         # Check response structure
         assert "id" in data
         assert "timestamp" in data
         assert data["confidence"] == sample_motion_event_create["confidence"]
         assert data["duration"] == sample_motion_event_create["duration"]
         assert data["description"] == sample_motion_event_create["description"]
-        
+
         # Verify it was added to the dummy data
         assert len(dummy_motion_events) == initial_count + 1
 
     def test_create_motion_event_minimal(self, client: TestClient):
         """Test creating a motion event with minimal required fields."""
-        event_data = {
-            "confidence": 0.75,
-            "duration": 1.5
-        }
-        
+        event_data = {"confidence": 0.75, "duration": 1.5}
+
         response = client.post("/api/v1/motion/events", json=event_data)
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["confidence"] == 0.75
@@ -91,9 +90,9 @@ class TestMotionEventsEndpoints:
         event_data = {
             "confidence": "invalid",  # Should be float
             "duration": 1.5,
-            "description": "Test event"
+            "description": "Test event",
         }
-        
+
         response = client.post("/api/v1/motion/events", json=event_data)
         assert response.status_code == 422  # Validation error
 
@@ -103,7 +102,7 @@ class TestMotionEventsEndpoints:
             "confidence": 0.8
             # Missing duration
         }
-        
+
         response = client.post("/api/v1/motion/events", json=event_data)
         assert response.status_code == 422  # Validation error
 
@@ -112,9 +111,9 @@ class TestMotionEventsEndpoints:
         event_data = {
             "confidence": -0.1,
             "duration": -1.0,
-            "description": "Negative test"
+            "description": "Negative test",
         }
-        
+
         # The API currently doesn't validate ranges, so this will succeed
         # In a real application, you might want to add validation
         response = client.post("/api/v1/motion/events", json=event_data)
@@ -122,12 +121,8 @@ class TestMotionEventsEndpoints:
 
     def test_create_motion_event_with_empty_description(self, client: TestClient):
         """Test creating motion event with empty description."""
-        event_data = {
-            "confidence": 0.8,
-            "duration": 2.0,
-            "description": ""
-        }
-        
+        event_data = {"confidence": 0.8, "duration": 2.0, "description": ""}
+
         response = client.post("/api/v1/motion/events", json=event_data)
         assert response.status_code == 200
         data = response.json()
@@ -140,29 +135,29 @@ class TestMotionSettingsEndpoint:
     def test_get_motion_settings(self, client: TestClient):
         """Test getting motion settings."""
         response = client.get("/api/v1/motion/settings")
-        
+
         assert response.status_code == 200
         data = response.json()
-        
+
         # Check structure
         expected_fields = [
             "detection_enabled",
             "sensitivity",
             "min_confidence",
             "recording_enabled",
-            "alert_notifications"
+            "alert_notifications",
         ]
-        
+
         for field in expected_fields:
             assert field in data
-        
+
         # Check types
         assert isinstance(data["detection_enabled"], bool)
         assert isinstance(data["sensitivity"], (int, float))
         assert isinstance(data["min_confidence"], (int, float))
         assert isinstance(data["recording_enabled"], bool)
         assert isinstance(data["alert_notifications"], bool)
-        
+
         # Check reasonable values
         assert 0 <= data["sensitivity"] <= 1
         assert 0 <= data["min_confidence"] <= 1
@@ -174,7 +169,7 @@ class TestDataValidation:
     def test_motion_event_create_model(self, sample_motion_event_create):
         """Test MotionEventCreate model validation."""
         from main import MotionEventCreate
-        
+
         event = MotionEventCreate(**sample_motion_event_create)
         assert event.confidence == sample_motion_event_create["confidence"]
         assert event.duration == sample_motion_event_create["duration"]
@@ -183,14 +178,14 @@ class TestDataValidation:
     def test_motion_event_create_default_description(self):
         """Test MotionEventCreate with default description."""
         from main import MotionEventCreate
-        
+
         event = MotionEventCreate(confidence=0.8, duration=1.5)
         assert event.description == ""
 
     def test_motion_event_model(self, sample_motion_event):
         """Test MotionEvent model validation."""
         from main import MotionEvent
-        
+
         event = MotionEvent(**sample_motion_event)
         assert event.id == sample_motion_event["id"]
         assert event.timestamp == sample_motion_event["timestamp"]
@@ -201,13 +196,16 @@ class TestDataValidation:
     def test_motion_settings_model(self, sample_motion_settings):
         """Test MotionSettings model validation."""
         from main import MotionSettings
-        
+
         settings = MotionSettings(**sample_motion_settings)
         assert settings.detection_enabled == sample_motion_settings["detection_enabled"]
         assert settings.sensitivity == sample_motion_settings["sensitivity"]
         assert settings.min_confidence == sample_motion_settings["min_confidence"]
         assert settings.recording_enabled == sample_motion_settings["recording_enabled"]
-        assert settings.alert_notifications == sample_motion_settings["alert_notifications"]
+        assert (
+            settings.alert_notifications
+            == sample_motion_settings["alert_notifications"]
+        )
 
 
 class TestEndToEnd:
@@ -219,28 +217,25 @@ class TestEndToEnd:
         settings_response = client.get("/api/v1/motion/settings")
         assert settings_response.status_code == 200
         settings = settings_response.json()
-        
+
         # 2. Create a motion event
         event_data = {
             "confidence": settings["min_confidence"] + 0.1,  # Above minimum
             "duration": 2.0,
-            "description": "End-to-end test event"
+            "description": "End-to-end test event",
         }
-        
+
         create_response = client.post("/api/v1/motion/events", json=event_data)
         assert create_response.status_code == 200
         created_event = create_response.json()
-        
+
         # 3. Get events and verify our event is there
         events_response = client.get("/api/v1/motion/events")
         assert events_response.status_code == 200
         events = events_response.json()
-        
+
         # Find our created event
-        our_event = next(
-            (e for e in events if e["id"] == created_event["id"]),
-            None
-        )
+        our_event = next((e for e in events if e["id"] == created_event["id"]), None)
         assert our_event is not None
         assert our_event["description"] == "End-to-end test event"
 
@@ -269,7 +264,7 @@ class TestErrorHandling:
         response = client.post(
             "/api/v1/motion/events",
             data="invalid json",
-            headers={"content-type": "application/json"}
+            headers={"content-type": "application/json"},
         )
         assert response.status_code == 422
 
@@ -281,17 +276,17 @@ class TestPerformance:
         """Test creating multiple events in succession."""
         initial_count = len(dummy_motion_events)
         events_to_create = 5
-        
+
         for i in range(events_to_create):
             event_data = {
                 "confidence": 0.7 + (i * 0.05),
                 "duration": 1.0 + (i * 0.1),
-                "description": f"Performance test event {i}"
+                "description": f"Performance test event {i}",
             }
-            
+
             response = client.post("/api/v1/motion/events", json=event_data)
             assert response.status_code == 200
-        
+
         # Verify all events were created
         assert len(dummy_motion_events) == initial_count + events_to_create
 

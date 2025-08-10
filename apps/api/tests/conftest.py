@@ -12,11 +12,7 @@ def client():
 @pytest.fixture
 def sample_motion_event_create():
     """Sample motion event creation data."""
-    return {
-        "confidence": 0.85,
-        "duration": 2.3,
-        "description": "Test motion event"
-    }
+    return {"confidence": 0.85, "duration": 2.3, "description": "Test motion event"}
 
 
 @pytest.fixture
@@ -27,7 +23,7 @@ def sample_motion_event():
         "timestamp": "2025-08-10T10:30:00Z",
         "confidence": 0.85,
         "duration": 2.3,
-        "description": "Test motion event"
+        "description": "Test motion event",
     }
 
 
@@ -39,5 +35,5 @@ def sample_motion_settings():
         "sensitivity": 0.7,
         "min_confidence": 0.6,
         "recording_enabled": True,
-        "alert_notifications": True
+        "alert_notifications": True,
     }
