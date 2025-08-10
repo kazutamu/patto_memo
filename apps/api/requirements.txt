@@ -1,0 +1,3 @@
+# Minimal FastAPI Setup
+fastapi
+uvicorn[standard]

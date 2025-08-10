@@ -1,0 +1,40 @@
+{
+  "name": "motion-detector",
+  "version": "1.0.0",
+  "description": "Motion Detector - Monorepo with React frontend and FastAPI backend",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "setup": "npm run setup:backend",
+    "setup:backend": "cd apps/api && python -m venv venv && (source venv/bin/activate || venv\\Scripts\\activate) && pip install -r requirements.txt",
+    "dev": "concurrently \"npm run dev:api\" \"npm run dev:web\"",
+    "dev:web": "cd apps/web && npm run dev",
+    "dev:api": "cd apps/api && (source venv/bin/activate || venv\\Scripts\\activate) && uvicorn main:app --reload --host 0.0.0.0 --port 8000",
+    "dev:docker": "docker-compose -f docker-compose.dev.yml up --build",
+    "build": "npm run build:web",
+    "build:web": "cd apps/web && npm run build",
+    "type-check": "cd apps/web && npm run type-check",
+    "test": "cd apps/web && npm run test",
+    "clean": "rm -rf node_modules apps/*/node_modules packages/*/node_modules",
+    "clean:backend": "cd apps/api && rm -rf venv __pycache__ .pytest_cache",
+    "stop": "pkill -f \"uvicorn\\|vite\" || true"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "keywords": [
+    "motion-detector",
+    "react",
+    "fastapi",
+    "monorepo"
+  ],
+  "author": "",
+  "license": "MIT"
+}
