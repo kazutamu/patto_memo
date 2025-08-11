@@ -28,20 +28,44 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [availableCameras, setAvailableCameras] = useState<MediaDeviceInfo[]>([]);
   const [isMobile, setIsMobile] = useState(false);
+  const [browserInfo, setBrowserInfo] = useState<{name: string, isMobileCompatible: boolean}>({name: '', isMobileCompatible: true});
 
-  // Detect if device is mobile
+  // Detect if device is mobile and browser compatibility
   useEffect(() => {
-    const checkMobile = () => {
+    const checkMobileAndBrowser = () => {
       const userAgent = navigator.userAgent.toLowerCase();
       const mobileKeywords = ['mobile', 'android', 'iphone', 'ipad', 'ipod', 'blackberry', 'windows phone'];
       const isMobileDevice = mobileKeywords.some(keyword => userAgent.includes(keyword));
       const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-      setIsMobile(isMobileDevice || isTouchDevice);
+      const mobile = isMobileDevice || isTouchDevice;
+      setIsMobile(mobile);
+      
+      // Detect browser for mobile compatibility guidance
+      if (mobile) {
+        let browserName = 'Unknown';
+        let isCompatible = true;
+        
+        if (userAgent.includes('firefox')) {
+          browserName = 'Firefox';
+          isCompatible = true; // Firefox is most compatible
+        } else if (userAgent.includes('chrome') && !userAgent.includes('edg')) {
+          browserName = 'Chrome';
+          isCompatible = false; // Chrome mobile has strict SSL requirements
+        } else if (userAgent.includes('safari') && !userAgent.includes('chrome')) {
+          browserName = 'Safari';
+          isCompatible = false; // Safari iOS has strict SSL requirements
+        } else if (userAgent.includes('edg')) {
+          browserName = 'Edge';
+          isCompatible = false;
+        }
+        
+        setBrowserInfo({ name: browserName, isMobileCompatible: isCompatible });
+      }
     };
     
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    checkMobileAndBrowser();
+    window.addEventListener('resize', checkMobileAndBrowser);
+    return () => window.removeEventListener('resize', checkMobileAndBrowser);
   }, []);
 
   // Get available cameras
@@ -135,9 +159,15 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
             ? 'This camera configuration is not supported on your device. Try switching cameras.'
             : 'Camera does not support the requested configuration.';
         } else if (error.message === 'HTTPS_REQUIRED') {
-          errorMessage = isMobile
-            ? '🔒 Camera access requires HTTPS. Please access this site using https:// or try from a desktop browser.'
-            : '🔒 Camera access requires a secure connection (HTTPS).';
+          if (isMobile) {
+            if (browserInfo.isMobileCompatible) {
+              errorMessage = '🔒 Camera access requires HTTPS. You\'re using Firefox which should work - please accept the security warning.';
+            } else {
+              errorMessage = `🔒 Camera access requires HTTPS. ${browserInfo.name} has strict security requirements. Try Firefox mobile for easier access, or accept the security warning in advanced settings.`;
+            }
+          } else {
+            errorMessage = '🔒 Camera access requires a secure connection (HTTPS).';
+          }
         } else {
           errorMessage = `Camera error: ${error.message}`;
         }

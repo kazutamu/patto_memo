@@ -152,6 +152,23 @@
   font-weight: 600;
 }
 
+.helpButton {
+  background: var(--accent-color, #00d4ff);
+  color: #000;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  margin-left: 1rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: opacity 0.2s ease;
+}
+
+.helpButton:hover {
+  opacity: 0.8;
+}
+
 /* Loading State */
 .loading {
   display: flex;

@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { VideoFeed, VideoControls } from './components';
+import { ConnectionHelper } from './components/ConnectionHelper';
 import { MotionDetectionState } from './types';
 import styles from './App.module.css';
 
@@ -34,6 +35,7 @@ function App() {
     lastMotionTime: null,
     sensitivity: 50
   });
+  const [showConnectionHelper, setShowConnectionHelper] = useState(false);
 
   const handleToggleCamera = useCallback(() => {
     setIsCameraActive(prev => !prev);
@@ -82,6 +84,14 @@ function App() {
         {error && (
           <div className={styles.errorBanner}>
             <strong>Error:</strong> {error}
+            {(error.includes('HTTPS') || error.includes('Camera access')) && (
+              <button 
+                className={styles.helpButton}
+                onClick={() => setShowConnectionHelper(true)}
+              >
+                Need Help? 📱
+              </button>
+            )}
           </div>
         )}
 
@@ -119,6 +129,12 @@ function App() {
           </div>
         </main>
       </div>
+
+      <ConnectionHelper 
+        currentUrl={window.location.href}
+        isVisible={showConnectionHelper}
+        onClose={() => setShowConnectionHelper(false)}
+      />
     </div>
   );
 }
