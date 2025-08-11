@@ -1,83 +1,88 @@
+"""
+Streamlined tests for main API endpoints.
+Consolidated from multiple redundant test classes with parameterized tests.
+"""
+
 import pytest
 from fastapi.testclient import TestClient
 
 from main import app, dummy_motion_events
 
 
-class TestHealthEndpoint:
-    """Test the health check endpoint."""
-
-    def test_health_check(self, client: TestClient):
-        """Test that health check returns ok status."""
-        response = client.get("/health")
-
-        assert response.status_code == 200
-        assert response.json() == {"status": "ok"}
+def test_health_check(client: TestClient):
+    """Test that health check returns ok status."""
+    response = client.get("/health")
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
 
 
-class TestMotionEventsEndpoints:
-    """Test motion events CRUD endpoints."""
+class TestMotionEventsAPI:
+    """Consolidated tests for motion events endpoints."""
 
-    def test_get_motion_events_default(self, client: TestClient):
-        """Test getting motion events with default limit."""
-        response = client.get("/api/v1/motion/events")
-
+    @pytest.mark.parametrize("limit,expected_behavior", [
+        (None, "default_limit"),       # Default limit
+        (2, "custom_limit"),          # Custom limit
+        (0, "zero_limit"),            # Zero limit
+        (100, "large_limit"),         # Large limit
+        (-1, "validation_error")      # Invalid limit
+    ])
+    def test_get_motion_events_with_limits(self, client: TestClient, limit, expected_behavior):
+        """Test getting motion events with various limit parameters."""
+        url = "/api/v1/motion/events"
+        if limit is not None:
+            url += f"?limit={limit}"
+        
+        response = client.get(url)
+        
+        if expected_behavior == "validation_error":
+            assert response.status_code == 422
+            return
+            
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
-        assert len(data) <= 10  # Default limit
-
-        # Check structure of first event if any exist
+        
+        if expected_behavior == "zero_limit":
+            assert data == []
+        elif expected_behavior == "custom_limit":
+            assert len(data) <= limit
+        else:  # default or large limit
+            assert len(data) <= (limit or 10)
+        
+        # Validate structure if events exist
         if data:
             event = data[0]
-            assert "id" in event
-            assert "timestamp" in event
-            assert "confidence" in event
-            assert "duration" in event
-            assert "description" in event
+            required_fields = ["id", "timestamp", "confidence", "duration", "description"]
+            assert all(field in event for field in required_fields)
+            
+            # Validate data types
+            assert isinstance(event["id"], int)
+            assert isinstance(event["timestamp"], str)
+            assert isinstance(event["confidence"], (int, float))
+            assert isinstance(event["duration"], (int, float))
+            assert isinstance(event["description"], str)
 
-    def test_get_motion_events_with_limit(self, client: TestClient):
-        """Test getting motion events with custom limit."""
-        response = client.get("/api/v1/motion/events?limit=2")
-
-        assert response.status_code == 200
-        data = response.json()
-        assert isinstance(data, list)
-        assert len(data) <= 2
-
-    def test_get_motion_events_limit_zero(self, client: TestClient):
-        """Test getting motion events with zero limit."""
-        response = client.get("/api/v1/motion/events?limit=0")
-
-        assert response.status_code == 200
-        data = response.json()
-        assert data == []
-
-    def test_create_motion_event_valid(
-        self, client: TestClient, sample_motion_event_create
-    ):
-        """Test creating a valid motion event."""
+    def test_create_motion_event_valid(self, client: TestClient, motion_event_data):
+        """Test creating valid motion events with various data."""
         initial_count = len(dummy_motion_events)
-
-        response = client.post("/api/v1/motion/events", json=sample_motion_event_create)
+        response = client.post("/api/v1/motion/events", json=motion_event_data)
 
         assert response.status_code == 200
         data = response.json()
 
         # Check response structure
-        assert "id" in data
-        assert "timestamp" in data
-        assert data["confidence"] == sample_motion_event_create["confidence"]
-        assert data["duration"] == sample_motion_event_create["duration"]
-        assert data["description"] == sample_motion_event_create["description"]
+        required_fields = ["id", "timestamp", "confidence", "duration", "description"]
+        assert all(field in data for field in required_fields)
+        assert data["confidence"] == motion_event_data["confidence"]
+        assert data["duration"] == motion_event_data["duration"]
+        assert data["description"] == motion_event_data["description"]
 
         # Verify it was added to the dummy data
         assert len(dummy_motion_events) == initial_count + 1
 
-    def test_create_motion_event_minimal(self, client: TestClient):
-        """Test creating a motion event with minimal required fields."""
+    def test_create_motion_event_minimal_fields(self, client: TestClient):
+        """Test creating motion event with minimal required fields."""
         event_data = {"confidence": 0.75, "duration": 1.5}
-
         response = client.post("/api/v1/motion/events", json=event_data)
 
         assert response.status_code == 200
@@ -86,213 +91,147 @@ class TestMotionEventsEndpoints:
         assert data["duration"] == 1.5
         assert data["description"] == ""  # Default empty string
 
-    def test_create_motion_event_invalid_confidence(self, client: TestClient):
-        """Test creating motion event with invalid confidence value."""
-        event_data = {
-            "confidence": "invalid",  # Should be float
-            "duration": 1.5,
-            "description": "Test event",
-        }
-
-        response = client.post("/api/v1/motion/events", json=event_data)
+    def test_create_motion_event_validation_errors(self, client: TestClient, invalid_motion_data):
+        """Test creating motion events with various invalid data scenarios."""
+        invalid_data, description = invalid_motion_data
+        response = client.post("/api/v1/motion/events", json=invalid_data)
         assert response.status_code == 422  # Validation error
 
-    def test_create_motion_event_missing_required_field(self, client: TestClient):
-        """Test creating motion event with missing required field."""
-        event_data = {
-            "confidence": 0.8
-            # Missing duration
-        }
-
+    def test_create_motion_event_edge_cases(self, client: TestClient, edge_case_motion_data):
+        """Test creating motion events with edge case values."""
+        event_data, case_type = edge_case_motion_data
         response = client.post("/api/v1/motion/events", json=event_data)
+        assert response.status_code == 200
+        
+        data = response.json()
+        if case_type == "precision":
+            assert abs(data["confidence"] - event_data["confidence"]) < 1e-10
+        else:
+            assert data["confidence"] == event_data["confidence"]
+
+    @pytest.mark.parametrize("description,expected", [
+        ("", ""),  # Empty description
+        ("Very long description " * 1000, "Very long description " * 1000),  # Long description
+        ("测试 Unicode 🔍", "测试 Unicode 🔍"),  # Unicode characters
+    ])
+    def test_create_motion_event_description_handling(self, client: TestClient, description, expected):
+        """Test motion event creation with various description formats."""
+        event_data = {"confidence": 0.8, "duration": 1.5, "description": description}
+        response = client.post("/api/v1/motion/events", json=event_data)
+        assert response.status_code == 200
+        
+        data = response.json()
+        assert data["description"] == expected
+
+
+def test_get_motion_settings(client: TestClient):
+    """Test motion settings endpoint structure and validation."""
+    response = client.get("/api/v1/motion/settings")
+    assert response.status_code == 200
+    data = response.json()
+
+    # Check structure and types
+    expected_fields = {
+        "detection_enabled": bool,
+        "sensitivity": (int, float),
+        "min_confidence": (int, float),
+        "recording_enabled": bool,
+        "alert_notifications": bool,
+    }
+
+    for field, expected_type in expected_fields.items():
+        assert field in data
+        assert isinstance(data[field], expected_type)
+
+    # Check reasonable value ranges
+    assert 0 <= data["sensitivity"] <= 1
+    assert 0 <= data["min_confidence"] <= 1
+
+
+def test_basic_workflow_integration(client: TestClient):
+    """Test basic workflow: get settings, create event, verify creation."""
+    # Get settings
+    settings_response = client.get("/api/v1/motion/settings")
+    assert settings_response.status_code == 200
+    settings = settings_response.json()
+
+    # Create event above minimum confidence
+    event_data = {
+        "confidence": settings["min_confidence"] + 0.1,
+        "duration": 2.0,
+        "description": "Integration test event",
+    }
+
+    create_response = client.post("/api/v1/motion/events", json=event_data)
+    assert create_response.status_code == 200
+    created_event = create_response.json()
+
+    # Verify event exists in list
+    events_response = client.get("/api/v1/motion/events")
+    assert events_response.status_code == 200
+    events = events_response.json()
+
+    our_event = next((e for e in events if e["id"] == created_event["id"]), None)
+    assert our_event is not None
+    assert our_event["description"] == "Integration test event"
+
+
+@pytest.mark.parametrize("endpoint,method,expected_status", [
+    ("/api/v1/nonexistent", "GET", 404),  # Non-existent endpoint
+    ("/api/v1/motion/events", "DELETE", 405),  # Invalid method
+])
+def test_api_error_responses(client: TestClient, endpoint, method, expected_status):
+    """Test various API error conditions."""
+    response = getattr(client, method.lower())(endpoint)
+    assert response.status_code == expected_status
+
+
+@pytest.mark.parametrize("payload,content_type,expected_status_codes", [
+    ("invalid json", "application/json", [422]),  # Malformed JSON
+    ('{"confidence": 0.8, "duration": 1.5}', None, [200, 422, 415]),  # Missing content-type
+    ('{"confidence": 0.8, "duration": 1.5}', "text/plain", [422, 415]),  # Wrong content-type
+])
+def test_request_format_handling(client: TestClient, payload, content_type, expected_status_codes):
+    """Test handling of various request formats and content types."""
+    headers = {"content-type": content_type} if content_type else {}
+    response = client.post("/api/v1/motion/events", data=payload, headers=headers)
+    assert response.status_code in expected_status_codes
+
+
+@pytest.mark.parametrize("test_data,description", [
+    ({"confidence": None, "duration": 1.5}, "null_confidence"),
+    ({"confidence": 0.8, "duration": 1.5, "description": "测试 Unicode 🔍"}, "unicode_chars"),
+    ({"confidence": 0.8, "duration": 1.5, "description": '"malicious"'}, "injection_attempt"),
+])
+def test_data_handling_edge_cases(client: TestClient, test_data, description):
+    """Test handling of edge cases in request data."""
+    response = client.post("/api/v1/motion/events", json=test_data)
+    
+    if description == "null_confidence":
         assert response.status_code == 422  # Validation error
+    else:
+        assert response.status_code == 200
+        if description == "unicode_chars":
+            data = response.json()
+            assert "测试 Unicode 🔍" in data["description"]
+        elif description == "injection_attempt":
+            data = response.json()
+            assert '"malicious"' in data["description"]  # Treated as plain text
 
-    def test_create_motion_event_negative_values(self, client: TestClient):
-        """Test creating motion event with negative values."""
+
+def test_bulk_event_creation_performance(client: TestClient):
+    """Test creating multiple events in succession for basic performance check."""
+    initial_count = len(dummy_motion_events)
+    events_to_create = 10
+
+    for i in range(events_to_create):
         event_data = {
-            "confidence": -0.1,
-            "duration": -1.0,
-            "description": "Negative test",
+            "confidence": 0.7 + (i * 0.02),
+            "duration": 1.0 + (i * 0.1),
+            "description": f"Bulk test event {i}",
         }
-
-        # The API currently doesn't validate ranges, so this will succeed
-        # In a real application, you might want to add validation
         response = client.post("/api/v1/motion/events", json=event_data)
         assert response.status_code == 200
 
-    def test_create_motion_event_with_empty_description(self, client: TestClient):
-        """Test creating motion event with empty description."""
-        event_data = {"confidence": 0.8, "duration": 2.0, "description": ""}
-
-        response = client.post("/api/v1/motion/events", json=event_data)
-        assert response.status_code == 200
-        data = response.json()
-        assert data["description"] == ""
-
-
-class TestMotionSettingsEndpoint:
-    """Test motion settings endpoint."""
-
-    def test_get_motion_settings(self, client: TestClient):
-        """Test getting motion settings."""
-        response = client.get("/api/v1/motion/settings")
-
-        assert response.status_code == 200
-        data = response.json()
-
-        # Check structure
-        expected_fields = [
-            "detection_enabled",
-            "sensitivity",
-            "min_confidence",
-            "recording_enabled",
-            "alert_notifications",
-        ]
-
-        for field in expected_fields:
-            assert field in data
-
-        # Check types
-        assert isinstance(data["detection_enabled"], bool)
-        assert isinstance(data["sensitivity"], (int, float))
-        assert isinstance(data["min_confidence"], (int, float))
-        assert isinstance(data["recording_enabled"], bool)
-        assert isinstance(data["alert_notifications"], bool)
-
-        # Check reasonable values
-        assert 0 <= data["sensitivity"] <= 1
-        assert 0 <= data["min_confidence"] <= 1
-
-
-class TestDataValidation:
-    """Test Pydantic model validation."""
-
-    def test_motion_event_create_model(self, sample_motion_event_create):
-        """Test MotionEventCreate model validation."""
-        from main import MotionEventCreate
-
-        event = MotionEventCreate(**sample_motion_event_create)
-        assert event.confidence == sample_motion_event_create["confidence"]
-        assert event.duration == sample_motion_event_create["duration"]
-        assert event.description == sample_motion_event_create["description"]
-
-    def test_motion_event_create_default_description(self):
-        """Test MotionEventCreate with default description."""
-        from main import MotionEventCreate
-
-        event = MotionEventCreate(confidence=0.8, duration=1.5)
-        assert event.description == ""
-
-    def test_motion_event_model(self, sample_motion_event):
-        """Test MotionEvent model validation."""
-        from main import MotionEvent
-
-        event = MotionEvent(**sample_motion_event)
-        assert event.id == sample_motion_event["id"]
-        assert event.timestamp == sample_motion_event["timestamp"]
-        assert event.confidence == sample_motion_event["confidence"]
-        assert event.duration == sample_motion_event["duration"]
-        assert event.description == sample_motion_event["description"]
-
-    def test_motion_settings_model(self, sample_motion_settings):
-        """Test MotionSettings model validation."""
-        from main import MotionSettings
-
-        settings = MotionSettings(**sample_motion_settings)
-        assert settings.detection_enabled == sample_motion_settings["detection_enabled"]
-        assert settings.sensitivity == sample_motion_settings["sensitivity"]
-        assert settings.min_confidence == sample_motion_settings["min_confidence"]
-        assert settings.recording_enabled == sample_motion_settings["recording_enabled"]
-        assert (
-            settings.alert_notifications
-            == sample_motion_settings["alert_notifications"]
-        )
-
-
-class TestEndToEnd:
-    """End-to-end integration tests."""
-
-    def test_full_workflow(self, client: TestClient):
-        """Test complete workflow: get settings, create event, get events."""
-        # 1. Get settings first
-        settings_response = client.get("/api/v1/motion/settings")
-        assert settings_response.status_code == 200
-        settings = settings_response.json()
-
-        # 2. Create a motion event
-        event_data = {
-            "confidence": settings["min_confidence"] + 0.1,  # Above minimum
-            "duration": 2.0,
-            "description": "End-to-end test event",
-        }
-
-        create_response = client.post("/api/v1/motion/events", json=event_data)
-        assert create_response.status_code == 200
-        created_event = create_response.json()
-
-        # 3. Get events and verify our event is there
-        events_response = client.get("/api/v1/motion/events")
-        assert events_response.status_code == 200
-        events = events_response.json()
-
-        # Find our created event
-        our_event = next((e for e in events if e["id"] == created_event["id"]), None)
-        assert our_event is not None
-        assert our_event["description"] == "End-to-end test event"
-
-    def test_api_cors_headers_not_configured(self, client: TestClient):
-        """Test that CORS is not configured (would need to be added for production)."""
-        response = client.get("/health")
-        # In a real application, you'd want CORS headers for frontend access
-        assert "access-control-allow-origin" not in response.headers
-
-
-class TestErrorHandling:
-    """Test error handling scenarios."""
-
-    def test_nonexistent_endpoint(self, client: TestClient):
-        """Test accessing non-existent endpoint."""
-        response = client.get("/api/v1/nonexistent")
-        assert response.status_code == 404
-
-    def test_invalid_http_method(self, client: TestClient):
-        """Test using invalid HTTP method on existing endpoint."""
-        response = client.delete("/api/v1/motion/events")
-        assert response.status_code == 405  # Method not allowed
-
-    def test_malformed_json(self, client: TestClient):
-        """Test sending malformed JSON."""
-        response = client.post(
-            "/api/v1/motion/events",
-            data="invalid json",
-            headers={"content-type": "application/json"},
-        )
-        assert response.status_code == 422
-
-
-class TestPerformance:
-    """Basic performance and load tests."""
-
-    def test_multiple_event_creation(self, client: TestClient):
-        """Test creating multiple events in succession."""
-        initial_count = len(dummy_motion_events)
-        events_to_create = 5
-
-        for i in range(events_to_create):
-            event_data = {
-                "confidence": 0.7 + (i * 0.05),
-                "duration": 1.0 + (i * 0.1),
-                "description": f"Performance test event {i}",
-            }
-
-            response = client.post("/api/v1/motion/events", json=event_data)
-            assert response.status_code == 200
-
-        # Verify all events were created
-        assert len(dummy_motion_events) == initial_count + events_to_create
-
-    def test_large_limit_parameter(self, client: TestClient):
-        """Test getting events with very large limit."""
-        response = client.get("/api/v1/motion/events?limit=1000")
-        assert response.status_code == 200
-        # Should not crash or timeout
+    # Verify all events were created
+    assert len(dummy_motion_events) == initial_count + events_to_create

@@ -11,6 +11,9 @@ httpx
 # Testing dependencies
 pytest
 pytest-asyncio
+pytest-httpx
+respx
+pytest-cov
 
 # Development/formatting tools
 black
