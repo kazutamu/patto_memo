@@ -1,0 +1,1 @@
+export { MotionDetectionService, motionDetectionService } from './motionDetectionService';

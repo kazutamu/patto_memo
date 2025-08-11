@@ -21,3 +21,23 @@ export interface MotionSettings {
   recording_enabled: boolean;
   alert_notifications: boolean;
 }
+
+// Motion detection related types
+export interface MotionDetectionState {
+  isDetecting: boolean;
+  motionStrength: number;
+  lastMotionTime: number | null;
+  sensitivity: number;
+}
+
+export interface MotionDetectionResult {
+  hasMotion: boolean;
+  motionStrength: number;
+  timestamp: number;
+}
+
+export interface FrameComparisonData {
+  currentFrame: ImageData;
+  previousFrame: ImageData | null;
+  diffThreshold: number;
+}

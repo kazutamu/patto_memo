@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { VideoFeed, VideoControls } from './components';
+import { MotionDetectionState } from './types';
 import styles from './App.module.css';
 
 // Settings icon component
@@ -26,6 +27,12 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [motionState, setMotionState] = useState<MotionDetectionState>({
+    isDetecting: false,
+    motionStrength: 0,
+    lastMotionTime: null,
+    sensitivity: 50
+  });
 
   const handleToggleCamera = useCallback(() => {
     setIsCameraActive(prev => !prev);
@@ -51,6 +58,10 @@ function App() {
     setShowSettings(prev => !prev);
   }, []);
 
+  const handleMotionStateChange = useCallback((newMotionState: MotionDetectionState) => {
+    setMotionState(newMotionState);
+  }, []);
+
   return (
     <div className={styles.app}>
       <div className={styles.container}>
@@ -73,6 +84,8 @@ function App() {
               isActive={isCameraActive}
               onError={handleVideoError}
               onStreamReady={handleStreamReady}
+              sensitivity={sensitivity}
+              onMotionStateChange={handleMotionStateChange}
             />
             
             <button 
@@ -92,6 +105,7 @@ function App() {
               sensitivity={sensitivity}
               onSensitivityChange={handleSensitivityChange}
               disabled={false}
+              motionState={motionState}
             />
           </div>
         </main>
