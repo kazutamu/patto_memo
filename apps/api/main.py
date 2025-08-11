@@ -1,10 +1,12 @@
 import asyncio
 import base64
+import json
+import random
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 import httpx
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
 
 app = FastAPI()
@@ -225,3 +227,62 @@ async def analyze_uploaded_image(
             success=False,
             error_message=f"File processing failed: {str(e)}",
         )
+
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    """
+    WebSocket endpoint for real-time motion detection and AI analysis
+    """
+    await websocket.accept()
+    print("WebSocket client connected")
+    
+    try:
+        while True:
+            # Receive motion event from client
+            data = await websocket.receive_text()
+            motion_data = json.loads(data)
+            
+            print(f"Received motion event: {motion_data.get('event_type', 'unknown')}")
+            
+            # If it's a motion event with frame data, simulate AI analysis
+            if motion_data.get("event_type") == "motion_event":
+                frame_id = motion_data.get("frame_id", "unknown")
+                motion_strength = motion_data.get("motion_strength", 0)
+                
+                print(f"Processing AI analysis for frame {frame_id} with motion strength {motion_strength}%")
+                
+                # Simulate processing delay (LLaVA would take 2-5 seconds)
+                await asyncio.sleep(random.uniform(2, 4))
+                
+                # Generate simulated AI analysis response
+                ai_responses = [
+                    "A person wearing a blue shirt is walking through the frame from left to right",
+                    "Multiple people detected having a conversation near the entrance",
+                    "A delivery person approaching with a package in hand",
+                    "A cat is moving across the garden area",
+                    "A vehicle is parking in the driveway",
+                    "Wind causing tree branches to move significantly",
+                    "Someone is waving at the camera",
+                    "A person carrying groceries towards the door",
+                ]
+                
+                analysis_result = {
+                    "event_type": "ai_analysis",
+                    "frame_id": frame_id,
+                    "description": random.choice(ai_responses),
+                    "confidence": round(random.uniform(0.7, 0.95), 2),
+                    "processing_time": round(random.uniform(2, 4), 2),
+                    "timestamp": datetime.now().isoformat(),
+                    "objects_detected": random.randint(1, 3),
+                }
+                
+                # Send AI analysis back to client
+                await websocket.send_text(json.dumps(analysis_result))
+                print(f"Sent AI analysis for frame {frame_id}: {analysis_result['description'][:50]}...")
+                
+    except WebSocketDisconnect:
+        print("WebSocket client disconnected")
+    except Exception as e:
+        print(f"WebSocket error: {e}")
+        await websocket.close()
