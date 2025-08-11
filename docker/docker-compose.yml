@@ -11,6 +11,7 @@ services:
       - /app/node_modules
     environment:
       - VITE_API_URL=http://localhost:8000
+      - VITE_WS_URL=ws://localhost:8000/ws
       - CI=${CI:-false}
     depends_on:
       - api
@@ -27,3 +28,74 @@ services:
     environment:
       - ENVIRONMENT=development
       - RELOAD=true
+      - OLLAMA_URL=http://ollama:11434
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=mysql://root:password@mysql:3306/motion_detector
+    depends_on:
+      - ollama
+      - redis
+      - mysql
+
+  # Ollama LLaVA Service
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_MODELS_PATH=/root/.ollama/models
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    # Automatically pull the LLaVA model on startup
+    entrypoint: >
+      /bin/sh -c "
+      ollama serve &
+      sleep 5 &&
+      ollama pull llava:latest &&
+      wait
+      "
+
+  # Redis Cache & Job Queue
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=password
+      - MYSQL_DATABASE=motion_detector
+      - MYSQL_USER=motion_user
+      - MYSQL_PASSWORD=motion_pass
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  ollama_data:
+    driver: local
+  redis_data:
+    driver: local
+  mysql_data:
+    driver: local

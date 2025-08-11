@@ -1,15 +1,110 @@
 import asyncio
 import base64
 import json
+import logging
+import os
 import random
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 import httpx
+import redis.asyncio as redis
 from fastapi import FastAPI, File, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
 
+from ai_processor import ai_processor
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 app = FastAPI()
+
+# Store active WebSocket connections
+active_connections: Dict[str, WebSocket] = {}
+
+# Redis client for pub/sub
+redis_client: Optional[redis.Redis] = None
+
+# Background tasks
+background_tasks = []
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize services on startup"""
+    global redis_client
+    
+    try:
+        # Connect to Redis
+        redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+        redis_client = await redis.from_url(
+            redis_url,
+            encoding="utf-8",
+            decode_responses=True
+        )
+        await redis_client.ping()
+        logger.info("Connected to Redis")
+        
+        # Start AI processor worker
+        worker_task = asyncio.create_task(ai_processor.start_worker())
+        background_tasks.append(worker_task)
+        logger.info("Started AI processor worker")
+        
+        # Start Redis subscriber for AI results
+        subscriber_task = asyncio.create_task(subscribe_to_ai_results())
+        background_tasks.append(subscriber_task)
+        logger.info("Started AI results subscriber")
+        
+    except Exception as e:
+        logger.error(f"Startup error: {e}")
+        logger.warning("Running without Redis/AI processing support")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Cleanup on shutdown"""
+    # Cancel background tasks
+    for task in background_tasks:
+        task.cancel()
+    
+    # Wait for tasks to complete
+    await asyncio.gather(*background_tasks, return_exceptions=True)
+    
+    # Close Redis connection
+    if redis_client:
+        await redis_client.close()
+    
+    # Disconnect AI processor
+    await ai_processor.disconnect()
+    
+    logger.info("Shutdown complete")
+
+async def subscribe_to_ai_results():
+    """Subscribe to AI analysis results and forward to WebSocket clients"""
+    if not redis_client:
+        return
+        
+    pubsub = redis_client.pubsub()
+    await pubsub.subscribe("ai_analysis_results")
+    
+    try:
+        async for message in pubsub.listen():
+            if message["type"] == "message":
+                try:
+                    result = json.loads(message["data"])
+                    websocket_id = result.get("data", {}).get("websocket_id")
+                    
+                    # Send to specific WebSocket connection
+                    if websocket_id in active_connections:
+                        websocket = active_connections[websocket_id]
+                        await websocket.send_text(json.dumps(result))
+                        logger.info(f"Sent AI result to WebSocket {websocket_id}")
+                        
+                except Exception as e:
+                    logger.error(f"Error forwarding AI result: {e}")
+                    
+    except asyncio.CancelledError:
+        await pubsub.unsubscribe("ai_analysis_results")
+        await pubsub.close()
 
 # Dummy data store for motion events
 dummy_motion_events = [
@@ -234,55 +329,90 @@ async def websocket_endpoint(websocket: WebSocket):
     """
     WebSocket endpoint for real-time motion detection and AI analysis
     """
+    import uuid
+    
     await websocket.accept()
-    print("WebSocket client connected")
+    
+    # Generate unique ID for this WebSocket connection
+    websocket_id = str(uuid.uuid4())
+    active_connections[websocket_id] = websocket
+    
+    logger.info(f"WebSocket client connected: {websocket_id}")
     
     try:
         while True:
             # Receive motion event from client
             data = await websocket.receive_text()
-            motion_data = json.loads(data)
+            message = json.loads(data)
             
-            print(f"Received motion event: {motion_data.get('event_type', 'unknown')}")
+            # Handle both message formats (frontend sends 'type', we check both)
+            message_type = message.get('type') or message.get('event_type')
+            logger.debug(f"Received message type: {message_type} from {websocket_id}")
             
-            # If it's a motion event with frame data, simulate AI analysis
-            if motion_data.get("event_type") == "motion_event":
-                frame_id = motion_data.get("frame_id", "unknown")
+            # Handle ping messages for keep-alive
+            if message_type == "ping":
+                await websocket.send_text(json.dumps({"type": "pong"}))
+                continue
+            
+            # If it's a motion event with frame data, queue for AI analysis
+            if message_type == "motion_event":
+                # Extract motion event data from the message
+                motion_data = message.get('data', {}) if 'data' in message else message
+                frame_id = motion_data.get("frame_id", f"frame_{uuid.uuid4()}")
                 motion_strength = motion_data.get("motion_strength", 0)
+                frame_data = motion_data.get("frame_data", "")
                 
-                print(f"Processing AI analysis for frame {frame_id} with motion strength {motion_strength}%")
+                logger.info(f"Received motion event {frame_id} with {motion_strength}% strength")
                 
-                # Simulate processing delay (LLaVA would take 2-5 seconds)
-                await asyncio.sleep(random.uniform(2, 4))
-                
-                # Generate simulated AI analysis response
-                ai_responses = [
-                    "A person wearing a blue shirt is walking through the frame from left to right",
-                    "Multiple people detected having a conversation near the entrance",
-                    "A delivery person approaching with a package in hand",
-                    "A cat is moving across the garden area",
-                    "A vehicle is parking in the driveway",
-                    "Wind causing tree branches to move significantly",
-                    "Someone is waving at the camera",
-                    "A person carrying groceries towards the door",
-                ]
-                
-                analysis_result = {
-                    "event_type": "ai_analysis",
-                    "frame_id": frame_id,
-                    "description": random.choice(ai_responses),
-                    "confidence": round(random.uniform(0.7, 0.95), 2),
-                    "processing_time": round(random.uniform(2, 4), 2),
-                    "timestamp": datetime.now().isoformat(),
-                    "objects_detected": random.randint(1, 3),
-                }
-                
-                # Send AI analysis back to client
-                await websocket.send_text(json.dumps(analysis_result))
-                print(f"Sent AI analysis for frame {frame_id}: {analysis_result['description'][:50]}...")
+                # Queue for background processing if frame data is available
+                if frame_data and motion_strength > 0:
+                    # Use background AI processor (non-blocking)
+                    queued = await ai_processor.queue_frame_for_analysis(
+                        frame_id=frame_id,
+                        frame_data=frame_data,
+                        motion_strength=motion_strength,
+                        websocket_id=websocket_id
+                    )
+                    
+                    if queued:
+                        # Send immediate acknowledgment
+                        ack_message = {
+                            "type": "motion_ack",
+                            "data": {
+                                "frame_id": frame_id,
+                                "status": "queued",
+                                "message": "Frame queued for AI analysis"
+                            },
+                            "timestamp": datetime.now().isoformat()
+                        }
+                        await websocket.send_text(json.dumps(ack_message))
+                    else:
+                        # If queueing failed, try direct processing as fallback
+                        logger.warning(f"Failed to queue frame {frame_id}, attempting direct processing")
+                        
+                        # Fallback to simple response
+                        fallback_result = {
+                            "type": "ai_analysis",
+                            "data": {
+                                "frame_id": frame_id,
+                                "description": f"Motion detected ({motion_strength:.1f}% strength) - Analysis pending",
+                                "confidence": 0.5,
+                                "processing_time": 0,
+                                "timestamp": datetime.now().isoformat(),
+                            },
+                            "timestamp": datetime.now().isoformat(),
+                        }
+                        await websocket.send_text(json.dumps(fallback_result))
                 
     except WebSocketDisconnect:
-        print("WebSocket client disconnected")
+        logger.info(f"WebSocket client disconnected: {websocket_id}")
     except Exception as e:
-        print(f"WebSocket error: {e}")
-        await websocket.close()
+        logger.error(f"WebSocket error for {websocket_id}: {e}")
+    finally:
+        # Remove from active connections
+        if websocket_id in active_connections:
+            del active_connections[websocket_id]
+        try:
+            await websocket.close()
+        except:
+            pass

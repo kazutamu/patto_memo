@@ -8,6 +8,14 @@ python-multipart
 # HTTP client for Ollama API
 httpx
 
+# Redis for background job processing
+redis[hiredis]
+
+# Database support
+sqlalchemy
+mysqlclient
+alembic
+
 # Testing dependencies
 pytest
 pytest-asyncio
