@@ -27,6 +27,14 @@
   background: #1a1a1a;
   border-radius: 12px;
   overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.videoWrapper.motionDetected {
+  box-shadow: 
+    0 0 20px rgba(255, 69, 0, 0.4),
+    0 0 40px rgba(255, 69, 0, 0.2);
+  border: 2px solid rgba(255, 69, 0, 0.6);
 }
 
 .video {

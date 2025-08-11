@@ -1,21 +1,35 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
+import { useMotionDetection } from '../hooks/useMotionDetection';
+import { MotionDetectionState } from '../types';
 import styles from './VideoFeed.module.css';
 
 interface VideoFeedProps {
   isActive: boolean;
   onError: (error: string) => void;
   onStreamReady: (stream: MediaStream) => void;
+  sensitivity: number;
+  onMotionStateChange?: (motionState: MotionDetectionState) => void;
 }
 
 export const VideoFeed: React.FC<VideoFeedProps> = ({
   isActive,
   onError,
   onStreamReady,
+  sensitivity,
+  onMotionStateChange,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+
+  // Motion detection integration
+  const { motionState } = useMotionDetection({
+    videoElement: videoRef.current,
+    isActive: isActive && hasPermission === true,
+    sensitivity,
+    detectionInterval: 150 // Check every 150ms for good performance
+  });
 
   const stopStream = useCallback(() => {
     if (streamRef.current) {
@@ -92,6 +106,13 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
     };
   }, [isActive, startStream, stopStream]);
 
+  // Notify parent about motion state changes
+  useEffect(() => {
+    if (onMotionStateChange) {
+      onMotionStateChange(motionState);
+    }
+  }, [motionState, onMotionStateChange]);
+
   const handleRetry = () => {
     if (isActive) {
       startStream();
@@ -100,7 +121,7 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
 
   return (
     <div className={styles.videoContainer}>
-      <div className={styles.videoWrapper}>
+      <div className={`${styles.videoWrapper} ${motionState.motionStrength > 0 ? styles.motionDetected : ''}`}>
         <video
           ref={videoRef}
           className={styles.video}
