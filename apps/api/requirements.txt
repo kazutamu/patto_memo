@@ -11,3 +11,7 @@ httpx
 # Testing dependencies
 pytest
 pytest-asyncio
+
+# Development/formatting tools
+black
+isort
