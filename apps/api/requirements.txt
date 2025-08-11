@@ -11,10 +11,10 @@ httpx
 # Redis for background job processing
 redis[hiredis]
 
-# Database support
-sqlalchemy
-mysqlclient
-alembic
+# Database support (optional - install if needed)
+# sqlalchemy
+# mysqlclient
+# alembic
 
 # Testing dependencies
 pytest

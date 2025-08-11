@@ -23,8 +23,21 @@ export class WebSocketService {
   private handlers: WebSocketEventHandlers = {};
   private pingInterval: number | null = null;
 
-  constructor(url: string = 'ws://localhost:8000/ws') {
-    this.url = url;
+  constructor(url?: string) {
+    if (url) {
+      this.url = url;
+    } else if (import.meta.env.VITE_WS_URL) {
+      // Use explicit environment variable if set
+      this.url = import.meta.env.VITE_WS_URL;
+    } else {
+      // Dynamic WebSocket URL based on current location
+      // Note: Always use 'ws:' since our backend doesn't support WSS yet
+      const host = window.location.hostname;
+      const port = import.meta.env.VITE_API_PORT || '8000';
+      this.url = `ws://${host}:${port}/ws`;
+    }
+    
+    console.log('WebSocket connecting to:', this.url);
   }
 
   /**
@@ -81,6 +94,7 @@ export class WebSocketService {
 
         this.ws.onerror = (error) => {
           console.error('WebSocket error:', error);
+          console.error('WebSocket URL was:', this.url);
           this.isConnecting = false;
           this.handlers.onError?.(error);
           reject(error);
