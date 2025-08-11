@@ -68,7 +68,9 @@ class LLaVAAnalysisRequest(BaseModel):
 class LLaVAAnalysisResponse(BaseModel):
     description: str
     processing_time: float
-    llm_model: str  # Changed from model_used to avoid Pydantic's protected namespace "model_"
+    llm_model: (
+        str  # Changed from model_used to avoid Pydantic's protected namespace "model_"
+    )
     success: bool
     error_message: Optional[str] = None
 
