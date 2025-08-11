@@ -236,7 +236,7 @@ class TestLLaVAModels:
         response = LLaVAAnalysisResponse(
             description=description,
             processing_time=1.25,
-            model_used="llava:latest",
+            llm_model="llava:latest",
             success=success,
             error_message=error_message,
         )
@@ -262,7 +262,7 @@ class TestLLaVAModels:
         base_response_data = {
             "description": "test",
             "processing_time": 1.0,
-            "model_used": "llava:latest",
+            "llm_model": "llava:latest",
             "success": True,
         }
 
@@ -301,7 +301,7 @@ class TestLLaVAModels:
         response = LLaVAAnalysisResponse(
             description="Test",
             processing_time=processing_time,
-            model_used="llava:latest",
+            llm_model="llava:latest",
             success=True,
         )
         assert response.processing_time == processing_time

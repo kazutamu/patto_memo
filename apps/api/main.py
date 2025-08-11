@@ -68,7 +68,7 @@ class LLaVAAnalysisRequest(BaseModel):
 class LLaVAAnalysisResponse(BaseModel):
     description: str
     processing_time: float
-    model_used: str
+    llm_model: str  # Changed from model_used to avoid Pydantic's protected namespace "model_"
     success: bool
     error_message: Optional[str] = None
 
@@ -164,7 +164,7 @@ async def analyze_image_with_llava(request: LLaVAAnalysisRequest):
             return LLaVAAnalysisResponse(
                 description=result.get("response", "No description available"),
                 processing_time=processing_time,
-                model_used="llava:latest",
+                llm_model="llava:latest",
                 success=True,
             )
 
@@ -173,7 +173,7 @@ async def analyze_image_with_llava(request: LLaVAAnalysisRequest):
         return LLaVAAnalysisResponse(
             description="",
             processing_time=processing_time,
-            model_used="llava:latest",
+            llm_model="llava:latest",
             success=False,
             error_message=f"Connection error: {str(e)}",
         )
@@ -182,7 +182,7 @@ async def analyze_image_with_llava(request: LLaVAAnalysisRequest):
         return LLaVAAnalysisResponse(
             description="",
             processing_time=processing_time,
-            model_used="llava:latest",
+            llm_model="llava:latest",
             success=False,
             error_message=f"Analysis failed: {str(e)}",
         )
@@ -209,7 +209,7 @@ async def analyze_uploaded_image(
         return LLaVAAnalysisResponse(
             description="",
             processing_time=0.0,
-            model_used="llava:latest",
+            llm_model="llava:latest",
             success=False,
             error_message=f"File processing failed: {str(e)}",
         )

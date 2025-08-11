@@ -10,7 +10,7 @@ from io import BytesIO
 import httpx
 import pytest
 from fastapi.testclient import TestClient
-from httpx_mock import HTTPXMock
+from pytest_httpx import HTTPXMock
 
 from main import app, dummy_motion_events
 
@@ -150,7 +150,7 @@ class TestCrossEndpointWorkflows:
 
             # Verify consistency
             assert base64_data["success"] == upload_data["success"]
-            assert base64_data["model_used"] == upload_data["model_used"]
+            assert base64_data["llm_model"] == upload_data["llm_model"]
             assert base64_data["description"] == upload_data["description"]
 
     def test_system_health_and_functionality_check(self, client: TestClient):

@@ -10,7 +10,7 @@ from io import BytesIO
 import httpx
 import pytest
 from fastapi.testclient import TestClient
-from httpx_mock import HTTPXMock
+from pytest_httpx import HTTPXMock
 
 from main import app
 

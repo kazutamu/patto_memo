@@ -9,7 +9,7 @@ from io import BytesIO
 import httpx
 import pytest
 from fastapi.testclient import TestClient
-from httpx_mock import HTTPXMock
+from pytest_httpx import HTTPXMock
 
 from main import app
 
@@ -68,7 +68,7 @@ class TestLLaVAAnalysisEndpoints:
             data["description"]
             == "This image shows a person walking through a doorway."
         )
-        assert data["model_used"] == "llava:latest"
+        assert data["llm_model"] == "llava:latest"
         assert data["processing_time"] > 0
         assert data["error_message"] is None
 
@@ -214,7 +214,7 @@ class TestLLaVAAnalysisEndpoints:
 
         # Both should have same success status and model
         assert base64_data["success"] == upload_data["success"]
-        assert base64_data["model_used"] == upload_data["model_used"]
+        assert base64_data["llm_model"] == upload_data["llm_model"]
         assert base64_data["description"] == upload_data["description"]
 
     @pytest.mark.parametrize(
