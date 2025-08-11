@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { VideoFeed, VideoControls } from './components';
+import { ConnectionHelper } from './components/ConnectionHelper';
 import { MotionDetectionState } from './types';
 import styles from './App.module.css';
 
@@ -27,12 +28,14 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [cameraFacing, setCameraFacing] = useState<'user' | 'environment'>('user');
   const [motionState, setMotionState] = useState<MotionDetectionState>({
     isDetecting: false,
     motionStrength: 0,
     lastMotionTime: null,
     sensitivity: 50
   });
+  const [showConnectionHelper, setShowConnectionHelper] = useState(false);
 
   const handleToggleCamera = useCallback(() => {
     setIsCameraActive(prev => !prev);
@@ -62,6 +65,12 @@ function App() {
     setMotionState(newMotionState);
   }, []);
 
+  const handleCameraFacingChange = useCallback((facing: 'user' | 'environment') => {
+    setCameraFacing(facing);
+    // Clear any previous errors when switching cameras
+    setError(null);
+  }, []);
+
   return (
     <div className={styles.app}>
       <div className={styles.container}>
@@ -75,6 +84,14 @@ function App() {
         {error && (
           <div className={styles.errorBanner}>
             <strong>Error:</strong> {error}
+            {(error.includes('HTTPS') || error.includes('Camera access')) && (
+              <button 
+                className={styles.helpButton}
+                onClick={() => setShowConnectionHelper(true)}
+              >
+                Need Help? 📱
+              </button>
+            )}
           </div>
         )}
 
@@ -86,6 +103,8 @@ function App() {
               onStreamReady={handleStreamReady}
               sensitivity={sensitivity}
               onMotionStateChange={handleMotionStateChange}
+              cameraFacing={cameraFacing}
+              onCameraFacingChange={handleCameraFacingChange}
             />
             
             <button 
@@ -110,6 +129,12 @@ function App() {
           </div>
         </main>
       </div>
+
+      <ConnectionHelper 
+        currentUrl={window.location.href}
+        isVisible={showConnectionHelper}
+        onClose={() => setShowConnectionHelper(false)}
+      />
     </div>
   );
 }

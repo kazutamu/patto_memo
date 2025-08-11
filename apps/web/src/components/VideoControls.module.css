@@ -273,42 +273,148 @@
   50% { opacity: 0.7; transform: scale(1.1); }
 }
 
-/* Responsive Design */
+/* Responsive Design - Mobile First */
 @media (max-width: 768px) {
   .controls {
-    padding: 24px;
+    padding: 24px 20px;
     gap: 24px;
   }
   
   .toggleButton {
-    padding: 14px 20px;
-    font-size: 15px;
+    padding: 16px 24px;
+    font-size: 16px;
+    min-height: 48px; /* Minimum touch target size */
+    min-width: 140px;
+    justify-content: center;
+  }
+  
+  .toggleButton:hover {
+    transform: none; /* Disable hover effects on mobile */
+  }
+  
+  .toggleButton:active {
+    transform: scale(0.95);
+    transition: transform 0.1s ease;
   }
   
   .toggleIcon {
-    font-size: 18px;
+    font-size: 20px;
   }
   
   .controlLabel {
     font-size: 15px;
+    margin-bottom: 4px;
   }
   
   .controlDescription {
     font-size: 13px;
+    line-height: 1.5;
   }
   
   .statusIndicator {
-    padding: 14px 18px;
+    padding: 16px 20px;
+    border-radius: 16px;
+  }
+  
+  /* Enhanced slider for touch */
+  .slider {
+    height: 8px;
+    margin: 8px 0;
+  }
+  
+  .slider::-webkit-slider-thumb {
+    width: 28px;
+    height: 28px;
+    box-shadow: 0 2px 12px rgba(74, 158, 255, 0.5);
+  }
+  
+  .slider::-moz-range-thumb {
+    width: 28px;
+    height: 28px;
+    box-shadow: 0 2px 12px rgba(74, 158, 255, 0.5);
+  }
+  
+  .slider:hover::-webkit-slider-thumb {
+    transform: none; /* Disable hover on mobile */
+  }
+  
+  .slider:hover::-moz-range-thumb {
+    transform: none; /* Disable hover on mobile */
+  }
+  
+  .slider:active::-webkit-slider-thumb {
+    transform: scale(1.1);
+  }
+  
+  .slider:active::-moz-range-thumb {
+    transform: scale(1.1);
+  }
+  
+  .sliderLabels {
+    font-size: 13px;
+    margin-top: 4px;
+  }
+  
+  .sliderValue {
+    padding: 6px 12px;
+    font-size: 14px;
+    border-radius: 8px;
   }
 }
 
+/* Extra small screens - Enhanced touch targets */
 @media (max-width: 480px) {
   .controls {
-    padding: 20px;
+    padding: 20px 16px;
     gap: 20px;
   }
   
   .controlGroup {
-    gap: 10px;
+    gap: 12px;
+  }
+  
+  .toggleButton {
+    padding: 18px 24px;
+    min-height: 52px;
+    min-width: 150px;
+    font-size: 16px;
+  }
+  
+  .controlLabel {
+    font-size: 16px;
+    font-weight: 600;
+  }
+  
+  .statusIndicator {
+    padding: 18px 20px;
+  }
+  
+  .statusText {
+    font-size: 15px;
+  }
+  
+  /* Even larger touch targets for sliders on small screens */
+  .slider::-webkit-slider-thumb {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .slider::-moz-range-thumb {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .motionDetails {
+    padding: 16px;
+    margin-top: 16px;
+  }
+  
+  .motionStrength {
+    font-size: 13px;
+    gap: 16px;
+  }
+  
+  .strengthBar {
+    height: 8px;
   }
 }

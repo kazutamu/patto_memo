@@ -28,6 +28,25 @@ export function useMotionDetection({
   detectionInterval = 100 // Check for motion every 100ms
 }: UseMotionDetectionOptions): UseMotionDetectionReturn {
   
+  // Adjust detection interval for mobile performance
+  const [adaptiveInterval, setAdaptiveInterval] = useState(detectionInterval);
+  
+  useEffect(() => {
+    const checkMobile = () => {
+      const userAgent = navigator.userAgent.toLowerCase();
+      const mobileKeywords = ['mobile', 'android', 'iphone', 'ipad', 'ipod', 'blackberry', 'windows phone'];
+      const isMobileDevice = mobileKeywords.some(keyword => userAgent.includes(keyword));
+      const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      const isMobile = isMobileDevice || isTouchDevice;
+      
+      // Use longer intervals on mobile for better performance
+      const adjustedInterval = isMobile ? Math.max(detectionInterval, 200) : detectionInterval;
+      setAdaptiveInterval(adjustedInterval);
+    };
+    
+    checkMobile();
+  }, [detectionInterval]);
+  
   const [motionState, setMotionState] = useState<MotionDetectionState>({
     isDetecting: false,
     motionStrength: 0,
@@ -78,9 +97,9 @@ export function useMotionDetection({
       } catch (error) {
         console.error('Error during motion detection:', error);
       }
-    }, detectionInterval);
+    }, adaptiveInterval);
 
-  }, [videoElement, sensitivity, detectionInterval]);
+  }, [videoElement, sensitivity, adaptiveInterval]);
 
   const stopDetection = useCallback(() => {
     if (intervalRef.current) {
