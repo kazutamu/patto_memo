@@ -103,13 +103,20 @@ class TestCrossEndpointWorkflows:
 
     @pytest.mark.asyncio
     async def test_file_upload_vs_base64_consistency_integration(
-        self, httpx_mock: HTTPXMock
+        self, httpx_mock: HTTPXMock, async_client
     ):
         """Test that file upload and base64 endpoints produce consistent results."""
         mock_response = {
             "response": "Consistent integration test response",
             "done": True,
         }
+        # Add two responses for both endpoints
+        httpx_mock.add_response(
+            method="POST",
+            url="http://localhost:11434/api/generate",
+            json=mock_response,
+            status_code=200,
+        )
         httpx_mock.add_response(
             method="POST",
             url="http://localhost:11434/api/generate",
@@ -120,15 +127,15 @@ class TestCrossEndpointWorkflows:
         test_image_data = b"integration_test_image_data"
         test_prompt = "Integration test prompt"
 
-        with TestClient(app) as client:
-            # Method 1: Base64 analysis
-            image_base64 = base64.b64encode(test_image_data).decode("utf-8")
-            base64_response = client.post(
-                "/api/v1/llava/analyze",
-                json={"image_base64": image_base64, "prompt": test_prompt},
-            )
+        # Method 1: Base64 analysis with async client
+        image_base64 = base64.b64encode(test_image_data).decode("utf-8")
+        base64_response = await async_client.post(
+            "/api/v1/llava/analyze",
+            json={"image_base64": image_base64, "prompt": test_prompt},
+        )
 
-            # Method 2: File upload analysis
+        # Method 2: File upload analysis with TestClient (for file uploads)
+        with TestClient(app) as client:
             upload_response = client.post(
                 "/api/v1/llava/analyze-upload",
                 files={
@@ -141,17 +148,17 @@ class TestCrossEndpointWorkflows:
                 data={"prompt": test_prompt},
             )
 
-            # Both should succeed and produce consistent results
-            assert base64_response.status_code == 200
-            assert upload_response.status_code == 200
+        # Both should succeed and produce consistent results
+        assert base64_response.status_code == 200
+        assert upload_response.status_code == 200
 
-            base64_data = base64_response.json()
-            upload_data = upload_response.json()
+        base64_data = base64_response.json()
+        upload_data = upload_response.json()
 
-            # Verify consistency
-            assert base64_data["success"] == upload_data["success"]
-            assert base64_data["llm_model"] == upload_data["llm_model"]
-            assert base64_data["description"] == upload_data["description"]
+        # Verify consistency
+        assert base64_data["success"] == upload_data["success"]
+        assert base64_data["llm_model"] == upload_data["llm_model"]
+        assert base64_data["description"] == upload_data["description"]
 
     def test_system_health_and_functionality_check(self, client: TestClient):
         """Test overall system health across all endpoints."""

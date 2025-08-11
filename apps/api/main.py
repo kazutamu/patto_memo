@@ -85,6 +85,10 @@ def get_motion_events(limit: int = 10):
     """
     Get recent motion detection events
     """
+    # Validate limit parameter
+    if limit < 0:
+        raise HTTPException(status_code=422, detail="Limit must be non-negative")
+    
     events = dummy_motion_events.copy()
 
     # Handle zero limit
@@ -179,6 +183,9 @@ async def analyze_image_with_llava(request: LLaVAAnalysisRequest):
             success=False,
             error_message=f"Connection error: {str(e)}",
         )
+    except HTTPException:
+        # Re-raise HTTPException to let FastAPI handle it properly
+        raise
     except Exception as e:
         processing_time = (datetime.now() - start_time).total_seconds()
         return LLaVAAnalysisResponse(
@@ -207,6 +214,9 @@ async def analyze_uploaded_image(
 
         return await analyze_image_with_llava(request)
 
+    except HTTPException:
+        # Re-raise HTTPException to let FastAPI handle it properly
+        raise
     except Exception as e:
         return LLaVAAnalysisResponse(
             description="",

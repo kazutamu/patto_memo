@@ -2,6 +2,7 @@ import base64
 from io import BytesIO
 from typing import Generator
 
+import httpx
 import pytest
 from fastapi.testclient import TestClient
 from httpx import AsyncClient
@@ -18,7 +19,7 @@ def client():
 @pytest.fixture
 def async_client():
     """Create an async test client for the FastAPI app."""
-    return AsyncClient(app=app, base_url="http://test")
+    return AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test")
 
 
 @pytest.fixture(
