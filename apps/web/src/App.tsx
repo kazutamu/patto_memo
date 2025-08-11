@@ -27,6 +27,7 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [cameraFacing, setCameraFacing] = useState<'user' | 'environment'>('user');
   const [motionState, setMotionState] = useState<MotionDetectionState>({
     isDetecting: false,
     motionStrength: 0,
@@ -62,6 +63,12 @@ function App() {
     setMotionState(newMotionState);
   }, []);
 
+  const handleCameraFacingChange = useCallback((facing: 'user' | 'environment') => {
+    setCameraFacing(facing);
+    // Clear any previous errors when switching cameras
+    setError(null);
+  }, []);
+
   return (
     <div className={styles.app}>
       <div className={styles.container}>
@@ -86,6 +93,8 @@ function App() {
               onStreamReady={handleStreamReady}
               sensitivity={sensitivity}
               onMotionStateChange={handleMotionStateChange}
+              cameraFacing={cameraFacing}
+              onCameraFacingChange={handleCameraFacingChange}
             />
             
             <button 

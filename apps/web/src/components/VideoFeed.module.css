@@ -108,6 +108,52 @@
   transform: translateY(0);
 }
 
+.cameraSwitchButton {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 3;
+  font-size: 12px;
+}
+
+.cameraSwitchButton:hover {
+  background: rgba(0, 0, 0, 0.8);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
+}
+
+.cameraSwitchButton:active {
+  transform: scale(0.95);
+}
+
+.cameraSwitchText {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.mobileIndicator {
+  font-size: 12px;
+  color: #a0a0a0;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 4px 8px;
+  border-radius: 12px;
+  margin-left: 8px;
+}
+
 .videoInfo {
   display: flex;
   align-items: center;
@@ -168,7 +214,7 @@
 /* Responsive Design */
 @media (max-width: 768px) {
   .videoContainer {
-    margin: 0 16px;
+    margin: 0 8px;
     border-radius: 12px;
   }
   
@@ -187,5 +233,62 @@
   
   .videoInfo {
     padding: 12px 16px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .cameraSwitchButton {
+    width: 56px;
+    height: 56px;
+    top: 12px;
+    right: 12px;
+  }
+  
+  .cameraSwitchButton:hover {
+    transform: none; /* Disable hover effects on mobile */
+  }
+  
+  .cameraSwitchButton:active {
+    transform: scale(0.9);
+    background: rgba(0, 0, 0, 0.9);
+  }
+  
+  .mobileIndicator {
+    font-size: 11px;
+    padding: 3px 6px;
+  }
+  
+  .retryButton {
+    padding: 14px 28px;
+    font-size: 16px;
+    /* Larger touch target for mobile */
+  }
+}
+
+/* Extra small screens (phones in portrait) */
+@media (max-width: 480px) {
+  .videoContainer {
+    margin: 0 4px;
+  }
+  
+  .videoInfo {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+  
+  .cameraSwitchButton {
+    width: 52px;
+    height: 52px;
+    top: 8px;
+    right: 8px;
+  }
+  
+  .overlayText {
+    font-size: 14px;
+  }
+  
+  .status {
+    font-size: 12px;
+    padding: 4px 8px;
   }
 }

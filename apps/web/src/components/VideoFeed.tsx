@@ -9,6 +9,8 @@ interface VideoFeedProps {
   onStreamReady: (stream: MediaStream) => void;
   sensitivity: number;
   onMotionStateChange?: (motionState: MotionDetectionState) => void;
+  cameraFacing?: 'user' | 'environment';
+  onCameraFacingChange?: (facing: 'user' | 'environment') => void;
 }
 
 export const VideoFeed: React.FC<VideoFeedProps> = ({
@@ -17,11 +19,41 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
   onStreamReady,
   sensitivity,
   onMotionStateChange,
+  cameraFacing = 'user',
+  onCameraFacingChange,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [availableCameras, setAvailableCameras] = useState<MediaDeviceInfo[]>([]);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect if device is mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      const userAgent = navigator.userAgent.toLowerCase();
+      const mobileKeywords = ['mobile', 'android', 'iphone', 'ipad', 'ipod', 'blackberry', 'windows phone'];
+      const isMobileDevice = mobileKeywords.some(keyword => userAgent.includes(keyword));
+      const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      setIsMobile(isMobileDevice || isTouchDevice);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Get available cameras
+  const getAvailableCameras = useCallback(async () => {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const cameras = devices.filter(device => device.kind === 'videoinput');
+      setAvailableCameras(cameras);
+    } catch (error) {
+      console.warn('Could not enumerate devices:', error);
+    }
+  }, []);
 
   // Motion detection integration
   const { motionState } = useMotionDetection({
@@ -49,11 +81,18 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
       setIsLoading(true);
       setHasPermission(null);
 
+      // Mobile-optimized constraints
       const constraints: MediaStreamConstraints = {
-        video: {
+        video: isMobile ? {
+          width: { ideal: 640, max: 1280 },
+          height: { ideal: 480, max: 720 },
+          facingMode: cameraFacing,
+          frameRate: { ideal: 15, max: 30 }, // Lower frame rate for mobile performance
+        } : {
           width: { ideal: 1280, max: 1920 },
           height: { ideal: 720, max: 1080 },
-          facingMode: 'user',
+          facingMode: cameraFacing,
+          frameRate: { ideal: 30 },
         },
         audio: false,
       };
@@ -75,13 +114,21 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
       let errorMessage = 'Failed to access camera';
       if (error instanceof Error) {
         if (error.name === 'NotAllowedError') {
-          errorMessage = 'Camera access denied. Please grant camera permissions and try again.';
+          errorMessage = isMobile 
+            ? 'Camera access denied. Please check your browser settings and allow camera access for this site.'
+            : 'Camera access denied. Please grant camera permissions and try again.';
         } else if (error.name === 'NotFoundError') {
-          errorMessage = 'No camera found. Please connect a camera and try again.';
+          errorMessage = isMobile
+            ? 'No camera found. Please ensure your device has a working camera.'
+            : 'No camera found. Please connect a camera and try again.';
         } else if (error.name === 'NotReadableError') {
-          errorMessage = 'Camera is being used by another application.';
+          errorMessage = isMobile
+            ? 'Camera is being used by another app. Please close other camera apps and try again.'
+            : 'Camera is being used by another application.';
         } else if (error.name === 'OverconstrainedError') {
-          errorMessage = 'Camera does not support the requested configuration.';
+          errorMessage = isMobile
+            ? 'This camera configuration is not supported on your device. Try switching cameras.'
+            : 'Camera does not support the requested configuration.';
         } else {
           errorMessage = `Camera error: ${error.message}`;
         }
@@ -91,7 +138,12 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [onError, onStreamReady]);
+  }, [onError, onStreamReady, isMobile, cameraFacing]);
+
+  // Get available cameras on component mount
+  useEffect(() => {
+    getAvailableCameras();
+  }, [getAvailableCameras]);
 
   useEffect(() => {
     if (isActive) {
@@ -105,6 +157,14 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
       stopStream();
     };
   }, [isActive, startStream, stopStream]);
+
+  // Handle camera switch
+  const handleCameraSwitch = useCallback(() => {
+    if (onCameraFacingChange) {
+      const newFacing = cameraFacing === 'user' ? 'environment' : 'user';
+      onCameraFacingChange(newFacing);
+    }
+  }, [cameraFacing, onCameraFacingChange]);
 
   // Notify parent about motion state changes
   useEffect(() => {
@@ -156,12 +216,44 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
             </button>
           </div>
         )}
+
+        {/* Camera Switch Button - Only show on mobile with multiple cameras */}
+        {isMobile && availableCameras.length > 1 && isActive && hasPermission && (
+          <button 
+            className={styles.cameraSwitchButton}
+            onClick={handleCameraSwitch}
+            aria-label={`Switch to ${cameraFacing === 'user' ? 'back' : 'front'} camera`}
+            title={`Switch to ${cameraFacing === 'user' ? 'back' : 'front'} camera`}
+          >
+            <svg 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2"
+              width="24" 
+              height="24"
+            >
+              <path d="M9 12l2 2 4-4"/>
+              <path d="M21 12c-1 0-3-1-3-3s2-3 3-3 3 1 3 3-2 3-3 3"/>
+              <path d="M3 12c1 0 3-1 3-3s-2-3-3-3-3 1-3 3 2 3 3 3"/>
+              <path d="M12 3v3M12 18v3"/>
+            </svg>
+            <span className={styles.cameraSwitchText}>
+              {cameraFacing === 'user' ? '📷' : '📱'}
+            </span>
+          </button>
+        )}
       </div>
       
       <div className={styles.videoInfo}>
         <span className={`${styles.status} ${isActive && hasPermission ? styles.active : ''}`}>
           {isActive && hasPermission ? 'Live' : 'Inactive'}
         </span>
+        {isMobile && (
+          <span className={styles.mobileIndicator}>
+            📱 Mobile {cameraFacing === 'user' ? 'Front' : 'Back'} Camera
+          </span>
+        )}
       </div>
     </div>
   );

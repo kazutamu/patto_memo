@@ -77,6 +77,24 @@
   box-shadow: 0 6px 20px rgba(74, 158, 255, 0.3);
 }
 
+/* Disable hover effects on mobile */
+@media (hover: none) {
+  .settingsToggle:hover {
+    background: rgba(36, 36, 36, 0.9);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    transform: none;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  }
+  
+  .settingsToggle.active:hover {
+    background: rgba(74, 158, 255, 0.9);
+    border-color: #4a9eff;
+    color: #ffffff;
+    transform: rotate(45deg);
+  }
+}
+
 .settingsToggle.active {
   background: rgba(74, 158, 255, 0.9);
   border-color: #4a9eff;
@@ -179,19 +197,21 @@
 /* Responsive Design */
 @media (max-width: 768px) {
   .app {
-    padding: 16px;
+    padding: 16px 12px;
   }
   
   .header {
-    margin-bottom: 32px;
+    margin-bottom: 28px;
   }
   
   .title {
-    font-size: 36px;
+    font-size: 32px;
+    line-height: 1.2;
   }
   
   .subtitle {
     font-size: 16px;
+    line-height: 1.4;
   }
   
   .content {
@@ -201,37 +221,66 @@
   .settingsToggle {
     top: 16px;
     right: 16px;
-    width: 44px;
-    height: 44px;
+    width: 48px;
+    height: 48px;
+    /* Enhanced touch target */
+    touch-action: manipulation;
+  }
+  
+  .settingsToggle:active {
+    transform: scale(0.95);
+    transition: transform 0.1s ease;
+  }
+  
+  .settingsToggle.active:active {
+    transform: rotate(45deg) scale(0.95);
+  }
+  
+  .errorBanner {
+    margin-bottom: 20px;
+    font-size: 15px;
   }
 }
 
 @media (max-width: 480px) {
   .app {
-    padding: 12px;
+    padding: 12px 8px;
+  }
+  
+  .header {
+    margin-bottom: 24px;
   }
   
   .title {
-    font-size: 28px;
+    font-size: 26px;
+    line-height: 1.1;
+    margin-bottom: 12px;
   }
   
   .subtitle {
-    font-size: 15px;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+  
+  .content {
+    gap: 16px;
   }
   
   .errorBanner {
-    padding: 14px 16px;
+    padding: 12px 14px;
+    font-size: 14px;
+    border-radius: 10px;
   }
   
   .settingsToggle {
     top: 12px;
     right: 12px;
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
   }
   
   .settingsIcon {
-    width: 16px;
-    height: 16px;
+    width: 18px;
+    height: 18px;
   }
 }
