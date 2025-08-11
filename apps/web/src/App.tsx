@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { VideoFeed, VideoControls, AIAnalysisPopup } from './components';
+import { ConnectionHelper } from './components/ConnectionHelper';
 import { useAIAnalysis } from './hooks';
 import { MotionDetectionState } from './types';
 import styles from './App.module.css';
@@ -28,12 +29,14 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [cameraFacing, setCameraFacing] = useState<'user' | 'environment'>('user');
   const [motionState, setMotionState] = useState<MotionDetectionState>({
     isDetecting: false,
     motionStrength: 0,
     lastMotionTime: null,
     sensitivity: 50
   });
+  const [showConnectionHelper, setShowConnectionHelper] = useState(false);
 
   // Video element ref for AI analysis
   const videoElementRef = useRef<HTMLVideoElement | null>(null);
@@ -90,6 +93,12 @@ function App() {
     videoElementRef.current = videoElement;
   }, []);
 
+  const handleCameraFacingChange = useCallback((facing: 'user' | 'environment') => {
+    setCameraFacing(facing);
+    // Clear any previous errors when switching cameras
+    setError(null);
+  }, []);
+
   return (
     <div className={styles.app}>
       <div className={styles.container}>
@@ -103,6 +112,14 @@ function App() {
         {error && (
           <div className={styles.errorBanner}>
             <strong>Error:</strong> {error}
+            {(error.includes('HTTPS') || error.includes('Camera access')) && (
+              <button 
+                className={styles.helpButton}
+                onClick={() => setShowConnectionHelper(true)}
+              >
+                Need Help? 📱
+              </button>
+            )}
           </div>
         )}
 
@@ -115,6 +132,8 @@ function App() {
               sensitivity={sensitivity}
               onMotionStateChange={handleMotionStateChange}
               onVideoElementReady={handleVideoElementReady}
+              cameraFacing={cameraFacing}
+              onCameraFacingChange={handleCameraFacingChange}
             />
             
             <button 
@@ -158,6 +177,12 @@ function App() {
           autoCloseDelay={10000} // Auto-close after 10 seconds
         />
       </div>
+
+      <ConnectionHelper 
+        currentUrl={window.location.href}
+        isVisible={showConnectionHelper}
+        onClose={() => setShowConnectionHelper(false)}
+      />
     </div>
   );
 }
