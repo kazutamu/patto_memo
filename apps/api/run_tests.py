@@ -14,8 +14,8 @@ def run_command(cmd, description):
     print(f"\n{'='*60}")
     print(f"Running: {description}")
     print(f"Command: {' '.join(cmd)}")
-    print('='*60)
-    
+    print("=" * 60)
+
     result = subprocess.run(cmd, capture_output=False)
     return result.returncode == 0
 
@@ -23,7 +23,8 @@ def run_command(cmd, description):
 def main():
     """Main test runner."""
     if len(sys.argv) < 2:
-        print("""
+        print(
+            """
 Usage: python run_tests.py <command>
 
 Commands:
@@ -42,14 +43,15 @@ Examples:
   python run_tests.py all
   python run_tests.py unit
   python run_tests.py llava
-        """)
+        """
+        )
         return
-    
+
     command = sys.argv[1].lower()
-    
+
     # Base pytest command
     base_cmd = ["python", "-m", "pytest"]
-    
+
     if command == "help":
         main()
         return
@@ -75,7 +77,12 @@ Examples:
         cmd = base_cmd + ["-m", "not slow"]
         run_command(cmd, "Fast tests only")
     elif command == "coverage":
-        cmd = base_cmd + ["--cov=main", "--cov-report=html:htmlcov", "--cov-report=term-missing", "--cov-fail-under=80"]
+        cmd = base_cmd + [
+            "--cov=main",
+            "--cov-report=html:htmlcov",
+            "--cov-report=term-missing",
+            "--cov-fail-under=80",
+        ]
         run_command(cmd, "Tests with detailed coverage")
     elif command == "verbose":
         cmd = base_cmd + ["-v", "-s"]

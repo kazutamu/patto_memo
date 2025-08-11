@@ -19,42 +19,53 @@ def test_health_check(client: TestClient):
 class TestMotionEventsAPI:
     """Consolidated tests for motion events endpoints."""
 
-    @pytest.mark.parametrize("limit,expected_behavior", [
-        (None, "default_limit"),       # Default limit
-        (2, "custom_limit"),          # Custom limit
-        (0, "zero_limit"),            # Zero limit
-        (100, "large_limit"),         # Large limit
-        (-1, "validation_error")      # Invalid limit
-    ])
-    def test_get_motion_events_with_limits(self, client: TestClient, limit, expected_behavior):
+    @pytest.mark.parametrize(
+        "limit,expected_behavior",
+        [
+            (None, "default_limit"),  # Default limit
+            (2, "custom_limit"),  # Custom limit
+            (0, "zero_limit"),  # Zero limit
+            (100, "large_limit"),  # Large limit
+            (-1, "validation_error"),  # Invalid limit
+        ],
+    )
+    def test_get_motion_events_with_limits(
+        self, client: TestClient, limit, expected_behavior
+    ):
         """Test getting motion events with various limit parameters."""
         url = "/api/v1/motion/events"
         if limit is not None:
             url += f"?limit={limit}"
-        
+
         response = client.get(url)
-        
+
         if expected_behavior == "validation_error":
             assert response.status_code == 422
             return
-            
+
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
-        
+
         if expected_behavior == "zero_limit":
             assert data == []
         elif expected_behavior == "custom_limit":
             assert len(data) <= limit
         else:  # default or large limit
             assert len(data) <= (limit or 10)
-        
+
         # Validate structure if events exist
         if data:
             event = data[0]
-            required_fields = ["id", "timestamp", "confidence", "duration", "description"]
+            required_fields = [
+                "id",
+                "timestamp",
+                "confidence",
+                "duration",
+                "description",
+            ]
             assert all(field in event for field in required_fields)
-            
+
             # Validate data types
             assert isinstance(event["id"], int)
             assert isinstance(event["timestamp"], str)
@@ -91,35 +102,47 @@ class TestMotionEventsAPI:
         assert data["duration"] == 1.5
         assert data["description"] == ""  # Default empty string
 
-    def test_create_motion_event_validation_errors(self, client: TestClient, invalid_motion_data):
+    def test_create_motion_event_validation_errors(
+        self, client: TestClient, invalid_motion_data
+    ):
         """Test creating motion events with various invalid data scenarios."""
         invalid_data, description = invalid_motion_data
         response = client.post("/api/v1/motion/events", json=invalid_data)
         assert response.status_code == 422  # Validation error
 
-    def test_create_motion_event_edge_cases(self, client: TestClient, edge_case_motion_data):
+    def test_create_motion_event_edge_cases(
+        self, client: TestClient, edge_case_motion_data
+    ):
         """Test creating motion events with edge case values."""
         event_data, case_type = edge_case_motion_data
         response = client.post("/api/v1/motion/events", json=event_data)
         assert response.status_code == 200
-        
+
         data = response.json()
         if case_type == "precision":
             assert abs(data["confidence"] - event_data["confidence"]) < 1e-10
         else:
             assert data["confidence"] == event_data["confidence"]
 
-    @pytest.mark.parametrize("description,expected", [
-        ("", ""),  # Empty description
-        ("Very long description " * 1000, "Very long description " * 1000),  # Long description
-        ("测试 Unicode 🔍", "测试 Unicode 🔍"),  # Unicode characters
-    ])
-    def test_create_motion_event_description_handling(self, client: TestClient, description, expected):
+    @pytest.mark.parametrize(
+        "description,expected",
+        [
+            ("", ""),  # Empty description
+            (
+                "Very long description " * 1000,
+                "Very long description " * 1000,
+            ),  # Long description
+            ("测试 Unicode 🔍", "测试 Unicode 🔍"),  # Unicode characters
+        ],
+    )
+    def test_create_motion_event_description_handling(
+        self, client: TestClient, description, expected
+    ):
         """Test motion event creation with various description formats."""
         event_data = {"confidence": 0.8, "duration": 1.5, "description": description}
         response = client.post("/api/v1/motion/events", json=event_data)
         assert response.status_code == 200
-        
+
         data = response.json()
         assert data["description"] == expected
 
@@ -176,37 +199,62 @@ def test_basic_workflow_integration(client: TestClient):
     assert our_event["description"] == "Integration test event"
 
 
-@pytest.mark.parametrize("endpoint,method,expected_status", [
-    ("/api/v1/nonexistent", "GET", 404),  # Non-existent endpoint
-    ("/api/v1/motion/events", "DELETE", 405),  # Invalid method
-])
+@pytest.mark.parametrize(
+    "endpoint,method,expected_status",
+    [
+        ("/api/v1/nonexistent", "GET", 404),  # Non-existent endpoint
+        ("/api/v1/motion/events", "DELETE", 405),  # Invalid method
+    ],
+)
 def test_api_error_responses(client: TestClient, endpoint, method, expected_status):
     """Test various API error conditions."""
     response = getattr(client, method.lower())(endpoint)
     assert response.status_code == expected_status
 
 
-@pytest.mark.parametrize("payload,content_type,expected_status_codes", [
-    ("invalid json", "application/json", [422]),  # Malformed JSON
-    ('{"confidence": 0.8, "duration": 1.5}', None, [200, 422, 415]),  # Missing content-type
-    ('{"confidence": 0.8, "duration": 1.5}', "text/plain", [422, 415]),  # Wrong content-type
-])
-def test_request_format_handling(client: TestClient, payload, content_type, expected_status_codes):
+@pytest.mark.parametrize(
+    "payload,content_type,expected_status_codes",
+    [
+        ("invalid json", "application/json", [422]),  # Malformed JSON
+        (
+            '{"confidence": 0.8, "duration": 1.5}',
+            None,
+            [200, 422, 415],
+        ),  # Missing content-type
+        (
+            '{"confidence": 0.8, "duration": 1.5}',
+            "text/plain",
+            [422, 415],
+        ),  # Wrong content-type
+    ],
+)
+def test_request_format_handling(
+    client: TestClient, payload, content_type, expected_status_codes
+):
     """Test handling of various request formats and content types."""
     headers = {"content-type": content_type} if content_type else {}
     response = client.post("/api/v1/motion/events", data=payload, headers=headers)
     assert response.status_code in expected_status_codes
 
 
-@pytest.mark.parametrize("test_data,description", [
-    ({"confidence": None, "duration": 1.5}, "null_confidence"),
-    ({"confidence": 0.8, "duration": 1.5, "description": "测试 Unicode 🔍"}, "unicode_chars"),
-    ({"confidence": 0.8, "duration": 1.5, "description": '"malicious"'}, "injection_attempt"),
-])
+@pytest.mark.parametrize(
+    "test_data,description",
+    [
+        ({"confidence": None, "duration": 1.5}, "null_confidence"),
+        (
+            {"confidence": 0.8, "duration": 1.5, "description": "测试 Unicode 🔍"},
+            "unicode_chars",
+        ),
+        (
+            {"confidence": 0.8, "duration": 1.5, "description": '"malicious"'},
+            "injection_attempt",
+        ),
+    ],
+)
 def test_data_handling_edge_cases(client: TestClient, test_data, description):
     """Test handling of edge cases in request data."""
     response = client.post("/api/v1/motion/events", json=test_data)
-    
+
     if description == "null_confidence":
         assert response.status_code == 422  # Validation error
     else:
