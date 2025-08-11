@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { VideoFeed } from '../VideoFeed';
 import { useMotionDetection } from '../../hooks/useMotionDetection';
@@ -60,7 +60,7 @@ describe('VideoFeed', () => {
     });
 
     // Mock getUserMedia success by default
-    Object.defineProperty(global.navigator, 'mediaDevices', {
+    Object.defineProperty(globalThis.navigator, 'mediaDevices', {
       value: {
         getUserMedia: vi.fn(() => Promise.resolve(createMockMediaStream())),
       },
@@ -121,7 +121,7 @@ describe('VideoFeed', () => {
   describe('camera access', () => {
     it('should request camera access when activated', async () => {
       const mockGetUserMedia = vi.fn(() => Promise.resolve(createMockMediaStream()));
-      Object.defineProperty(global.navigator, 'mediaDevices', {
+      Object.defineProperty(globalThis.navigator, 'mediaDevices', {
         value: { getUserMedia: mockGetUserMedia },
         writable: true,
       });
@@ -147,7 +147,7 @@ describe('VideoFeed', () => {
       const mockGetUserMedia = vi.fn(
         () => new Promise(resolve => setTimeout(() => resolve(createMockMediaStream()), 100))
       );
-      Object.defineProperty(global.navigator, 'mediaDevices', {
+      Object.defineProperty(globalThis.navigator, 'mediaDevices', {
         value: { getUserMedia: mockGetUserMedia },
         writable: true,
       });
@@ -167,7 +167,7 @@ describe('VideoFeed', () => {
       const mockGetUserMedia = vi.fn(() =>
         Promise.reject(new DOMException('Permission denied', 'NotAllowedError'))
       );
-      Object.defineProperty(global.navigator, 'mediaDevices', {
+      Object.defineProperty(globalThis.navigator, 'mediaDevices', {
         value: { getUserMedia: mockGetUserMedia },
         writable: true,
       });
@@ -188,7 +188,7 @@ describe('VideoFeed', () => {
       const mockGetUserMedia = vi.fn(() =>
         Promise.reject(new DOMException('Device not found', 'NotFoundError'))
       );
-      Object.defineProperty(global.navigator, 'mediaDevices', {
+      Object.defineProperty(globalThis.navigator, 'mediaDevices', {
         value: { getUserMedia: mockGetUserMedia },
         writable: true,
       });
@@ -206,7 +206,7 @@ describe('VideoFeed', () => {
       const mockGetUserMedia = vi.fn(() =>
         Promise.reject(new DOMException('Device in use', 'NotReadableError'))
       );
-      Object.defineProperty(global.navigator, 'mediaDevices', {
+      Object.defineProperty(globalThis.navigator, 'mediaDevices', {
         value: { getUserMedia: mockGetUserMedia },
         writable: true,
       });
@@ -224,7 +224,7 @@ describe('VideoFeed', () => {
       const mockGetUserMedia = vi.fn(() =>
         Promise.reject(new DOMException('Constraints not satisfied', 'OverconstrainedError'))
       );
-      Object.defineProperty(global.navigator, 'mediaDevices', {
+      Object.defineProperty(globalThis.navigator, 'mediaDevices', {
         value: { getUserMedia: mockGetUserMedia },
         writable: true,
       });
@@ -242,7 +242,7 @@ describe('VideoFeed', () => {
       const mockGetUserMedia = vi.fn(() =>
         Promise.reject(new Error('Generic camera error'))
       );
-      Object.defineProperty(global.navigator, 'mediaDevices', {
+      Object.defineProperty(globalThis.navigator, 'mediaDevices', {
         value: { getUserMedia: mockGetUserMedia },
         writable: true,
       });
@@ -260,7 +260,7 @@ describe('VideoFeed', () => {
       const mockGetUserMedia = vi.fn(() =>
         Promise.reject(new DOMException('Permission denied', 'NotAllowedError'))
       );
-      Object.defineProperty(global.navigator, 'mediaDevices', {
+      Object.defineProperty(globalThis.navigator, 'mediaDevices', {
         value: { getUserMedia: mockGetUserMedia },
         writable: true,
       });
@@ -283,10 +283,10 @@ describe('VideoFeed', () => {
     it('should stop stream when deactivated', async () => {
       const mockStream = createMockMediaStream();
       const mockStopTrack = vi.fn();
-      mockStream.getTracks.mockReturnValue([{ stop: mockStopTrack } as any]);
+      (mockStream.getTracks as any).mockReturnValue([{ stop: mockStopTrack } as any]);
 
       const mockGetUserMedia = vi.fn(() => Promise.resolve(mockStream));
-      Object.defineProperty(global.navigator, 'mediaDevices', {
+      Object.defineProperty(globalThis.navigator, 'mediaDevices', {
         value: { getUserMedia: mockGetUserMedia },
         writable: true,
       });
@@ -307,10 +307,10 @@ describe('VideoFeed', () => {
     it('should clean up on unmount', async () => {
       const mockStream = createMockMediaStream();
       const mockStopTrack = vi.fn();
-      mockStream.getTracks.mockReturnValue([{ stop: mockStopTrack } as any]);
+      (mockStream.getTracks as any).mockReturnValue([{ stop: mockStopTrack } as any]);
 
       const mockGetUserMedia = vi.fn(() => Promise.resolve(mockStream));
-      Object.defineProperty(global.navigator, 'mediaDevices', {
+      Object.defineProperty(globalThis.navigator, 'mediaDevices', {
         value: { getUserMedia: mockGetUserMedia },
         writable: true,
       });
@@ -375,7 +375,7 @@ describe('VideoFeed', () => {
 
     it('should handle missing onMotionStateChange callback gracefully', () => {
       const props = { ...defaultProps };
-      delete props.onMotionStateChange;
+      delete (props as any).onMotionStateChange;
 
       expect(() => {
         render(<VideoFeed {...props} />);
@@ -399,7 +399,7 @@ describe('VideoFeed', () => {
   describe('status display', () => {
     it('should show "Live" status when active and has permission', async () => {
       const mockGetUserMedia = vi.fn(() => Promise.resolve(createMockMediaStream()));
-      Object.defineProperty(global.navigator, 'mediaDevices', {
+      Object.defineProperty(globalThis.navigator, 'mediaDevices', {
         value: { getUserMedia: mockGetUserMedia },
         writable: true,
       });
@@ -429,7 +429,7 @@ describe('VideoFeed', () => {
       const mockGetUserMedia = vi.fn(() =>
         Promise.reject(new DOMException('Permission denied', 'NotAllowedError'))
       );
-      Object.defineProperty(global.navigator, 'mediaDevices', {
+      Object.defineProperty(globalThis.navigator, 'mediaDevices', {
         value: { getUserMedia: mockGetUserMedia },
         writable: true,
       });
@@ -460,12 +460,12 @@ describe('VideoFeed', () => {
       const mockGetUserMedia = vi.fn(() =>
         Promise.reject(new DOMException('Permission denied', 'NotAllowedError'))
       );
-      Object.defineProperty(global.navigator, 'mediaDevices', {
+      Object.defineProperty(globalThis.navigator, 'mediaDevices', {
         value: { getUserMedia: mockGetUserMedia },
         writable: true,
       });
 
-      const { rerender } = render(<VideoFeed {...defaultProps} isActive={true} />);
+      render(<VideoFeed {...defaultProps} isActive={true} />);
 
       await waitFor(() => {
         expect(screen.getByText('Camera access failed')).toBeInTheDocument();
@@ -476,7 +476,7 @@ describe('VideoFeed', () => {
       const mockGetUserMedia = vi.fn(() =>
         Promise.reject(new DOMException('Permission denied', 'NotAllowedError'))
       );
-      Object.defineProperty(global.navigator, 'mediaDevices', {
+      Object.defineProperty(globalThis.navigator, 'mediaDevices', {
         value: { getUserMedia: mockGetUserMedia },
         writable: true,
       });
@@ -495,7 +495,7 @@ describe('VideoFeed', () => {
       mockVideoElement.play = vi.fn(() => Promise.reject(new Error('Play failed')));
 
       const mockGetUserMedia = vi.fn(() => Promise.resolve(createMockMediaStream()));
-      Object.defineProperty(global.navigator, 'mediaDevices', {
+      Object.defineProperty(globalThis.navigator, 'mediaDevices', {
         value: { getUserMedia: mockGetUserMedia },
         writable: true,
       });
@@ -513,7 +513,7 @@ describe('VideoFeed', () => {
 
     it('should handle non-Error exceptions in getUserMedia', async () => {
       const mockGetUserMedia = vi.fn(() => Promise.reject('String error'));
-      Object.defineProperty(global.navigator, 'mediaDevices', {
+      Object.defineProperty(globalThis.navigator, 'mediaDevices', {
         value: { getUserMedia: mockGetUserMedia },
         writable: true,
       });

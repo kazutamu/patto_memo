@@ -134,7 +134,6 @@ describe('VideoControls', () => {
 
   describe('sensitivity controls', () => {
     it('should call onSensitivityChange when slider value changes', async () => {
-      const user = userEvent.setup();
       render(<VideoControls {...defaultProps} />);
 
       const slider = screen.getByRole('slider');
@@ -462,7 +461,7 @@ describe('VideoControls', () => {
         { ...defaultMotionState, isDetecting: true, motionStrength: 25 },
       ];
 
-      motionStates.forEach((state, index) => {
+      motionStates.forEach((state) => {
         rerender(<VideoControls {...defaultProps} isActive={true} motionState={state} />);
         expect(screen.getByText(`${state.motionStrength.toFixed(1)}%`)).toBeInTheDocument();
       });

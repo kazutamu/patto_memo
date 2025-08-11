@@ -18,7 +18,7 @@ describe('MotionDetectionService', () => {
 
     // Get the mock context to spy on its methods
     const canvas = document.createElement('canvas');
-    mockContext = canvas.getContext('2d') as MockCanvasRenderingContext2D;
+    mockContext = canvas.getContext('2d') as unknown as MockCanvasRenderingContext2D;
   });
 
   afterEach(() => {
@@ -336,7 +336,7 @@ describe('MotionDetectionService', () => {
     });
 
     it('should handle extreme sensitivity values gracefully', () => {
-      const { static: staticFrame, withMotion: motionFrame } = createImageDataWithMotion(320, 240, 50);
+      const { static: staticFrame } = createImageDataWithMotion(320, 240, 50);
 
       // Test with sensitivity outside normal range
       mockContext.getImageData.mockReturnValueOnce(staticFrame);

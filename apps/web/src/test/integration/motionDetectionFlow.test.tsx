@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import React from 'react';
 import { VideoFeed } from '../../components/VideoFeed';
 import { VideoControls } from '../../components/VideoControls';
-import { MotionDetectionService } from '../../services/motionDetectionService';
 import { createMockMediaStream, createImageDataWithMotion } from '../test-utils';
-import { MotionDetectionState, MotionDetectionResult } from '../../types';
+import { MotionDetectionState } from '../../types';
 
 // Mock the motion detection service at the module level
 vi.mock('../../services/motionDetectionService', () => {
@@ -26,15 +26,16 @@ describe('Motion Detection Flow Integration', () => {
   let mockMediaStream: MediaStream;
   let mockService: any;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     vi.useFakeTimers();
 
     mockMediaStream = createMockMediaStream();
-    mockService = require('../../services/motionDetectionService').motionDetectionService;
+    const { motionDetectionService } = await import('../../services/motionDetectionService');
+    mockService = motionDetectionService;
 
     // Setup successful getUserMedia by default
-    Object.defineProperty(global, 'navigator', {
+    Object.defineProperty(globalThis, 'navigator', {
       value: {
         mediaDevices: {
           getUserMedia: vi.fn(() => Promise.resolve(mockMediaStream)),
@@ -174,7 +175,7 @@ describe('Motion Detection Flow Integration', () => {
       let motionState: MotionDetectionState | undefined;
 
       // Mock camera access failure
-      Object.defineProperty(global, 'navigator', {
+      Object.defineProperty(globalThis, 'navigator', {
         value: {
           mediaDevices: {
             getUserMedia: vi.fn(() => Promise.reject(new DOMException('Permission denied', 'NotAllowedError'))),
@@ -223,10 +224,10 @@ describe('Motion Detection Flow Integration', () => {
     });
 
     it('should handle sensitivity changes during active motion detection', async () => {
-      const { static: staticFrame, withMotion: motionFrame } = createImageDataWithMotion(320, 240, 60);
+      createImageDataWithMotion(320, 240, 60);
       let detectionCalls = 0;
 
-      mockService.detectMotion.mockImplementation((videoElement: HTMLVideoElement, sensitivity: number) => {
+      mockService.detectMotion.mockImplementation((_: any, sensitivity: number) => {
         detectionCalls++;
         
         // First few calls simulate static frames
@@ -507,7 +508,6 @@ describe('Motion Detection Flow Integration', () => {
               onStreamReady={vi.fn()}
               sensitivity={50}
               onMotionStateChange={setMotionState}
-              detectionInterval={50} // Fast detection
             />
             <VideoControls
               isActive={true}

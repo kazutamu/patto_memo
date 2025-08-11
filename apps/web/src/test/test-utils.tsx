@@ -1,4 +1,4 @@
-import React, { ReactElement } from 'react';
+import { ReactElement } from 'react';
 import { render, RenderOptions } from '@testing-library/react';
 import { MockHTMLVideoElement, MockMediaStream, MockCanvasRenderingContext2D } from './setup';
 
@@ -17,7 +17,7 @@ export const createMockVideoElement = (overrides: Partial<MockHTMLVideoElement> 
 // Mock canvas context helpers
 export const createMockCanvas = () => {
   const canvas = document.createElement('canvas') as HTMLCanvasElement;
-  const context = canvas.getContext('2d') as MockCanvasRenderingContext2D;
+  const context = canvas.getContext('2d') as unknown as MockCanvasRenderingContext2D;
   return { canvas, context };
 };
 

@@ -124,12 +124,12 @@ class MockMediaStream {
 }
 
 // Set up global mocks
-Object.defineProperty(global, 'HTMLCanvasElement', {
+Object.defineProperty(globalThis, 'HTMLCanvasElement', {
   value: MockHTMLCanvasElement,
   writable: true,
 });
 
-Object.defineProperty(global, 'HTMLVideoElement', {
+Object.defineProperty(globalThis, 'HTMLVideoElement', {
   value: MockHTMLVideoElement,
   writable: true,
 });
@@ -147,7 +147,7 @@ document.createElement = vi.fn((tagName: string) => {
 });
 
 // Mock navigator.mediaDevices.getUserMedia
-Object.defineProperty(global.navigator, 'mediaDevices', {
+Object.defineProperty(globalThis.navigator, 'mediaDevices', {
   value: {
     getUserMedia: vi.fn(() => Promise.resolve(new MockMediaStream())),
     enumerateDevices: vi.fn(() => Promise.resolve([])),

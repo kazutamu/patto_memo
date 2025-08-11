@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useMotionDetection } from '../useMotionDetection';
 import { motionDetectionService } from '../../services/motionDetectionService';
-import { createMockVideoElement, waitForTicks } from '../../test/test-utils';
+import { createMockVideoElement } from '../../test/test-utils';
 import { MotionDetectionResult } from '../../types';
 
 // Mock the motion detection service
@@ -280,7 +280,7 @@ describe('useMotionDetection', () => {
     it('should skip detection when video is not ready', async () => {
       const notReadyVideo = createMockVideoElement({ readyState: 1 }); // HAVE_METADATA
 
-      const { result } = renderHook(() =>
+      renderHook(() =>
         useMotionDetection({
           videoElement: notReadyVideo,
           isActive: true,
@@ -444,7 +444,7 @@ describe('useMotionDetection', () => {
 
   describe('cleanup', () => {
     it('should clean up intervals on unmount', () => {
-      const { result, unmount } = renderHook(() =>
+      const { unmount } = renderHook(() =>
         useMotionDetection({
           videoElement: mockVideoElement,
           isActive: true,
