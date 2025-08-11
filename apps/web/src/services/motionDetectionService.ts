@@ -146,6 +146,36 @@ export class MotionDetectionService {
     this.previousFrame = null;
     // Canvas will be garbage collected
   }
+
+  /**
+   * Capture a frame from video element for AI analysis
+   * @param videoElement - The video element to capture from
+   * @param quality - JPEG quality (0.1 - 1.0)
+   * @returns Base64 encoded frame data
+   */
+  public captureFrame(videoElement: HTMLVideoElement, quality: number = 0.8): string {
+    try {
+      // Use the existing canvas or create a larger one for better quality
+      const captureCanvas = document.createElement('canvas');
+      const captureContext = captureCanvas.getContext('2d')!;
+      
+      // Use higher resolution for AI analysis
+      const width = Math.min(videoElement.videoWidth, 640);
+      const height = Math.min(videoElement.videoHeight, 480);
+      
+      captureCanvas.width = width;
+      captureCanvas.height = height;
+      
+      // Draw the video frame
+      captureContext.drawImage(videoElement, 0, 0, width, height);
+      
+      // Convert to base64 JPEG
+      return captureCanvas.toDataURL('image/jpeg', quality);
+    } catch (error) {
+      console.error('Error capturing frame for AI analysis:', error);
+      return '';
+    }
+  }
 }
 
 // Export a singleton instance for shared use

@@ -1,5 +1,6 @@
-import React, { useState, useCallback } from 'react';
-import { VideoFeed, VideoControls } from './components';
+import React, { useState, useCallback, useRef } from 'react';
+import { VideoFeed, VideoControls, AIAnalysisPopup } from './components';
+import { useAIAnalysis } from './hooks';
 import { MotionDetectionState } from './types';
 import styles from './App.module.css';
 
@@ -34,6 +35,24 @@ function App() {
     sensitivity: 50
   });
 
+  // Video element ref for AI analysis
+  const videoElementRef = useRef<HTMLVideoElement | null>(null);
+
+  // AI Analysis integration
+  const { 
+    analysis, 
+    isConnected: isAIConnected, 
+    isAnalyzing, 
+    requestAnalysis, 
+    clearAnalysis 
+  } = useAIAnalysis({
+    videoElement: videoElementRef.current,
+    isActive: isCameraActive,
+    significanceThreshold: 25, // Trigger AI analysis for motion above 25%
+    analysisRateLimit: 8, // Max 8 AI requests per minute
+    frameQuality: 0.75 // Good quality for AI analysis
+  });
+
   const handleToggleCamera = useCallback(() => {
     setIsCameraActive(prev => !prev);
     setError(null); // Clear any previous errors when toggling
@@ -60,6 +79,15 @@ function App() {
 
   const handleMotionStateChange = useCallback((newMotionState: MotionDetectionState) => {
     setMotionState(newMotionState);
+    
+    // Trigger AI analysis for significant motion
+    if (newMotionState.motionStrength > 0) {
+      requestAnalysis(newMotionState.motionStrength);
+    }
+  }, [requestAnalysis]);
+
+  const handleVideoElementReady = useCallback((videoElement: HTMLVideoElement | null) => {
+    videoElementRef.current = videoElement;
   }, []);
 
   return (
@@ -86,6 +114,7 @@ function App() {
               onStreamReady={handleStreamReady}
               sensitivity={sensitivity}
               onMotionStateChange={handleMotionStateChange}
+              onVideoElementReady={handleVideoElementReady}
             />
             
             <button 
@@ -109,6 +138,25 @@ function App() {
             />
           </div>
         </main>
+
+        {/* AI Analysis Status (optional debug info) */}
+        {isCameraActive && (
+          <div className={styles.aiStatus}>
+            <span className={`${styles.statusDot} ${isAIConnected ? styles.connected : styles.disconnected}`} />
+            <span className={styles.statusText}>
+              AI Analysis: {isAIConnected ? 'Connected' : 'Disconnected'}
+              {isAnalyzing && ' (Analyzing...)'}
+            </span>
+          </div>
+        )}
+
+        {/* AI Analysis Popup */}
+        <AIAnalysisPopup
+          analysis={analysis}
+          isVisible={analysis !== null}
+          onClose={clearAnalysis}
+          autoCloseDelay={10000} // Auto-close after 10 seconds
+        />
       </div>
     </div>
   );

@@ -9,6 +9,7 @@ interface VideoFeedProps {
   onStreamReady: (stream: MediaStream) => void;
   sensitivity: number;
   onMotionStateChange?: (motionState: MotionDetectionState) => void;
+  onVideoElementReady?: (videoElement: HTMLVideoElement | null) => void;
 }
 
 export const VideoFeed: React.FC<VideoFeedProps> = ({
@@ -17,6 +18,7 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
   onStreamReady,
   sensitivity,
   onMotionStateChange,
+  onVideoElementReady,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -112,6 +114,13 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
       onMotionStateChange(motionState);
     }
   }, [motionState, onMotionStateChange]);
+
+  // Notify parent about video element readiness
+  useEffect(() => {
+    if (onVideoElementReady) {
+      onVideoElementReady(videoRef.current);
+    }
+  }, [onVideoElementReady, hasPermission]);
 
   const handleRetry = () => {
     if (isActive) {

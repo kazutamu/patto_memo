@@ -41,3 +41,26 @@ export interface FrameComparisonData {
   previousFrame: ImageData | null;
   diffThreshold: number;
 }
+
+// AI Analysis types for LLaVA integration
+export interface AIAnalysisResult {
+  id: string;
+  timestamp: string;
+  description: string;
+  confidence: number;
+  processing_time?: number;
+  frame_id?: string;
+}
+
+export interface WebSocketMessage {
+  type: 'motion_event' | 'ai_analysis' | 'error' | 'ping' | 'pong';
+  data: any;
+  timestamp: string;
+}
+
+export interface MotionEventForAI {
+  frame_data: string; // Base64 encoded frame
+  timestamp: string;
+  motion_strength: number;
+  frame_id: string;
+}

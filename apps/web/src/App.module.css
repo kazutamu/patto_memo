@@ -159,6 +159,49 @@
   font-weight: 500;
 }
 
+/* AI Status Indicator */
+.aiStatus {
+  position: fixed;
+  bottom: 24px;
+  left: 24px;
+  background: rgba(26, 32, 44, 0.9);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(81, 203, 238, 0.3);
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 100;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.statusDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+
+.statusDot.connected {
+  background: #10b981;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+  animation: pulse 2s infinite;
+}
+
+.statusDot.disconnected {
+  background: #ef4444;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
+}
+
+.statusText {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.9);
+  white-space: nowrap;
+}
+
 /* Animations */
 @keyframes slideIn {
   from {
@@ -174,6 +217,17 @@
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { 
+    opacity: 1; 
+    transform: scale(1);
+  }
+  50% { 
+    opacity: 0.7; 
+    transform: scale(1.2);
+  }
 }
 
 /* Responsive Design */
@@ -204,6 +258,16 @@
     width: 44px;
     height: 44px;
   }
+  
+  .aiStatus {
+    bottom: 16px;
+    left: 16px;
+    padding: 10px 14px;
+  }
+  
+  .statusText {
+    font-size: 12px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -233,5 +297,15 @@
   .settingsIcon {
     width: 16px;
     height: 16px;
+  }
+  
+  .aiStatus {
+    bottom: 12px;
+    left: 12px;
+    padding: 8px 12px;
+  }
+  
+  .statusText {
+    font-size: 11px;
   }
 }
