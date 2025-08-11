@@ -88,7 +88,7 @@ def get_motion_events(limit: int = 10):
     # Validate limit parameter
     if limit < 0:
         raise HTTPException(status_code=422, detail="Limit must be non-negative")
-    
+
     events = dummy_motion_events.copy()
 
     # Handle zero limit

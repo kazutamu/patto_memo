@@ -182,7 +182,9 @@ class TestLLaVAAnalysisEndpoints:
                 assert response.status_code == expected_status
 
     @pytest.mark.asyncio
-    async def test_consistency_between_endpoints(self, httpx_mock: HTTPXMock, async_client):
+    async def test_consistency_between_endpoints(
+        self, httpx_mock: HTTPXMock, async_client
+    ):
         """Test that base64 and upload endpoints produce consistent results."""
         mock_response = {"response": "Consistent analysis result", "done": True}
         # Add two responses for both endpoints
@@ -276,10 +278,17 @@ class TestLLaVAAnalysisEndpoints:
 
         # All scenarios should be handled gracefully
         # 503 is expected when no mock is set up (connection error)
-        assert response.status_code in [200, 413, 422, 503]  # 413 for very large payloads
+        assert response.status_code in [
+            200,
+            413,
+            422,
+            503,
+        ]  # 413 for very large payloads
 
     @pytest.mark.asyncio
-    async def test_concurrent_requests_handling(self, httpx_mock: HTTPXMock, async_client):
+    async def test_concurrent_requests_handling(
+        self, httpx_mock: HTTPXMock, async_client
+    ):
         """Test handling multiple concurrent LLaVA requests."""
         mock_response = {"response": "Concurrent request processed", "done": True}
         # Add multiple responses for multiple requests

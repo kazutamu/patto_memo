@@ -114,7 +114,10 @@ class TestFileUploadValidation:
         test_scenarios = [
             ("connection_error", None),  # No mock = connection error
             ("timeout", httpx.TimeoutException("Request timed out")),
-            ("server_error", {"status_code": 503, "text": "Service unavailable"}),  # Changed to 503 to match expectation
+            (
+                "server_error",
+                {"status_code": 503, "text": "Service unavailable"},
+            ),  # Changed to 503 to match expectation
         ]
 
         for scenario_name, mock_setup in test_scenarios:
