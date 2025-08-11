@@ -81,6 +81,11 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
       setIsLoading(true);
       setHasPermission(null);
 
+      // Check if getUserMedia is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('HTTPS_REQUIRED');
+      }
+
       // Mobile-optimized constraints
       const constraints: MediaStreamConstraints = {
         video: isMobile ? {
@@ -129,6 +134,10 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
           errorMessage = isMobile
             ? 'This camera configuration is not supported on your device. Try switching cameras.'
             : 'Camera does not support the requested configuration.';
+        } else if (error.message === 'HTTPS_REQUIRED') {
+          errorMessage = isMobile
+            ? '🔒 Camera access requires HTTPS. Please access this site using https:// or try from a desktop browser.'
+            : '🔒 Camera access requires a secure connection (HTTPS).';
         } else {
           errorMessage = `Camera error: ${error.message}`;
         }
