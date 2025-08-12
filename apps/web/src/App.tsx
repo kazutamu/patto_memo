@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { VideoFeed, VideoControls, AIAnalysisPopup } from './components';
+import { ConnectionHelper } from './components/ConnectionHelper';
 import { useAIAnalysis } from './hooks';
 import { MotionDetectionState } from './types';
 import styles from './App.module.css';
@@ -28,12 +29,14 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [cameraFacing, setCameraFacing] = useState<'user' | 'environment'>('user');
   const [motionState, setMotionState] = useState<MotionDetectionState>({
     isDetecting: false,
     motionStrength: 0,
     lastMotionTime: null,
     sensitivity: 50
   });
+  const [showConnectionHelper, setShowConnectionHelper] = useState(false);
 
   // Video element ref for AI analysis
   const videoElementRef = useRef<HTMLVideoElement | null>(null);
@@ -78,16 +81,24 @@ function App() {
   }, []);
 
   const handleMotionStateChange = useCallback((newMotionState: MotionDetectionState) => {
+    console.log(`🎯 Motion detected - Strength: ${newMotionState.motionStrength}%, Detecting: ${newMotionState.isDetecting}`);
     setMotionState(newMotionState);
     
     // Trigger AI analysis for significant motion
     if (newMotionState.motionStrength > 0) {
+      console.log(`🎯 Calling requestAnalysis with strength: ${newMotionState.motionStrength}%`);
       requestAnalysis(newMotionState.motionStrength);
     }
   }, [requestAnalysis]);
 
   const handleVideoElementReady = useCallback((videoElement: HTMLVideoElement | null) => {
     videoElementRef.current = videoElement;
+  }, []);
+
+  const handleCameraFacingChange = useCallback((facing: 'user' | 'environment') => {
+    setCameraFacing(facing);
+    // Clear any previous errors when switching cameras
+    setError(null);
   }, []);
 
   return (
@@ -103,6 +114,14 @@ function App() {
         {error && (
           <div className={styles.errorBanner}>
             <strong>Error:</strong> {error}
+            {(error.includes('HTTPS') || error.includes('Camera access')) && (
+              <button 
+                className={styles.helpButton}
+                onClick={() => setShowConnectionHelper(true)}
+              >
+                Need Help? 📱
+              </button>
+            )}
           </div>
         )}
 
@@ -115,6 +134,8 @@ function App() {
               sensitivity={sensitivity}
               onMotionStateChange={handleMotionStateChange}
               onVideoElementReady={handleVideoElementReady}
+              cameraFacing={cameraFacing}
+              onCameraFacingChange={handleCameraFacingChange}
             />
             
             <button 
@@ -139,7 +160,7 @@ function App() {
           </div>
         </main>
 
-        {/* AI Analysis Status (optional debug info) */}
+        {/* AI Analysis Status with debugging info */}
         {isCameraActive && (
           <div className={styles.aiStatus}>
             <span className={`${styles.statusDot} ${isAIConnected ? styles.connected : styles.disconnected}`} />
@@ -147,6 +168,12 @@ function App() {
               AI Analysis: {isAIConnected ? 'Connected' : 'Disconnected'}
               {isAnalyzing && ' (Analyzing...)'}
             </span>
+            {/* Debug info for mobile */}
+            <div style={{ fontSize: '12px', marginTop: '4px', color: '#666' }}>
+              Debug: Camera={isCameraActive ? 'ON' : 'OFF'}, 
+              AI={isAIConnected ? 'OK' : 'FAIL'}, 
+              Mode={/mobile|android|iphone|ipad/i.test(navigator.userAgent) || 'ontouchstart' in window ? '📱Mobile-Poll' : '🖥️Desktop-WS'}
+            </div>
           </div>
         )}
 
@@ -158,6 +185,12 @@ function App() {
           autoCloseDelay={10000} // Auto-close after 10 seconds
         />
       </div>
+
+      <ConnectionHelper 
+        currentUrl={window.location.href}
+        isVisible={showConnectionHelper}
+        onClose={() => setShowConnectionHelper(false)}
+      />
     </div>
   );
 }
