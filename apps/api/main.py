@@ -1,8 +1,10 @@
+import base64
 from datetime import datetime
 from typing import Any, Dict, List
 
-from fastapi import FastAPI
-from pydantic import BaseModel
+import httpx
+from fastapi import FastAPI, File, HTTPException, UploadFile
+from pydantic import BaseModel, Field
 
 app = FastAPI()
 
@@ -109,3 +111,113 @@ def get_motion_settings():
         "recording_enabled": True,
         "alert_notifications": True,
     }
+
+
+# Pydantic Models for LLaVA Integration
+class LLaVAAnalysisRequest(BaseModel):
+    image_base64: str = Field(..., description="Base64 encoded image data")
+    prompt: str = Field(default="Describe what you see in this image in detail", description="Analysis prompt")
+
+
+class LLaVAAnalysisResponse(BaseModel):
+    description: str = Field(..., description="AI-generated description of the image")
+    processing_time: float = Field(..., description="Time taken to process the image (seconds)")
+    model_used: str = Field(..., description="LLM model used for analysis")
+    success: bool = Field(..., description="Whether the analysis was successful")
+    error_message: str = Field(default="", description="Error message if analysis failed")
+
+
+@app.post("/api/v1/llava/analyze", response_model=LLaVAAnalysisResponse)
+async def analyze_image_with_llava(request: LLaVAAnalysisRequest):
+    """
+    Analyze an image using LLaVA model via Ollama
+    """
+    start_time = datetime.now()
+    
+    try:
+        # Ollama API endpoint (configurable via environment)
+        ollama_url = "http://localhost:11434/api/generate"
+        
+        # Prepare the request payload for Ollama
+        payload = {
+            "model": "llava:latest",  # Default model, should be configurable
+            "prompt": request.prompt,
+            "images": [request.image_base64],
+            "stream": False
+        }
+        
+        # Make request to Ollama
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.post(ollama_url, json=payload)
+            
+            if response.status_code != 200:
+                raise HTTPException(
+                    status_code=503,
+                    detail=f"LLaVA service unavailable: {response.text}"
+                )
+            
+            result = response.json()
+            processing_time = (datetime.now() - start_time).total_seconds()
+            
+            return LLaVAAnalysisResponse(
+                description=result.get("response", "No description available"),
+                processing_time=processing_time,
+                model_used="llava:latest",
+                success=True
+            )
+            
+    except httpx.RequestError as e:
+        processing_time = (datetime.now() - start_time).total_seconds()
+        return LLaVAAnalysisResponse(
+            description="",
+            processing_time=processing_time,
+            model_used="llava:latest",
+            success=False,
+            error_message=f"Connection error: {str(e)}"
+        )
+    except HTTPException:
+        # Re-raise HTTPException to let FastAPI handle it properly
+        raise
+    except Exception as e:
+        processing_time = (datetime.now() - start_time).total_seconds()
+        return LLaVAAnalysisResponse(
+            description="",
+            processing_time=processing_time,
+            model_used="llava:latest",
+            success=False,
+            error_message=f"Analysis failed: {str(e)}"
+        )
+
+
+@app.post("/api/v1/llava/analyze-upload")
+async def analyze_uploaded_image(
+    file: UploadFile = File(...),
+    prompt: str = "Describe what you see in this image"
+):
+    """
+    Analyze an uploaded image file using LLaVA model
+    """
+    try:
+        # Read and encode the uploaded file
+        image_data = await file.read()
+        image_base64 = base64.b64encode(image_data).decode('utf-8')
+        
+        # Use the existing analysis endpoint
+        request = LLaVAAnalysisRequest(
+            image_base64=image_base64,
+            prompt=prompt
+        )
+        
+        return await analyze_image_with_llava(request)
+        
+    except HTTPException:
+        # Re-raise HTTPException to let FastAPI handle it properly
+        raise
+    except Exception as e:
+        return LLaVAAnalysisResponse(
+            description="",
+            processing_time=0.0,
+            model_used="llava:latest",
+            success=False,
+            error_message=f"File processing failed: {str(e)}"
+        )

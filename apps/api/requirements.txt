@@ -2,7 +2,27 @@
 fastapi
 uvicorn[standard]
 
+# File upload support
+python-multipart
+
+# HTTP client for Ollama API
+httpx
+
+# Redis for background job processing
+redis[hiredis]
+
+# Database support (optional - install if needed)
+# sqlalchemy
+# mysqlclient
+# alembic
+
 # Testing dependencies
 pytest
 pytest-asyncio
-httpx
+pytest-httpx
+respx
+pytest-cov
+
+# Development/formatting tools
+black
+isort

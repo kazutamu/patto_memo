@@ -48,7 +48,8 @@ omit = [
     "tests/*",
     ".pytest_cache/*",
     "htmlcov/*",
-    "setup.py"
+    "setup.py",
+    "run_tests.py"
 ]
 
 [tool.coverage.report]
