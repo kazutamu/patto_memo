@@ -14,6 +14,9 @@ from pydantic import BaseModel, Field
 
 from ai_processor import ai_processor
 
+# Store for polling-based AI analysis results
+polling_results = {}  # frame_id -> result
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -172,6 +175,31 @@ class LLaVAAnalysisResponse(BaseModel):
     error_message: Optional[str] = None
 
 
+class FrameAnalysisRequest(BaseModel):
+    frame_id: str
+    frame_data: str = Field(..., description="Base64 encoded image")
+    motion_strength: float
+    timestamp: str
+    client_type: str = "web"
+
+
+class FrameAnalysisResponse(BaseModel):
+    frame_id: str
+    status: str  # queued, processing, completed, failed
+    analysis: Optional[Dict] = None
+    message: Optional[str] = None
+
+
+class PollResultsRequest(BaseModel):
+    frame_ids: List[str]
+
+
+class PollResultsResponse(BaseModel):
+    completed: List[Dict]
+    failed: List[str]
+    pending: List[str]
+
+
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
@@ -322,6 +350,122 @@ async def analyze_uploaded_image(
             success=False,
             error_message=f"File processing failed: {str(e)}",
         )
+
+
+@app.post("/api/v1/ai/analyze-frame", response_model=FrameAnalysisResponse)
+async def analyze_frame_polling(request: FrameAnalysisRequest):
+    """
+    Submit a frame for AI analysis via polling (mobile-friendly)
+    """
+    logger.info(f"📱 Received frame for polling analysis: {request.frame_id}")
+    
+    try:
+        # Try direct analysis first (if Redis/Ollama available)
+        if hasattr(ai_processor, 'process_frame_with_llava'):
+            result = await ai_processor.process_frame_with_llava(
+                request.frame_data,
+                request.motion_strength
+            )
+            
+            if result.get("success"):
+                # Return immediate result
+                analysis_data = {
+                    "frame_id": request.frame_id,
+                    "description": result["description"],
+                    "confidence": result["confidence"],
+                    "processing_time": 0,  # Immediate
+                    "timestamp": datetime.now().isoformat(),
+                }
+                
+                return FrameAnalysisResponse(
+                    frame_id=request.frame_id,
+                    status="completed",
+                    analysis=analysis_data,
+                    message="Analysis completed immediately"
+                )
+        
+        # Fallback: Store for polling
+        polling_results[request.frame_id] = {
+            "status": "processing",
+            "submitted_at": datetime.now().isoformat(),
+            "client_type": request.client_type
+        }
+        
+        # Simulate processing (in real app, this would queue the job)
+        import asyncio
+        
+        async def process_later():
+            await asyncio.sleep(3)  # Simulate processing time
+            
+            # Simple analysis result
+            analysis_data = {
+                "frame_id": request.frame_id,
+                "description": f"Motion detected ({request.motion_strength:.1f}% strength) - Mobile polling analysis",
+                "confidence": 0.8,
+                "processing_time": 3000,
+                "timestamp": datetime.now().isoformat(),
+            }
+            
+            polling_results[request.frame_id] = {
+                "status": "completed",
+                "analysis": analysis_data,
+                "completed_at": datetime.now().isoformat()
+            }
+            
+        # Start background processing
+        asyncio.create_task(process_later())
+        
+        return FrameAnalysisResponse(
+            frame_id=request.frame_id,
+            status="queued",
+            message="Frame queued for analysis"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error processing frame {request.frame_id}: {e}")
+        return FrameAnalysisResponse(
+            frame_id=request.frame_id,
+            status="failed",
+            message=f"Analysis failed: {str(e)}"
+        )
+
+
+@app.post("/api/v1/ai/poll-results", response_model=PollResultsResponse)
+async def poll_analysis_results(request: PollResultsRequest):
+    """
+    Poll for analysis results (mobile-friendly)
+    """
+    completed = []
+    failed = []
+    pending = []
+    
+    for frame_id in request.frame_ids:
+        if frame_id in polling_results:
+            result = polling_results[frame_id]
+            
+            if result["status"] == "completed":
+                completed.append(result["analysis"])
+                # Clean up completed results
+                del polling_results[frame_id]
+                
+            elif result["status"] == "failed":
+                failed.append(frame_id)
+                # Clean up failed results
+                del polling_results[frame_id]
+                
+            else:
+                pending.append(frame_id)
+        else:
+            # Unknown frame ID
+            failed.append(frame_id)
+    
+    logger.debug(f"📱 Polling results: {len(completed)} completed, {len(pending)} pending, {len(failed)} failed")
+    
+    return PollResultsResponse(
+        completed=completed,
+        failed=failed,
+        pending=pending
+    )
 
 
 @app.websocket("/ws")

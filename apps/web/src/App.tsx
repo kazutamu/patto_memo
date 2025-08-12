@@ -81,10 +81,12 @@ function App() {
   }, []);
 
   const handleMotionStateChange = useCallback((newMotionState: MotionDetectionState) => {
+    console.log(`🎯 Motion detected - Strength: ${newMotionState.motionStrength}%, Detecting: ${newMotionState.isDetecting}`);
     setMotionState(newMotionState);
     
     // Trigger AI analysis for significant motion
     if (newMotionState.motionStrength > 0) {
+      console.log(`🎯 Calling requestAnalysis with strength: ${newMotionState.motionStrength}%`);
       requestAnalysis(newMotionState.motionStrength);
     }
   }, [requestAnalysis]);
@@ -158,7 +160,7 @@ function App() {
           </div>
         </main>
 
-        {/* AI Analysis Status (optional debug info) */}
+        {/* AI Analysis Status with debugging info */}
         {isCameraActive && (
           <div className={styles.aiStatus}>
             <span className={`${styles.statusDot} ${isAIConnected ? styles.connected : styles.disconnected}`} />
@@ -166,6 +168,12 @@ function App() {
               AI Analysis: {isAIConnected ? 'Connected' : 'Disconnected'}
               {isAnalyzing && ' (Analyzing...)'}
             </span>
+            {/* Debug info for mobile */}
+            <div style={{ fontSize: '12px', marginTop: '4px', color: '#666' }}>
+              Debug: Camera={isCameraActive ? 'ON' : 'OFF'}, 
+              AI={isAIConnected ? 'OK' : 'FAIL'}, 
+              Mode={/mobile|android|iphone|ipad/i.test(navigator.userAgent) || 'ontouchstart' in window ? '📱Mobile-Poll' : '🖥️Desktop-WS'}
+            </div>
           </div>
         )}
 

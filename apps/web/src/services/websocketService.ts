@@ -26,18 +26,47 @@ export class WebSocketService {
   constructor(url?: string) {
     if (url) {
       this.url = url;
-    } else if (import.meta.env.VITE_WS_URL) {
+    } else if (import.meta.env.VITE_WS_URL && import.meta.env.VITE_WS_URL.trim()) {
       // Use explicit environment variable if set
       this.url = import.meta.env.VITE_WS_URL;
     } else {
-      // Dynamic WebSocket URL based on current location
-      // Note: Always use 'ws:' since our backend doesn't support WSS yet
+      // Fully dynamic WebSocket URL based on current location
       const host = window.location.hostname;
       const port = import.meta.env.VITE_API_PORT || '8000';
+      
+      // Always use ws:// since our backend doesn't support WSS
       this.url = `ws://${host}:${port}/ws`;
+      
+      // Show mixed content warning for HTTPS pages
+      if (window.location.protocol === 'https:') {
+        this.showMixedContentWarning();
+      }
     }
     
     console.log('WebSocket connecting to:', this.url);
+  }
+  
+  private showMixedContentWarning() {
+    if (typeof window === 'undefined' || !document.body) return;
+    
+    const notification = document.createElement('div');
+    notification.style.cssText = 'position:fixed;top:50px;left:10px;right:10px;background:#ff9800;color:white;padding:15px;border-radius:8px;z-index:10000;font-size:14px;text-align:center;box-shadow:0 4px 8px rgba(0,0,0,0.2)';
+    notification.innerHTML = `
+      <div style="font-weight:bold;margin-bottom:8px">⚠️ Mixed Content Warning</div>
+      <div style="font-size:12px">HTTPS page trying to connect to HTTP WebSocket</div>
+      <div style="font-size:12px;margin-top:4px">This may be blocked by mobile browsers for security</div>
+      <div style="font-size:12px;margin-top:8px;font-style:italic">💡 Motion detection works without AI</div>
+    `;
+    
+    // Auto-close button
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = '×';
+    closeBtn.style.cssText = 'position:absolute;top:5px;right:10px;background:none;border:none;color:white;font-size:18px;cursor:pointer';
+    closeBtn.onclick = () => notification.remove();
+    notification.appendChild(closeBtn);
+    
+    document.body.appendChild(notification);
+    setTimeout(() => notification.remove(), 12000);
   }
 
   /**
@@ -68,7 +97,15 @@ export class WebSocketService {
         this.ws = new WebSocket(this.url);
 
         this.ws.onopen = () => {
-          console.log('WebSocket connected to:', this.url);
+          console.log('✅ WebSocket connected to:', this.url);
+          // Show success notification on page
+          if (typeof window !== 'undefined' && document.body) {
+            const notification = document.createElement('div');
+            notification.style.cssText = 'position:fixed;top:10px;right:10px;background:#4CAF50;color:white;padding:10px;border-radius:5px;z-index:10000;font-size:12px';
+            notification.textContent = '✅ AI WebSocket Connected';
+            document.body.appendChild(notification);
+            setTimeout(() => notification.remove(), 3000);
+          }
           this.isConnecting = false;
           this.reconnectAttempts = 0;
           this.startPing();
@@ -93,8 +130,16 @@ export class WebSocketService {
         };
 
         this.ws.onerror = (error) => {
-          console.error('WebSocket error:', error);
+          console.error('❌ WebSocket error:', error);
           console.error('WebSocket URL was:', this.url);
+          // Show error notification on page
+          if (typeof window !== 'undefined' && document.body) {
+            const notification = document.createElement('div');
+            notification.style.cssText = 'position:fixed;top:10px;right:10px;background:#f44336;color:white;padding:10px;border-radius:5px;z-index:10000;font-size:12px;max-width:300px';
+            notification.textContent = `❌ WebSocket Error: ${this.url}`;
+            document.body.appendChild(notification);
+            setTimeout(() => notification.remove(), 5000);
+          }
           this.isConnecting = false;
           this.handlers.onError?.(error);
           reject(error);

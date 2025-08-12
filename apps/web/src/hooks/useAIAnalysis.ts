@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { websocketService, WebSocketEventHandlers } from '../services';
+import { aiPollingService } from '../services/aiPollingService';
 import { motionDetectionService } from '../services';
 import { AIAnalysisResult, MotionEventForAI } from '../types';
 
@@ -27,7 +28,7 @@ interface UseAIAnalysisReturn {
 export function useAIAnalysis({
   videoElement,
   isActive,
-  significanceThreshold = 30, // Only analyze motion above 30% strength
+  significanceThreshold = 2, // Very low threshold for testing (was 5)
   analysisRateLimit = 10, // Max 10 requests per minute
   frameQuality = 0.7
 }: UseAIAnalysisOptions): UseAIAnalysisReturn {
@@ -39,6 +40,21 @@ export function useAIAnalysis({
   // Rate limiting state
   const requestHistory = useRef<number[]>([]);
   const lastAnalysisTime = useRef<number>(0);
+  const analysisTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Detect if we should use mobile polling
+  const isMobile = useRef<boolean>(false);
+  
+  useEffect(() => {
+    // Simple mobile detection
+    const userAgent = navigator.userAgent.toLowerCase();
+    const mobileKeywords = ['mobile', 'android', 'iphone', 'ipad', 'ipod'];
+    isMobile.current = mobileKeywords.some(keyword => userAgent.includes(keyword)) || 
+                     ('ontouchstart' in window) ||
+                     (window.innerWidth <= 768);
+                     
+    console.log('📱 Mobile detected:', isMobile.current);
+  }, []);
 
   // WebSocket event handlers
   const eventHandlers: WebSocketEventHandlers = {
@@ -57,6 +73,11 @@ export function useAIAnalysis({
       console.log('Received AI analysis:', analysisResult);
       setAnalysis(analysisResult);
       setIsAnalyzing(false);
+      // Clear timeout since we got a response
+      if (analysisTimeoutRef.current) {
+        clearTimeout(analysisTimeoutRef.current);
+        analysisTimeoutRef.current = null;
+      }
     },
     
     onError: (error: any) => {
@@ -65,16 +86,39 @@ export function useAIAnalysis({
     }
   };
 
-  // Initialize WebSocket connection
+  // Initialize connection (WebSocket or Polling)
   useEffect(() => {
     if (isActive) {
-      websocketService.setHandlers(eventHandlers);
-      websocketService.connect().catch(console.error);
+      if (isMobile.current) {
+        // Use polling for mobile
+        console.log('📱 Using AI polling service for mobile');
+        aiPollingService.setOnAnalysis((result) => {
+          console.log('📱 Received AI analysis via polling:', result);
+          setAnalysis(result);
+          setIsAnalyzing(false);
+          // Clear timeout since we got a response
+          if (analysisTimeoutRef.current) {
+            clearTimeout(analysisTimeoutRef.current);
+            analysisTimeoutRef.current = null;
+          }
+        });
+        setIsConnected(true); // Consider polling service as "connected"
+      } else {
+        // Use WebSocket for desktop
+        console.log('🖥️ Using WebSocket service for desktop');
+        websocketService.setHandlers(eventHandlers);
+        websocketService.connect().catch(console.error);
+      }
     }
 
     return () => {
       if (!isActive) {
-        websocketService.disconnect();
+        if (isMobile.current) {
+          aiPollingService.stopPolling();
+          setIsConnected(false);
+        } else {
+          websocketService.disconnect();
+        }
       }
     };
   }, [isActive]);
@@ -105,13 +149,16 @@ export function useAIAnalysis({
 
   // Request AI analysis for current frame
   const requestAnalysis = useCallback((motionStrength: number) => {
+    console.log(`📱 requestAnalysis called - Motion: ${motionStrength}%, Connected: ${isConnected}, Analyzing: ${isAnalyzing}`);
+    
     if (!videoElement || !isConnected || isAnalyzing) {
+      console.log(`📱 Skipping analysis - VideoElement: ${!!videoElement}, Connected: ${isConnected}, Analyzing: ${isAnalyzing}`);
       return;
     }
 
     // Check significance threshold
     if (motionStrength < significanceThreshold) {
-      console.log(`Motion strength ${motionStrength}% below significance threshold ${significanceThreshold}%`);
+      console.log(`📱 Motion strength ${motionStrength}% below significance threshold ${significanceThreshold}%`);
       return;
     }
 
@@ -138,15 +185,39 @@ export function useAIAnalysis({
         frame_id: frameId
       };
 
-      // Send to backend for analysis
-      websocketService.sendMotionEvent(motionEvent);
-      
       // Update rate limiting
       requestHistory.current.push(Date.now());
       lastAnalysisTime.current = Date.now();
       setIsAnalyzing(true);
+      
+      // Set timeout to clear analyzing state if no response after 30 seconds
+      if (analysisTimeoutRef.current) {
+        clearTimeout(analysisTimeoutRef.current);
+      }
+      analysisTimeoutRef.current = setTimeout(() => {
+        console.error('📱 Analysis timeout - clearing analyzing state');
+        setIsAnalyzing(false);
+      }, 30000);
 
-      console.log(`Sent frame for AI analysis - Motion: ${motionStrength.toFixed(1)}%, Frame ID: ${frameId}`);
+      if (isMobile.current) {
+        // Use polling service for mobile
+        console.log(`📱 Submitting frame for polling analysis - Motion: ${motionStrength.toFixed(1)}%, Frame ID: ${frameId}`);
+        
+        aiPollingService.submitFrameForAnalysis(motionEvent).then((success) => {
+          if (!success) {
+            console.error('📱 Failed to submit frame for analysis');
+            setIsAnalyzing(false);
+          }
+        }).catch((error) => {
+          console.error('📱 Error submitting frame for polling analysis:', error);
+          setIsAnalyzing(false);
+        });
+        
+      } else {
+        // Use WebSocket for desktop
+        console.log(`🖥️ Sending frame via WebSocket - Motion: ${motionStrength.toFixed(1)}%, Frame ID: ${frameId}`);
+        websocketService.sendMotionEvent(motionEvent);
+      }
 
     } catch (error) {
       console.error('Error requesting AI analysis:', error);
@@ -159,12 +230,21 @@ export function useAIAnalysis({
     setAnalysis(null);
   }, []);
 
-  // Manually reconnect WebSocket
+  // Manually reconnect service
   const reconnect = useCallback(() => {
-    websocketService.disconnect();
-    setTimeout(() => {
-      websocketService.connect().catch(console.error);
-    }, 1000);
+    if (isMobile.current) {
+      // For mobile, just restart polling
+      aiPollingService.stopPolling();
+      setTimeout(() => {
+        setIsConnected(true);
+      }, 1000);
+    } else {
+      // For desktop, reconnect WebSocket
+      websocketService.disconnect();
+      setTimeout(() => {
+        websocketService.connect().catch(console.error);
+      }, 1000);
+    }
   }, []);
 
   return {
