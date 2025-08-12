@@ -5,11 +5,14 @@ import logging
 import os
 import random
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, AsyncGenerator
+import uuid
 
 import httpx
 import redis.asyncio as redis
-from fastapi import FastAPI, File, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, File, HTTPException, UploadFile, Request
+from fastapi.responses import StreamingResponse
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from ai_processor import ai_processor
@@ -17,14 +20,31 @@ from ai_processor import ai_processor
 # Store for polling-based AI analysis results
 polling_results = {}  # frame_id -> result
 
+# Store for SSE connections
+class SSEConnection:
+    def __init__(self, connection_id: str, queue: asyncio.Queue):
+        self.connection_id = connection_id
+        self.queue = queue
+        self.created_at = datetime.now()
+
+sse_connections: Dict[str, SSEConnection] = {}
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
-# Store active WebSocket connections
-active_connections: Dict[str, WebSocket] = {}
+# Configure CORS for development
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, specify your frontend URLs
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Removed WebSocket connections - now using SSE
 
 # Redis client for pub/sub
 redis_client: Optional[redis.Redis] = None
@@ -82,7 +102,7 @@ async def shutdown_event():
     logger.info("Shutdown complete")
 
 async def subscribe_to_ai_results():
-    """Subscribe to AI analysis results and forward to WebSocket clients"""
+    """Subscribe to AI analysis results and forward to SSE clients"""
     if not redis_client:
         return
         
@@ -94,13 +114,10 @@ async def subscribe_to_ai_results():
             if message["type"] == "message":
                 try:
                     result = json.loads(message["data"])
-                    websocket_id = result.get("data", {}).get("websocket_id")
                     
-                    # Send to specific WebSocket connection
-                    if websocket_id in active_connections:
-                        websocket = active_connections[websocket_id]
-                        await websocket.send_text(json.dumps(result))
-                        logger.info(f"Sent AI result to WebSocket {websocket_id}")
+                    # Send to SSE connections
+                    if result.get("data"):
+                        await send_to_sse_connections(result.get("data"))
                         
                 except Exception as e:
                     logger.error(f"Error forwarding AI result: {e}")
@@ -400,17 +417,21 @@ async def analyze_frame_polling(request: FrameAnalysisRequest):
             # Simple analysis result
             analysis_data = {
                 "frame_id": request.frame_id,
-                "description": f"Motion detected ({request.motion_strength:.1f}% strength) - Mobile polling analysis",
+                "description": f"Motion detected ({request.motion_strength:.1f}% strength) - AI analysis via SSE",
                 "confidence": 0.8,
                 "processing_time": 3000,
                 "timestamp": datetime.now().isoformat(),
             }
             
+            # Store for polling (backward compatibility)
             polling_results[request.frame_id] = {
                 "status": "completed",
                 "analysis": analysis_data,
                 "completed_at": datetime.now().isoformat()
             }
+            
+            # Send to SSE connections
+            await send_to_sse_connections(analysis_data)
             
         # Start background processing
         asyncio.create_task(process_later())
@@ -429,6 +450,120 @@ async def analyze_frame_polling(request: FrameAnalysisRequest):
             message=f"Analysis failed: {str(e)}"
         )
 
+
+# SSE Helper Functions
+def create_sse_response(data: dict, event: str = None) -> str:
+    """Format data as Server-Sent Event"""
+    message_lines = []
+    
+    if event:
+        message_lines.append(f"event: {event}")
+    
+    message_lines.append(f"data: {json.dumps(data)}")
+    message_lines.append("")  # Empty line to end the event
+    
+    return "\n".join(message_lines) + "\n"
+
+async def send_to_sse_connections(result: dict):
+    """Send AI analysis result to all active SSE connections"""
+    if not sse_connections:
+        return
+        
+    # Format the result for SSE
+    sse_event = {
+        "type": "ai_analysis",
+        "data": result,
+        "timestamp": datetime.now().isoformat()
+    }
+    
+    # Send to all connections
+    disconnected_connections = []
+    
+    for connection_id, connection in sse_connections.items():
+        try:
+            await connection.queue.put(sse_event)
+            logger.debug(f"Sent AI result to SSE connection {connection_id}")
+        except Exception as e:
+            logger.error(f"Failed to send to SSE connection {connection_id}: {e}")
+            disconnected_connections.append(connection_id)
+    
+    # Clean up failed connections
+    for connection_id in disconnected_connections:
+        del sse_connections[connection_id]
+
+@app.get("/api/v1/ai/events")
+async def ai_analysis_stream(request: Request):
+    """
+    SSE endpoint for streaming AI analysis results
+    """
+    # Generate unique connection ID
+    connection_id = str(uuid.uuid4())
+    
+    # Create connection queue
+    connection_queue = asyncio.Queue()
+    connection = SSEConnection(connection_id, connection_queue)
+    sse_connections[connection_id] = connection
+    
+    logger.info(f"SSE connection established: {connection_id}")
+    
+    async def event_generator() -> AsyncGenerator[str, None]:
+        try:
+            # Send connection established event
+            initial_event = create_sse_response({
+                "connection_id": connection_id,
+                "message": "Connected to AI analysis stream",
+                "timestamp": datetime.now().isoformat()
+            }, "connected")
+            yield initial_event
+            
+            # Keep connection alive and send events
+            while True:
+                try:
+                    # Wait for events with timeout for keep-alive
+                    event_data = await asyncio.wait_for(
+                        connection.queue.get(), 
+                        timeout=30.0
+                    )
+                    
+                    # Send the event
+                    sse_message = create_sse_response(event_data, event_data.get("type", "data"))
+                    yield sse_message
+                    
+                except asyncio.TimeoutError:
+                    # Send keep-alive ping
+                    ping_event = create_sse_response({
+                        "type": "ping",
+                        "timestamp": datetime.now().isoformat()
+                    }, "ping")
+                    yield ping_event
+                    
+        except asyncio.CancelledError:
+            logger.info(f"SSE connection cancelled: {connection_id}")
+            raise
+            
+        except Exception as e:
+            error_event = create_sse_response({
+                "error": str(e),
+                "timestamp": datetime.now().isoformat()
+            }, "error")
+            yield error_event
+            
+        finally:
+            # Clean up connection
+            if connection_id in sse_connections:
+                del sse_connections[connection_id]
+                logger.info(f"SSE connection closed: {connection_id}")
+    
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "Access-Control-Allow-Origin": "*",
+            "X-Accel-Buffering": "no"  # Disable Nginx buffering
+        }
+    )
 
 @app.post("/api/v1/ai/poll-results", response_model=PollResultsResponse)
 async def poll_analysis_results(request: PollResultsRequest):
@@ -468,95 +603,4 @@ async def poll_analysis_results(request: PollResultsRequest):
     )
 
 
-@app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    """
-    WebSocket endpoint for real-time motion detection and AI analysis
-    """
-    import uuid
-    
-    await websocket.accept()
-    
-    # Generate unique ID for this WebSocket connection
-    websocket_id = str(uuid.uuid4())
-    active_connections[websocket_id] = websocket
-    
-    logger.info(f"WebSocket client connected: {websocket_id}")
-    
-    try:
-        while True:
-            # Receive motion event from client
-            data = await websocket.receive_text()
-            message = json.loads(data)
-            
-            # Handle both message formats (frontend sends 'type', we check both)
-            message_type = message.get('type') or message.get('event_type')
-            logger.debug(f"Received message type: {message_type} from {websocket_id}")
-            
-            # Handle ping messages for keep-alive
-            if message_type == "ping":
-                await websocket.send_text(json.dumps({"type": "pong"}))
-                continue
-            
-            # If it's a motion event with frame data, queue for AI analysis
-            if message_type == "motion_event":
-                # Extract motion event data from the message
-                motion_data = message.get('data', {}) if 'data' in message else message
-                frame_id = motion_data.get("frame_id", f"frame_{uuid.uuid4()}")
-                motion_strength = motion_data.get("motion_strength", 0)
-                frame_data = motion_data.get("frame_data", "")
-                
-                logger.info(f"Received motion event {frame_id} with {motion_strength}% strength")
-                
-                # Queue for background processing if frame data is available
-                if frame_data and motion_strength > 0:
-                    # Use background AI processor (non-blocking)
-                    queued = await ai_processor.queue_frame_for_analysis(
-                        frame_id=frame_id,
-                        frame_data=frame_data,
-                        motion_strength=motion_strength,
-                        websocket_id=websocket_id
-                    )
-                    
-                    if queued:
-                        # Send immediate acknowledgment
-                        ack_message = {
-                            "type": "motion_ack",
-                            "data": {
-                                "frame_id": frame_id,
-                                "status": "queued",
-                                "message": "Frame queued for AI analysis"
-                            },
-                            "timestamp": datetime.now().isoformat()
-                        }
-                        await websocket.send_text(json.dumps(ack_message))
-                    else:
-                        # If queueing failed, try direct processing as fallback
-                        logger.warning(f"Failed to queue frame {frame_id}, attempting direct processing")
-                        
-                        # Fallback to simple response
-                        fallback_result = {
-                            "type": "ai_analysis",
-                            "data": {
-                                "frame_id": frame_id,
-                                "description": f"Motion detected ({motion_strength:.1f}% strength) - Analysis pending",
-                                "confidence": 0.5,
-                                "processing_time": 0,
-                                "timestamp": datetime.now().isoformat(),
-                            },
-                            "timestamp": datetime.now().isoformat(),
-                        }
-                        await websocket.send_text(json.dumps(fallback_result))
-                
-    except WebSocketDisconnect:
-        logger.info(f"WebSocket client disconnected: {websocket_id}")
-    except Exception as e:
-        logger.error(f"WebSocket error for {websocket_id}: {e}")
-    finally:
-        # Remove from active connections
-        if websocket_id in active_connections:
-            del active_connections[websocket_id]
-        try:
-            await websocket.close()
-        except:
-            pass
+# WebSocket endpoint removed - now using SSE for real-time communication

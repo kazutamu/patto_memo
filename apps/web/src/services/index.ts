@@ -1,2 +1,2 @@
 export { MotionDetectionService, motionDetectionService } from './motionDetectionService';
-export { WebSocketService, websocketService, type WebSocketEventHandlers } from './websocketService';
+export { SSEService, sseService, type SSEEventHandlers } from './sseService';

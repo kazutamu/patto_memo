@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { websocketService, WebSocketEventHandlers } from '../services';
-import { aiPollingService } from '../services/aiPollingService';
+import { sseService, SSEEventHandlers } from '../services/sseService';
 import { motionDetectionService } from '../services';
 import { AIAnalysisResult, MotionEventForAI } from '../types';
 
@@ -22,13 +21,13 @@ interface UseAIAnalysisReturn {
 }
 
 /**
- * Custom hook for AI analysis integration with LLaVA
- * Manages WebSocket connection and triggers analysis for significant motion events
+ * Custom hook for AI analysis using Server-Sent Events (SSE)
+ * Much simpler than WebSocket/polling - just HTTP POST + SSE for results
  */
 export function useAIAnalysis({
   videoElement,
   isActive,
-  significanceThreshold = 2, // Very low threshold for testing (was 5)
+  significanceThreshold = 2, // Low threshold for testing
   analysisRateLimit = 10, // Max 10 requests per minute
   frameQuality = 0.7
 }: UseAIAnalysisOptions): UseAIAnalysisReturn {
@@ -41,84 +40,70 @@ export function useAIAnalysis({
   const requestHistory = useRef<number[]>([]);
   const lastAnalysisTime = useRef<number>(0);
   const analysisTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const pendingFrames = useRef<Set<string>>(new Set());
   
-  // Detect if we should use mobile polling
-  const isMobile = useRef<boolean>(false);
-  
-  useEffect(() => {
-    // Simple mobile detection
-    const userAgent = navigator.userAgent.toLowerCase();
-    const mobileKeywords = ['mobile', 'android', 'iphone', 'ipad', 'ipod'];
-    isMobile.current = mobileKeywords.some(keyword => userAgent.includes(keyword)) || 
-                     ('ontouchstart' in window) ||
-                     (window.innerWidth <= 768);
-                     
-    console.log('📱 Mobile detected:', isMobile.current);
-  }, []);
-
-  // WebSocket event handlers
-  const eventHandlers: WebSocketEventHandlers = {
-    onConnect: () => {
-      console.log('AI Analysis WebSocket connected');
+  // SSE event handlers
+  const eventHandlers: SSEEventHandlers = {
+    onConnect: (connectionId: string) => {
+      console.log('✅ AI Analysis SSE connected:', connectionId);
       setIsConnected(true);
     },
     
     onDisconnect: () => {
-      console.log('AI Analysis WebSocket disconnected');
+      console.log('❌ AI Analysis SSE disconnected');
       setIsConnected(false);
       setIsAnalyzing(false);
     },
     
     onAIAnalysis: (analysisResult: AIAnalysisResult) => {
-      console.log('Received AI analysis:', analysisResult);
-      setAnalysis(analysisResult);
-      setIsAnalyzing(false);
-      // Clear timeout since we got a response
-      if (analysisTimeoutRef.current) {
-        clearTimeout(analysisTimeoutRef.current);
-        analysisTimeoutRef.current = null;
+      console.log('🤖 Received AI analysis:', analysisResult);
+      
+      // Check if this is one of our pending frames
+      if (analysisResult.frame_id && pendingFrames.current.has(analysisResult.frame_id)) {
+        pendingFrames.current.delete(analysisResult.frame_id);
+        setAnalysis(analysisResult);
+        setIsAnalyzing(pendingFrames.current.size > 0);
+        
+        // Clear timeout since we got a response
+        if (analysisTimeoutRef.current && pendingFrames.current.size === 0) {
+          clearTimeout(analysisTimeoutRef.current);
+          analysisTimeoutRef.current = null;
+        }
       }
     },
     
     onError: (error: any) => {
-      console.error('AI Analysis error:', error);
+      console.error('SSE error:', error);
       setIsAnalyzing(false);
+    },
+    
+    onPing: () => {
+      // Keep-alive ping received
     }
   };
 
-  // Initialize connection (WebSocket or Polling)
+  // Initialize SSE connection
   useEffect(() => {
     if (isActive) {
-      if (isMobile.current) {
-        // Use polling for mobile
-        console.log('📱 Using AI polling service for mobile');
-        aiPollingService.setOnAnalysis((result) => {
-          console.log('📱 Received AI analysis via polling:', result);
-          setAnalysis(result);
-          setIsAnalyzing(false);
-          // Clear timeout since we got a response
-          if (analysisTimeoutRef.current) {
-            clearTimeout(analysisTimeoutRef.current);
-            analysisTimeoutRef.current = null;
+      console.log('📡 Initializing SSE connection for AI analysis');
+      sseService.setHandlers(eventHandlers);
+      sseService.connect()
+        .then((connectionId) => {
+          console.log('✅ SSE connected successfully:', connectionId);
+        })
+        .catch((error) => {
+          console.error('❌ SSE connection failed:', error);
+          // For HTTPS pages trying to connect to HTTP SSE, show a warning
+          if (window.location.protocol === 'https:') {
+            console.warn('⚠️ You are on HTTPS but SSE is using HTTP. This may be blocked by browser security.');
+            console.warn('💡 Try accessing the app via HTTP instead: http://' + window.location.host);
           }
         });
-        setIsConnected(true); // Consider polling service as "connected"
-      } else {
-        // Use WebSocket for desktop
-        console.log('🖥️ Using WebSocket service for desktop');
-        websocketService.setHandlers(eventHandlers);
-        websocketService.connect().catch(console.error);
-      }
     }
 
     return () => {
       if (!isActive) {
-        if (isMobile.current) {
-          aiPollingService.stopPolling();
-          setIsConnected(false);
-        } else {
-          websocketService.disconnect();
-        }
+        sseService.disconnect();
       }
     };
   }, [isActive]);
@@ -149,16 +134,16 @@ export function useAIAnalysis({
 
   // Request AI analysis for current frame
   const requestAnalysis = useCallback((motionStrength: number) => {
-    console.log(`📱 requestAnalysis called - Motion: ${motionStrength}%, Connected: ${isConnected}, Analyzing: ${isAnalyzing}`);
+    console.log(`📸 Request analysis - Motion: ${motionStrength}%, Connected: ${isConnected}`);
     
-    if (!videoElement || !isConnected || isAnalyzing) {
-      console.log(`📱 Skipping analysis - VideoElement: ${!!videoElement}, Connected: ${isConnected}, Analyzing: ${isAnalyzing}`);
+    if (!videoElement || !isConnected) {
+      console.log(`Skipping - Video: ${!!videoElement}, Connected: ${isConnected}`);
       return;
     }
 
     // Check significance threshold
     if (motionStrength < significanceThreshold) {
-      console.log(`📱 Motion strength ${motionStrength}% below significance threshold ${significanceThreshold}%`);
+      console.log(`Motion ${motionStrength}% below threshold ${significanceThreshold}%`);
       return;
     }
 
@@ -188,6 +173,7 @@ export function useAIAnalysis({
       // Update rate limiting
       requestHistory.current.push(Date.now());
       lastAnalysisTime.current = Date.now();
+      pendingFrames.current.add(frameId);
       setIsAnalyzing(true);
       
       // Set timeout to clear analyzing state if no response after 30 seconds
@@ -195,56 +181,60 @@ export function useAIAnalysis({
         clearTimeout(analysisTimeoutRef.current);
       }
       analysisTimeoutRef.current = setTimeout(() => {
-        console.error('📱 Analysis timeout - clearing analyzing state');
+        console.error('Analysis timeout - clearing analyzing state');
+        pendingFrames.current.clear();
         setIsAnalyzing(false);
       }, 30000);
 
-      if (isMobile.current) {
-        // Use polling service for mobile
-        console.log(`📱 Submitting frame for polling analysis - Motion: ${motionStrength.toFixed(1)}%, Frame ID: ${frameId}`);
-        
-        aiPollingService.submitFrameForAnalysis(motionEvent).then((success) => {
-          if (!success) {
-            console.error('📱 Failed to submit frame for analysis');
-            setIsAnalyzing(false);
-          }
-        }).catch((error) => {
-          console.error('📱 Error submitting frame for polling analysis:', error);
-          setIsAnalyzing(false);
-        });
-        
-      } else {
-        // Use WebSocket for desktop
-        console.log(`🖥️ Sending frame via WebSocket - Motion: ${motionStrength.toFixed(1)}%, Frame ID: ${frameId}`);
-        websocketService.sendMotionEvent(motionEvent);
-      }
+      // Send frame via HTTP POST - results will come via SSE
+      console.log(`📤 Sending frame for analysis - ID: ${frameId}, Motion: ${motionStrength.toFixed(1)}%`);
+      
+      // Use Vite proxy (relative URL) or environment variable
+      const apiUrl = import.meta.env.VITE_API_URL || '/api/v1';
+      
+      fetch(`${apiUrl}/ai/analyze-frame`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          frame_id: frameId,
+          frame_data: frameData,
+          motion_strength: motionStrength,
+          timestamp: new Date().toISOString(),
+          client_type: 'sse'
+        })
+      }).then(response => {
+        if (!response.ok) {
+          console.error('Failed to submit frame:', response.status);
+          pendingFrames.current.delete(frameId);
+          setIsAnalyzing(pendingFrames.current.size > 0);
+        } else {
+          console.log('✅ Frame submitted successfully, waiting for SSE result...');
+        }
+      }).catch(error => {
+        console.error('Error submitting frame:', error);
+        pendingFrames.current.delete(frameId);
+        setIsAnalyzing(pendingFrames.current.size > 0);
+      });
 
     } catch (error) {
       console.error('Error requesting AI analysis:', error);
       setIsAnalyzing(false);
     }
-  }, [videoElement, isConnected, isAnalyzing, significanceThreshold, frameQuality, canMakeRequest]);
+  }, [videoElement, isConnected, significanceThreshold, frameQuality, canMakeRequest]);
 
   // Clear current analysis
   const clearAnalysis = useCallback(() => {
     setAnalysis(null);
   }, []);
 
-  // Manually reconnect service
+  // Manually reconnect SSE
   const reconnect = useCallback(() => {
-    if (isMobile.current) {
-      // For mobile, just restart polling
-      aiPollingService.stopPolling();
-      setTimeout(() => {
-        setIsConnected(true);
-      }, 1000);
-    } else {
-      // For desktop, reconnect WebSocket
-      websocketService.disconnect();
-      setTimeout(() => {
-        websocketService.connect().catch(console.error);
-      }, 1000);
-    }
+    sseService.disconnect();
+    setTimeout(() => {
+      sseService.connect().catch(console.error);
+    }, 1000);
   }, []);
 
   return {
