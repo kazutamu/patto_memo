@@ -2,7 +2,7 @@ import asyncio
 import base64
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 import httpx
 from fastapi import FastAPI, File, HTTPException, UploadFile
