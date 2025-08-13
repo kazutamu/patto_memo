@@ -1,11 +1,11 @@
 import asyncio
 import logging
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import List
 
 from fastapi import FastAPI
-from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 app = FastAPI()
@@ -197,7 +197,7 @@ async def broadcast_to_sse_clients(data: dict):
     for queue in active_sse_connections:
         try:
             await queue.put(message)
-        except:
+        except Exception:
             disconnected.add(queue)
 
     # Remove disconnected clients
@@ -211,8 +211,8 @@ async def ai_analysis_sse():
     """
     Server-Sent Events endpoint for real-time AI analysis results
     """
-    import uuid
     import json
+    import uuid
 
     connection_id = str(uuid.uuid4())[:8]
     logger.info(f"New SSE connection: {connection_id}")

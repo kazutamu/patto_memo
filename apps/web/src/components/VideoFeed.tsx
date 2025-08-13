@@ -10,6 +10,8 @@ interface VideoFeedProps {
   sensitivity: number;
   onMotionStateChange?: (motionState: MotionDetectionState) => void;
   onVideoElementReady?: (videoElement: HTMLVideoElement | null) => void;
+  cameraFacing?: 'user' | 'environment';
+  onCameraFacingChange?: (facing: 'user' | 'environment') => void;
 }
 
 export const VideoFeed: React.FC<VideoFeedProps> = ({

@@ -1,7 +1,6 @@
-import pytest
 from fastapi.testclient import TestClient
 
-from main import app, dummy_motion_events
+from main import dummy_motion_events
 
 
 class TestHealthEndpoint:

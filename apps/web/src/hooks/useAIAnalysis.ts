@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { sseService, SSEEventHandlers } from '../services/sseService';
 import { motionDetectionService } from '../services';
-import { AIAnalysisResult, MotionEventForAI } from '../types';
+import { AIAnalysisResult } from '../types';
 
 interface UseAIAnalysisOptions {
   videoElement: HTMLVideoElement | null;
@@ -39,7 +39,7 @@ export function useAIAnalysis({
   // Rate limiting state
   const requestHistory = useRef<number[]>([]);
   const lastAnalysisTime = useRef<number>(0);
-  const analysisTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const analysisTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingFrames = useRef<Set<string>>(new Set());
   
   // SSE event handlers
@@ -163,12 +163,13 @@ export function useAIAnalysis({
       // Generate unique frame ID
       const frameId = `frame_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
-      const motionEvent: MotionEventForAI = {
-        frame_data: frameData,
-        timestamp: new Date().toISOString(),
-        motion_strength: motionStrength,
-        frame_id: frameId
-      };
+      // Motion event is prepared but not sent directly - handled by SSE
+      // const motionEvent: MotionEventForAI = {
+      //   frame_data: frameData,
+      //   timestamp: new Date().toISOString(),
+      //   motion_strength: motionStrength,
+      //   frame_id: frameId
+      // };
 
       // Update rate limiting
       requestHistory.current.push(Date.now());

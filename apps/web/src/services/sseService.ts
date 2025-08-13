@@ -69,8 +69,8 @@ class SSEService {
           console.log('✅ SSE connected with ID:', this.connectionId);
           
           this.reconnectAttempts = 0;
-          this.handlers.onConnect?.(this.connectionId);
-          resolve(this.connectionId);
+          this.handlers.onConnect?.(this.connectionId || '');
+          resolve(this.connectionId || '');
         });
 
         // Handle AI analysis results - this is the main event we care about
@@ -84,6 +84,7 @@ class SSEService {
             
             // Convert to our expected format
             const analysis: AIAnalysisResult = {
+              id: analysisData.frame_id,
               frame_id: analysisData.frame_id,
               description: analysisData.description,
               confidence: analysisData.confidence,
@@ -114,7 +115,7 @@ class SSEService {
         });
 
         // Handle connection errors
-        this.eventSource.onerror = (event) => {
+        this.eventSource.onerror = (_event) => {
           console.error('❌ SSE connection error');
           
           if (this.eventSource?.readyState === EventSource.CLOSED) {
