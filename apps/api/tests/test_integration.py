@@ -165,7 +165,9 @@ class TestCrossEndpointWorkflows:
         # Check health endpoint
         health_response = client.get("/health")
         assert health_response.status_code == 200
-        assert health_response.json() == {"status": "ok"}
+        health_data = health_response.json()
+        assert health_data["status"] == "ok"
+        assert "sse_connections" in health_data
 
         # Check motion settings accessibility
         settings_response = client.get("/api/v1/motion/settings")

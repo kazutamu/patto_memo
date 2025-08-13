@@ -8,6 +8,9 @@ python-multipart
 # HTTP client for Ollama API
 httpx
 
+# Server-Sent Events support
+sse-starlette
+
 # Testing dependencies
 pytest
 pytest-asyncio
