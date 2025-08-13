@@ -25,6 +25,7 @@
       "Bash(pip install:*)",
       "Bash(docker:*)",
       "Bash(docker-compose:*)",
+      "Bash(git push:*)",
       "Read",
       "Edit",
       "Write",
