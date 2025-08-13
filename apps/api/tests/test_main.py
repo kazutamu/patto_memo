@@ -13,7 +13,10 @@ def test_health_check(client: TestClient):
     """Test that health check returns ok status."""
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
+    data = response.json()
+    assert data["status"] == "ok"
+    assert "sse_connections" in data  # Check SSE connections field exists
+    assert isinstance(data["sse_connections"], int)  # Should be an integer
 
 
 class TestMotionEventsAPI:
