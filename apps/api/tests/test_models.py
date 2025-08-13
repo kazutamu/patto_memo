@@ -221,7 +221,7 @@ class TestLLaVAModels:
     def test_llava_request_default_prompt(self, image_data):
         """Test LLaVAAnalysisRequest with default prompt."""
         request = LLaVAAnalysisRequest(image_base64=image_data["base64"])
-        assert request.prompt == "Describe what you see in this image"
+        assert request.prompt == "Describe what is happening in 5 words or less"
 
     @pytest.mark.parametrize(
         "success,description,error_message",
