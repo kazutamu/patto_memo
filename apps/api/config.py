@@ -9,7 +9,7 @@ LLAVA_CONFIG = {
     "timeout": 30,
 }
 
-# Motion Detection Configuration  
+# Motion Detection Configuration
 MOTION_CONFIG = {
     "default_sensitivity": 0.5,
     "significance_threshold": 0.7,
