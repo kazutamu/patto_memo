@@ -27,6 +27,13 @@ class TestSSEConnectionManager:
         request.is_disconnected = AsyncMock(return_value=False)
         return request
 
+    @pytest.fixture
+    def mock_disconnected_request(self):
+        """Create a mock request that simulates disconnection."""
+        request = MagicMock(spec=Request)
+        request.is_disconnected = AsyncMock(return_value=True)
+        return request
+
     def test_manager_initialization(self, manager):
         """Test that SSE manager initializes correctly."""
         assert manager.connection_count == 0
@@ -269,3 +276,99 @@ class TestSSEConnectionIntegration:
         for client_id in ["user_0", "user_2"]:
             event = client_queues[client_id].get_nowait()
             assert event["event"] == "final_message"
+
+
+class TestSSEConnectionFlow:
+    """Test the actual SSE connection flow including event generators."""
+
+    @pytest.mark.asyncio
+    async def test_connection_event_generator_immediate_disconnect(self):
+        """Test event generator when client disconnects immediately."""
+        manager = SSEConnectionManager()
+
+        # Mock a request that is immediately disconnected
+        request = MagicMock(spec=Request)
+        request.is_disconnected = AsyncMock(return_value=True)
+
+        # Get the EventSourceResponse
+        response = await manager.connect(request)
+
+        # The response should be an EventSourceResponse
+        from sse_starlette.sse import EventSourceResponse
+
+        assert isinstance(response, EventSourceResponse)
+
+    @pytest.mark.asyncio
+    async def test_connection_event_generator_with_timeout(self):
+        """Test event generator with timeout (heartbeat)."""
+        manager = SSEConnectionManager()
+
+        # Mock a request that stays connected initially
+        request = MagicMock(spec=Request)
+        disconnect_calls = 0
+
+        async def mock_is_disconnected():
+            nonlocal disconnect_calls
+            disconnect_calls += 1
+            # Disconnect after a few calls to simulate client leaving
+            return disconnect_calls > 2
+
+        request.is_disconnected = mock_is_disconnected
+
+        # Get the EventSourceResponse and iterate a few events
+        response = await manager.connect(request)
+
+        # Extract the generator from the response
+        generator = response.body_iterator
+
+        events_received = []
+        try:
+            # Get first event (connection event)
+            first_event = await generator.__anext__()
+            events_received.append(first_event)
+
+            # The first event should be a connection event
+            assert first_event["event"] == "connected"
+            assert "client_id" in first_event["data"]
+
+        except StopAsyncIteration:
+            pass
+
+        # Should have received at least the connection event
+        assert len(events_received) >= 1
+
+    @pytest.mark.asyncio
+    async def test_event_generator_heartbeat(self):
+        """Test that heartbeat events are generated."""
+        import asyncio
+        from unittest.mock import patch
+
+        manager = SSEConnectionManager()
+
+        # Mock request that stays connected
+        request = MagicMock(spec=Request)
+        request.is_disconnected = AsyncMock(return_value=False)
+
+        # Mock asyncio.wait_for to simulate timeout quickly
+        original_wait_for = asyncio.wait_for
+
+        async def mock_wait_for(coro, timeout):
+            if timeout == 30.0:  # Our heartbeat timeout
+                raise asyncio.TimeoutError()
+            return await original_wait_for(coro, timeout)
+
+        with patch("asyncio.wait_for", side_effect=mock_wait_for):
+            response = await manager.connect(request)
+            generator = response.body_iterator
+
+            try:
+                # Get connection event
+                first_event = await generator.__anext__()
+                assert first_event["event"] == "connected"
+
+                # Get heartbeat event (should happen due to our timeout mock)
+                second_event = await generator.__anext__()
+                assert second_event["event"] == "heartbeat"
+
+            except StopAsyncIteration:
+                pass
