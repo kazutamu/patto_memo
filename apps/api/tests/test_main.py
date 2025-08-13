@@ -7,6 +7,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from main import app, dummy_motion_events
+from sse_manager import sse_manager
 
 
 def test_health_check(client: TestClient):
@@ -286,3 +287,26 @@ def test_bulk_event_creation_performance(client: TestClient):
 
     # Verify all events were created
     assert len(dummy_motion_events) == initial_count + events_to_create
+
+
+class TestSSEEndpoints:
+    """Tests for Server-Sent Events endpoints."""
+
+    def test_sse_connections_endpoint(self, client: TestClient):
+        """Test SSE connections info endpoint."""
+        response = client.get("/api/v1/events/connections")
+        assert response.status_code == 200
+        
+        data = response.json()
+        assert "connection_count" in data
+        assert "connected_clients" in data
+        assert isinstance(data["connection_count"], int)
+        assert isinstance(data["connected_clients"], list)
+
+    def test_sse_stream_endpoint_returns_sse(self, client: TestClient):
+        """Test that SSE stream endpoint returns appropriate response."""
+        # Note: We can't easily test the streaming in a synchronous test,
+        # but we can verify the endpoint exists and doesn't error immediately
+        with client.stream("GET", "/api/v1/events/stream") as response:
+            assert response.status_code == 200
+            assert "text/plain" in response.headers.get("content-type", "")
