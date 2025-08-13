@@ -1,7 +1,10 @@
+import asyncio
+import json
 from datetime import datetime
 from typing import Any, Dict, List
 
 from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 app = FastAPI()
@@ -109,3 +112,24 @@ def get_motion_settings():
         "recording_enabled": True,
         "alert_notifications": True,
     }
+
+
+@app.get("/api/v1/events")
+async def motion_events_sse():
+    """
+    Server-Sent Events endpoint for real-time motion event updates
+    """
+    async def event_generator():
+        while True:
+            # Send a heartbeat message every 30 seconds
+            yield f"data: {json.dumps({'type': 'heartbeat', 'timestamp': datetime.now().isoformat()})}\n\n"
+            await asyncio.sleep(30)
+    
+    return StreamingResponse(
+        event_generator(), 
+        media_type="text/plain",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+        }
+    )
