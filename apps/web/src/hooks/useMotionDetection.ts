@@ -113,7 +113,7 @@ export function useMotionDetection({
             
             api.analyzeLLaVA({
               image_base64: frameBase64,
-              prompt: "What do you see in this image? Focus on any people, animals, vehicles, or notable activities."
+              prompt: "Describe in 5 words or less"
             }).then(response => {
               if (!response.success) {
                 console.warn('AI Analysis failed:', response.error_message);

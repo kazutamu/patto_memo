@@ -16,7 +16,7 @@ export default defineConfig({
     https: !process.env.CI, // Disable SSL in CI environment
     proxy: {
       '/api': {
-        target: 'http://localhost:8001',
+        target: 'http://localhost:8000',
         changeOrigin: true,
       },
     },
