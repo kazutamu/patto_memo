@@ -25,7 +25,12 @@ class SSEConnectionManager:
                 # Send initial connection event
                 yield {
                     "event": "connected",
-                    "data": json.dumps({"client_id": client_id, "timestamp": datetime.now().isoformat()}),
+                    "data": json.dumps(
+                        {
+                            "client_id": client_id,
+                            "timestamp": datetime.now().isoformat(),
+                        }
+                    ),
                 }
 
                 # Keep connection alive and send events
@@ -42,7 +47,9 @@ class SSEConnectionManager:
                         # Send heartbeat to keep connection alive
                         yield {
                             "event": "heartbeat",
-                            "data": json.dumps({"timestamp": datetime.now().isoformat()}),
+                            "data": json.dumps(
+                                {"timestamp": datetime.now().isoformat()}
+                            ),
                         }
 
             finally:

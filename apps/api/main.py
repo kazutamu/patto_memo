@@ -129,7 +129,7 @@ async def create_motion_event(event: MotionEventCreate):
 
     # Add to dummy data store
     dummy_motion_events.append(new_event)
-    
+
     # Broadcast motion event to SSE clients
     asyncio.create_task(
         sse_manager.broadcast(
@@ -140,7 +140,7 @@ async def create_motion_event(event: MotionEventCreate):
                 "duration": new_event["duration"],
                 "description": new_event["description"],
                 "timestamp": new_event["timestamp"],
-            }
+            },
         )
     )
 
@@ -199,7 +199,7 @@ async def analyze_image_with_llava(request: LLaVAAnalysisRequest):
                 llm_model="llava:latest",
                 success=True,
             )
-            
+
             # Broadcast AI analysis result to all connected SSE clients
             await sse_manager.broadcast(
                 "ai_analysis",
@@ -207,9 +207,9 @@ async def analyze_image_with_llava(request: LLaVAAnalysisRequest):
                     "description": analysis_response.description,
                     "processing_time": analysis_response.processing_time,
                     "timestamp": datetime.now().isoformat(),
-                }
+                },
             )
-            
+
             return analysis_response
 
     except httpx.RequestError as e:
