@@ -33,7 +33,6 @@
       "LS"
     ],
     "deny": [
-      "Bash(git push:*)",
       "Bash(rm:*)",
       "Bash(rm -rf:*)",
       "Bash(git rm:*)"
