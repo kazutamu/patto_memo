@@ -4,10 +4,22 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 import httpx
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
+from sse_manager import sse_manager
+
 app = FastAPI()
+
+# Configure CORS for SSE support
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Configure appropriately for production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Dummy data store for motion events
 dummy_motion_events = [
@@ -77,7 +89,7 @@ class LLaVAAnalysisResponse(BaseModel):
 
 @app.get("/health")
 def health_check():
-    return {"status": "ok"}
+    return {"status": "ok", "sse_connections": sse_manager.connection_count}
 
 
 @app.get("/api/v1/motion/events", response_model=List[MotionEvent])
@@ -102,7 +114,7 @@ def get_motion_events(limit: int = 10):
 
 
 @app.post("/api/v1/motion/events", response_model=MotionEvent)
-def create_motion_event(event: MotionEventCreate):
+async def create_motion_event(event: MotionEventCreate):
     """
     Report a new motion detection event
     """
@@ -117,6 +129,20 @@ def create_motion_event(event: MotionEventCreate):
 
     # Add to dummy data store
     dummy_motion_events.append(new_event)
+    
+    # Broadcast motion event to SSE clients
+    asyncio.create_task(
+        sse_manager.broadcast(
+            "motion_detected",
+            {
+                "id": new_event["id"],
+                "confidence": new_event["confidence"],
+                "duration": new_event["duration"],
+                "description": new_event["description"],
+                "timestamp": new_event["timestamp"],
+            }
+        )
+    )
 
     return new_event
 
@@ -167,12 +193,24 @@ async def analyze_image_with_llava(request: LLaVAAnalysisRequest):
             result = response.json()
             processing_time = (datetime.now() - start_time).total_seconds()
 
-            return LLaVAAnalysisResponse(
+            analysis_response = LLaVAAnalysisResponse(
                 description=result.get("response", "No description available"),
                 processing_time=processing_time,
                 llm_model="llava:latest",
                 success=True,
             )
+            
+            # Broadcast AI analysis result to all connected SSE clients
+            await sse_manager.broadcast(
+                "ai_analysis",
+                {
+                    "description": analysis_response.description,
+                    "processing_time": analysis_response.processing_time,
+                    "timestamp": datetime.now().isoformat(),
+                }
+            )
+            
+            return analysis_response
 
     except httpx.RequestError as e:
         processing_time = (datetime.now() - start_time).total_seconds()
@@ -225,3 +263,22 @@ async def analyze_uploaded_image(
             success=False,
             error_message=f"File processing failed: {str(e)}",
         )
+
+
+@app.get("/api/v1/events/stream")
+async def stream_events(request: Request):
+    """
+    Server-Sent Events endpoint for real-time updates
+    """
+    return await sse_manager.connect(request)
+
+
+@app.get("/api/v1/events/connections")
+def get_sse_connections():
+    """
+    Get information about active SSE connections
+    """
+    return {
+        "connection_count": sse_manager.connection_count,
+        "connected_clients": sse_manager.connected_clients,
+    }
