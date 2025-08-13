@@ -296,7 +296,7 @@ class TestSSEEndpoints:
         """Test SSE connections info endpoint."""
         response = client.get("/api/v1/events/connections")
         assert response.status_code == 200
-        
+
         data = response.json()
         assert "connection_count" in data
         assert "connected_clients" in data

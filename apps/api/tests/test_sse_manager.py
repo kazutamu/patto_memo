@@ -61,7 +61,7 @@ class TestSSEConnectionManager:
 
         # Manually add a connection for testing
         manager._connections["test_client"] = asyncio.Queue()
-        
+
         assert manager.connection_count == 1
         assert manager.connected_clients == ["test_client"]
 
@@ -83,7 +83,7 @@ class TestSSEConnectionManager:
         # Check that the event was queued
         assert not queue.empty()
         event = queue.get_nowait()
-        
+
         assert event["event"] == "test_event"
         assert json.loads(event["data"]) == test_data
 
@@ -99,7 +99,7 @@ class TestSSEConnectionManager:
         # Send to specific client
         test_data = {"message": "private message"}
         result = await manager.send_to_client("client1", "private_event", test_data)
-        
+
         assert result is True
         assert not queue1.empty()
         assert queue2.empty()
@@ -136,13 +136,13 @@ class TestSSEConnectionManager:
         # Create a queue and fill it beyond capacity
         queue = asyncio.Queue(maxsize=1)
         queue.put_nowait("dummy")  # Fill the queue
-        
+
         manager._connections["full_queue_client"] = queue
         assert manager.connection_count == 1
 
         # Try to broadcast - should disconnect the client due to full queue
         await manager.broadcast("test_event", {"data": "test"})
-        
+
         assert manager.connection_count == 0
         assert "full_queue_client" not in manager.connected_clients
 
@@ -152,14 +152,14 @@ class TestSSEConnectionManager:
         # Create a full queue
         queue = asyncio.Queue(maxsize=1)
         queue.put_nowait("dummy")
-        
+
         manager._connections["full_queue_client"] = queue
-        
+
         # Try to send - should fail and disconnect client
         result = await manager.send_to_client(
             "full_queue_client", "test_event", {"data": "test"}
         )
-        
+
         assert result is False
         assert manager.connection_count == 0
 
@@ -187,17 +187,17 @@ class TestSSEConnectionManager:
             "boolean": True,
             "null": None,
             "array": [1, 2, 3],
-            "nested": {"key": "value"}
+            "nested": {"key": "value"},
         }
 
         await manager.broadcast("complex_event", complex_data)
 
         event = queue.get_nowait()
         assert event["event"] == "complex_event"
-        
+
         # Data should be JSON string
         assert isinstance(event["data"], str)
-        
+
         # Should be parseable back to original data
         parsed_data = json.loads(event["data"])
         assert parsed_data == complex_data
@@ -225,7 +225,7 @@ class TestSSEConnectionIntegration:
     async def test_connection_lifecycle(self):
         """Test complete connection lifecycle with realistic scenario."""
         manager = SSEConnectionManager()
-        
+
         # Simulate connecting multiple clients
         client_queues = {}
         for i in range(3):
@@ -252,7 +252,7 @@ class TestSSEConnectionIntegration:
         # Only user_0 should have the private message
         private_event = client_queues["user_0"].get_nowait()
         assert private_event["event"] == "private_message"
-        
+
         # Other users should have no additional messages
         assert client_queues["user_1"].empty()
         assert client_queues["user_2"].empty()
