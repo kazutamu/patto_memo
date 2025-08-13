@@ -3,6 +3,7 @@ source = .
 omit = 
     tests/*
     test_*.py
+    run_tests.py
     venv/*
     */__pycache__/*
 
