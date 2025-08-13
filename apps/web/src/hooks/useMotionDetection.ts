@@ -3,6 +3,7 @@ import { MotionDetectionState, MotionDetectionResult } from '../types';
 import { motionDetectionService } from '../services/motionDetectionService';
 import { api } from '../api';
 import { ThrottledFrameCapture } from '../utils/frameCapture';
+import { LLAVA_PROMPTS } from '../config/prompts';
 
 interface UseMotionDetectionOptions {
   videoElement: HTMLVideoElement | null;
@@ -113,7 +114,7 @@ export function useMotionDetection({
             
             api.analyzeLLaVA({
               image_base64: frameBase64,
-              prompt: "Describe in 5 words or less"
+              prompt: LLAVA_PROMPTS.default
             }).then(response => {
               if (!response.success) {
                 console.warn('AI Analysis failed:', response.error_message);
