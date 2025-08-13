@@ -13,7 +13,7 @@ export default defineConfig({
   server: {
     host: '0.0.0.0', // Bind to all interfaces
     port: 3000,
-    https: !process.env.CI, // Enable SSL for camera access
+    https: !process.env.CI, // Disable SSL in CI environment, enable for camera access
     proxy: {
       '/api': {
         target: 'http://localhost:8000',

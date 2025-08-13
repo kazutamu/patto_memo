@@ -8,6 +8,7 @@ export class MotionDetectionService {
   private previousFrame: ImageData | null = null;
   private canvas: HTMLCanvasElement;
   private context: CanvasRenderingContext2D;
+  private isMobile: boolean = false;
 
   constructor(width: number = 320, height: number = 240) {
     // Create an offscreen canvas for frame processing
@@ -15,6 +16,20 @@ export class MotionDetectionService {
     this.canvas.width = width;
     this.canvas.height = height;
     this.context = this.canvas.getContext('2d')!;
+    
+    // Detect mobile device for performance optimization
+    this.detectMobile();
+  }
+
+  /**
+   * Detect if the device is mobile for performance optimization
+   */
+  private detectMobile(): void {
+    const userAgent = navigator.userAgent.toLowerCase();
+    const mobileKeywords = ['mobile', 'android', 'iphone', 'ipad', 'ipod', 'blackberry', 'windows phone'];
+    const isMobileDevice = mobileKeywords.some(keyword => userAgent.includes(keyword));
+    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    this.isMobile = isMobileDevice || isTouchDevice;
   }
 
   /**
@@ -84,8 +99,9 @@ export class MotionDetectionService {
     let totalDiff = 0;
     let pixelCount = 0;
 
-    // Compare pixels with reduced sampling for performance
-    const step = 4; // Sample every 4th pixel for better performance
+    // Adaptive sampling based on device type
+    // Mobile devices use more aggressive sampling for better performance
+    const step = this.isMobile ? 8 : 4; // Sample every 8th pixel on mobile, 4th on desktop
     
     for (let i = 0; i < current.length; i += step * 4) {
       // Calculate RGB difference (skip alpha channel)
@@ -96,8 +112,11 @@ export class MotionDetectionService {
       // Calculate average difference for this pixel
       const pixelDiff = (rDiff + gDiff + bDiff) / 3;
       
+      // Adaptive noise threshold - higher for mobile to reduce processing
+      const noiseThreshold = this.isMobile ? 15 : 10;
+      
       // Only count significant differences to reduce noise
-      if (pixelDiff > 10) {
+      if (pixelDiff > noiseThreshold) {
         totalDiff += pixelDiff;
         pixelCount++;
       }

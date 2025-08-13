@@ -2,7 +2,19 @@
 fastapi
 uvicorn[standard]
 
+# File upload support
+python-multipart
+
+# HTTP client for Ollama API
+httpx
+
 # Testing dependencies
 pytest
 pytest-asyncio
-httpx
+pytest-httpx
+respx
+pytest-cov
+
+# Development/formatting tools
+black
+isort
