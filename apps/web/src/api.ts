@@ -34,6 +34,19 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
   }
 }
 
+export interface LLaVAAnalysisRequest {
+  image_base64: string;
+  prompt?: string;
+}
+
+export interface LLaVAAnalysisResponse {
+  description: string;
+  processing_time: number;
+  llm_model: string;
+  success: boolean;
+  error_message?: string;
+}
+
 export const api = {
   // Get motion events
   getMotionEvents: async (limit?: number): Promise<MotionEvent[]> => {
@@ -52,5 +65,13 @@ export const api = {
   // Get motion detection settings
   getMotionSettings: async (): Promise<MotionSettings> => {
     return request<MotionSettings>('/motion/settings');
+  },
+
+  // Analyze image with LLaVA
+  analyzeLLaVA: async (analysisRequest: LLaVAAnalysisRequest): Promise<LLaVAAnalysisResponse> => {
+    return request<LLaVAAnalysisResponse>('/llava/analyze', {
+      method: 'POST',
+      body: JSON.stringify(analysisRequest),
+    });
   },
 };

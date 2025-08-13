@@ -1,7 +1,8 @@
 import React, { useState, useCallback } from 'react';
 import { VideoFeed, VideoControls } from './components';
 import { ConnectionHelper } from './components/ConnectionHelper';
-import { MotionDetectionState } from './types';
+import { MotionDetectionState, MotionEvent } from './types';
+import { useSSE, AIAnalysis } from './hooks/useSSE';
 import styles from './App.module.css';
 
 // Settings icon component
@@ -36,6 +37,23 @@ function App() {
     sensitivity: 50
   });
   const [showConnectionHelper, setShowConnectionHelper] = useState(false);
+  const [recentMotionEvents, setRecentMotionEvents] = useState<MotionEvent[]>([]);
+  const [recentAIAnalysis, setRecentAIAnalysis] = useState<AIAnalysis[]>([]);
+
+  // SSE integration for real-time updates
+  const {
+    isConnected: sseConnected,
+    connectionState,
+    error: sseError
+  } = useSSE({
+    autoConnect: true,
+    onMotionDetected: useCallback((event: MotionEvent) => {
+      setRecentMotionEvents(prev => [...prev.slice(-4), event]); // Keep last 5 events
+    }, []),
+    onAIAnalysis: useCallback((analysis: AIAnalysis) => {
+      setRecentAIAnalysis(prev => [...prev.slice(-2), analysis]); // Keep last 3 analyses
+    }, [])
+  });
 
   const handleToggleCamera = useCallback(() => {
     setIsCameraActive(prev => !prev);
@@ -71,6 +89,7 @@ function App() {
     setError(null);
   }, []);
 
+
   return (
     <div className={styles.app}>
       <div className={styles.container}>
@@ -94,6 +113,30 @@ function App() {
             )}
           </div>
         )}
+
+        {sseError && (
+          <div className={styles.errorBanner} style={{ backgroundColor: '#dc2626' }}>
+            <strong>Connection Error:</strong> {sseError}
+          </div>
+        )}
+
+        {/* SSE Connection Status */}
+        <div className={styles.statusBar}>
+          <div className={`${styles.connectionStatus} ${sseConnected ? styles.connected : styles.disconnected}`}>
+            <span className={styles.statusDot}></span>
+            Backend: {sseConnected ? 'Connected' : `Disconnected (${connectionState})`}
+          </div>
+          {recentMotionEvents.length > 0 && (
+            <div className={styles.eventCounter}>
+              Motion Events: {recentMotionEvents.length}
+            </div>
+          )}
+          {recentAIAnalysis.length > 0 && (
+            <div className={styles.aiCounter}>
+              AI Analysis: {recentAIAnalysis.length}
+            </div>
+          )}
+        </div>
 
         <main className={styles.content} data-stream-active={stream !== null}>
           <div className={styles.videoSection}>
@@ -126,6 +169,49 @@ function App() {
               disabled={false}
               motionState={motionState}
             />
+
+            {/* Recent Events Section */}
+            {(recentMotionEvents.length > 0 || recentAIAnalysis.length > 0) && (
+              <div className={styles.eventsSection}>
+                <h3 className={styles.sectionTitle}>Recent Events</h3>
+                
+                {recentMotionEvents.length > 0 && (
+                  <div className={styles.eventGroup}>
+                    <h4 className={styles.eventGroupTitle}>Motion Events</h4>
+                    {recentMotionEvents.slice(-3).reverse().map(event => (
+                      <div key={event.id} className={styles.eventItem}>
+                        <span className={styles.eventTime}>
+                          {new Date(event.timestamp).toLocaleTimeString()}
+                        </span>
+                        <span className={styles.eventConfidence}>
+                          {(event.confidence * 100).toFixed(0)}%
+                        </span>
+                        {event.description && (
+                          <span className={styles.eventDescription}>{event.description}</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {recentAIAnalysis.length > 0 && (
+                  <div className={styles.eventGroup}>
+                    <h4 className={styles.eventGroupTitle}>AI Analysis</h4>
+                    {recentAIAnalysis.slice(-2).reverse().map((analysis, index) => (
+                      <div key={index} className={styles.analysisItem}>
+                        <span className={styles.eventTime}>
+                          {new Date(analysis.timestamp).toLocaleTimeString()}
+                        </span>
+                        <span className={styles.processingTime}>
+                          {analysis.processing_time.toFixed(1)}s
+                        </span>
+                        <p className={styles.analysisDescription}>{analysis.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </main>
       </div>

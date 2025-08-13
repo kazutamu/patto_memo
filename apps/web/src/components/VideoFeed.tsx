@@ -1,6 +1,9 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { useMotionDetection } from '../hooks/useMotionDetection';
+import { useSSE, AIAnalysis } from '../hooks/useSSE';
 import { MotionDetectionState } from '../types';
+import { AIAnalysisOverlay } from './AIAnalysisOverlay';
+import { AIAnalysisLoading } from './AIAnalysisLoading';
 import styles from './VideoFeed.module.css';
 
 interface VideoFeedProps {
@@ -29,6 +32,21 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
   const [availableCameras, setAvailableCameras] = useState<MediaDeviceInfo[]>([]);
   const [isMobile, setIsMobile] = useState(false);
   const [browserInfo, setBrowserInfo] = useState<{name: string, isMobileCompatible: boolean}>({name: '', isMobileCompatible: true});
+  const [currentAnalysis, setCurrentAnalysis] = useState<AIAnalysis | null>(null);
+  const [showAnalysis, setShowAnalysis] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisStartTime, setAnalysisStartTime] = useState<number | null>(null);
+
+  // SSE hook to receive AI analysis updates
+  useSSE({
+    autoConnect: true,
+    onAIAnalysis: useCallback((analysis: AIAnalysis) => {
+      setCurrentAnalysis(analysis);
+      setShowAnalysis(true);
+      setIsAnalyzing(false);
+      setAnalysisStartTime(null);
+    }, [])
+  });
 
   // Detect if device is mobile and browser compatibility
   useEffect(() => {
@@ -79,12 +97,19 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
     }
   }, []);
 
+  // Handle analysis start
+  const handleAnalysisStart = useCallback(() => {
+    setIsAnalyzing(true);
+    setAnalysisStartTime(Date.now());
+  }, []);
+
   // Motion detection integration
   const { motionState } = useMotionDetection({
     videoElement: videoRef.current,
     isActive: isActive && hasPermission === true,
     sensitivity,
-    detectionInterval: 150 // Check every 150ms for good performance
+    detectionInterval: 150, // Check every 150ms for good performance
+    onAnalysisStart: handleAnalysisStart
   });
 
   const stopStream = useCallback(() => {
@@ -218,6 +243,10 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
     }
   };
 
+  const handleDismissAnalysis = useCallback(() => {
+    setShowAnalysis(false);
+  }, []);
+
   return (
     <div className={styles.videoContainer}>
       <div className={`${styles.videoWrapper} ${motionState.motionStrength > 0 ? styles.motionDetected : ''}`}>
@@ -282,6 +311,20 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
             </span>
           </button>
         )}
+
+        {/* AI Analysis Loading Indicator */}
+        <AIAnalysisLoading
+          isVisible={isAnalyzing}
+          analysisStartTime={analysisStartTime || undefined}
+        />
+
+        {/* AI Analysis Overlay */}
+        <AIAnalysisOverlay
+          analysis={currentAnalysis}
+          isVisible={showAnalysis}
+          onDismiss={handleDismissAnalysis}
+          autoHideDelay={12000} // 12 seconds
+        />
       </div>
       
       <div className={styles.videoInfo}>

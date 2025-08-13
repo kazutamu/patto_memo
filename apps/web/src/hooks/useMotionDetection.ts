@@ -1,12 +1,15 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { MotionDetectionState, MotionDetectionResult } from '../types';
 import { motionDetectionService } from '../services/motionDetectionService';
+import { api } from '../api';
+import { ThrottledFrameCapture } from '../utils/frameCapture';
 
 interface UseMotionDetectionOptions {
   videoElement: HTMLVideoElement | null;
   isActive: boolean;
   sensitivity: number;
   detectionInterval?: number;
+  onAnalysisStart?: () => void;
 }
 
 interface UseMotionDetectionReturn {
@@ -25,7 +28,8 @@ export function useMotionDetection({
   videoElement,
   isActive,
   sensitivity,
-  detectionInterval = 100 // Check for motion every 100ms
+  detectionInterval = 100, // Check for motion every 100ms
+  onAnalysisStart
 }: UseMotionDetectionOptions): UseMotionDetectionReturn {
   
   // Adjust detection interval for mobile performance
@@ -58,6 +62,7 @@ export function useMotionDetection({
   
   const intervalRef = useRef<number | null>(null);
   const isDetectingRef = useRef(false);
+  const frameCapture = useRef(new ThrottledFrameCapture(8000)); // Capture every 8 seconds max
 
   // Update sensitivity in state when prop changes
   useEffect(() => {
@@ -90,9 +95,33 @@ export function useMotionDetection({
           sensitivity
         }));
 
-        // Log motion events for debugging (can be removed in production)
-        if (result.hasMotion) {
-          console.log(`Motion detected! Strength: ${result.motionStrength.toFixed(1)}%`);
+        // Send significant motion events to backend and trigger AI analysis
+        if (result.hasMotion && result.motionStrength > 20) {
+          // Send motion event to backend (fire and forget - SSE will handle updates)
+          api.createMotionEvent({
+            confidence: result.motionStrength / 100,
+            duration: 1.0, // Approximate duration for single detection
+            description: `Motion detected with ${result.motionStrength.toFixed(1)}% confidence`
+          }).catch(error => {
+            console.warn('Failed to send motion event to backend:', error);
+          });
+
+          // Capture frame for AI analysis (throttled)
+          const frameBase64 = frameCapture.current.captureIfReady(videoElement);
+          if (frameBase64) {
+            onAnalysisStart?.(); // Notify parent component that analysis is starting
+            
+            api.analyzeLLaVA({
+              image_base64: frameBase64,
+              prompt: "What do you see in this image? Focus on any people, animals, vehicles, or notable activities."
+            }).then(response => {
+              if (!response.success) {
+                console.warn('AI Analysis failed:', response.error_message);
+              }
+            }).catch(error => {
+              console.warn('Failed to get AI analysis:', error);
+            });
+          }
         }
       } catch (error) {
         console.error('Error during motion detection:', error);
