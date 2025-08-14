@@ -1,4 +1,5 @@
 import { MotionDetectionResult } from '../types';
+import { MOTION_DETECTION, DEVICE } from '../config/constants';
 
 /**
  * Simple motion detection service using pixel difference comparison
@@ -10,7 +11,7 @@ export class MotionDetectionService {
   private context: CanvasRenderingContext2D;
   private isMobile: boolean = false;
 
-  constructor(width: number = 320, height: number = 240) {
+  constructor(width: number = MOTION_DETECTION.CANVAS_WIDTH, height: number = MOTION_DETECTION.CANVAS_HEIGHT) {
     // Create an offscreen canvas for frame processing
     this.canvas = document.createElement('canvas');
     this.canvas.width = width;
@@ -26,8 +27,7 @@ export class MotionDetectionService {
    */
   private detectMobile(): void {
     const userAgent = navigator.userAgent.toLowerCase();
-    const mobileKeywords = ['mobile', 'android', 'iphone', 'ipad', 'ipod', 'blackberry', 'windows phone'];
-    const isMobileDevice = mobileKeywords.some(keyword => userAgent.includes(keyword));
+    const isMobileDevice = DEVICE.MOBILE_KEYWORDS.some(keyword => userAgent.includes(keyword));
     const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
     this.isMobile = isMobileDevice || isTouchDevice;
   }
@@ -40,7 +40,7 @@ export class MotionDetectionService {
    */
   public detectMotion(
     videoElement: HTMLVideoElement, 
-    sensitivity: number = 50
+    sensitivity: number = MOTION_DETECTION.DEFAULT_SENSITIVITY
   ): MotionDetectionResult {
     try {
       // Capture current frame
@@ -101,7 +101,7 @@ export class MotionDetectionService {
 
     // Adaptive sampling based on device type
     // Mobile devices use more aggressive sampling for better performance
-    const step = this.isMobile ? 8 : 4; // Sample every 8th pixel on mobile, 4th on desktop
+    const step = this.isMobile ? MOTION_DETECTION.MOBILE_PIXEL_SAMPLING : MOTION_DETECTION.DESKTOP_PIXEL_SAMPLING;
     
     for (let i = 0; i < current.length; i += step * 4) {
       // Calculate RGB difference (skip alpha channel)
@@ -113,7 +113,7 @@ export class MotionDetectionService {
       const pixelDiff = (rDiff + gDiff + bDiff) / 3;
       
       // Adaptive noise threshold - higher for mobile to reduce processing
-      const noiseThreshold = this.isMobile ? 15 : 10;
+      const noiseThreshold = this.isMobile ? MOTION_DETECTION.NOISE_THRESHOLD_MOBILE : MOTION_DETECTION.NOISE_THRESHOLD_DESKTOP;
       
       // Only count significant differences to reduce noise
       if (pixelDiff > noiseThreshold) {
@@ -126,7 +126,7 @@ export class MotionDetectionService {
     if (pixelCount === 0) return 0;
     
     const averageDiff = totalDiff / pixelCount;
-    const normalizedStrength = Math.min(100, (averageDiff / 255) * 100 * (sensitivity / 50));
+    const normalizedStrength = Math.min(MOTION_DETECTION.MAX_SENSITIVITY, (averageDiff / 255) * 100 * (sensitivity / MOTION_DETECTION.DEFAULT_SENSITIVITY));
     
     return normalizedStrength;
   }
@@ -139,7 +139,7 @@ export class MotionDetectionService {
   private calculateThreshold(sensitivity: number): number {
     // Higher sensitivity = lower threshold
     // Sensitivity 1 = threshold 50, Sensitivity 100 = threshold 1
-    return Math.max(1, 51 - (sensitivity * 0.5));
+    return Math.max(MOTION_DETECTION.MIN_SENSITIVITY, 51 - (sensitivity * 0.5));
   }
 
   /**

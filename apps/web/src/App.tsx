@@ -3,6 +3,7 @@ import { VideoFeed, VideoControls } from './components';
 import { ConnectionHelper } from './components/ConnectionHelper';
 import { MotionDetectionState, MotionEvent } from './types';
 import { useSSE, AIAnalysis } from './hooks/useSSE';
+import { MOTION_DETECTION, UI } from './config/constants';
 import styles from './App.module.css';
 
 // Settings icon component
@@ -25,7 +26,7 @@ const SettingsIcon: React.FC<{ className?: string }> = ({ className }) => (
 
 function App() {
   const [isCameraActive, setIsCameraActive] = useState(false);
-  const [sensitivity, setSensitivity] = useState(50);
+  const [sensitivity, setSensitivity] = useState<number>(MOTION_DETECTION.DEFAULT_SENSITIVITY);
   const [error, setError] = useState<string | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [showSettings, setShowSettings] = useState(false);
@@ -34,7 +35,7 @@ function App() {
     isDetecting: false,
     motionStrength: 0,
     lastMotionTime: null,
-    sensitivity: 50
+    sensitivity: MOTION_DETECTION.DEFAULT_SENSITIVITY
   });
   const [showConnectionHelper, setShowConnectionHelper] = useState(false);
   const [recentMotionEvents, setRecentMotionEvents] = useState<MotionEvent[]>([]);
@@ -48,10 +49,10 @@ function App() {
   } = useSSE({
     autoConnect: true,
     onMotionDetected: useCallback((event: MotionEvent) => {
-      setRecentMotionEvents(prev => [...prev.slice(-4), event]); // Keep last 5 events
+      setRecentMotionEvents(prev => [...prev.slice(-(UI.MAX_MOTION_EVENTS_DISPLAY - 1)), event]); // Keep last events
     }, []),
     onAIAnalysis: useCallback((analysis: AIAnalysis) => {
-      setRecentAIAnalysis(prev => [...prev.slice(-2), analysis]); // Keep last 3 analyses
+      setRecentAIAnalysis(prev => [...prev.slice(-(UI.MAX_AI_ANALYSIS_DISPLAY - 1)), analysis]); // Keep last analyses
     }, [])
   });
 
@@ -177,7 +178,7 @@ function App() {
                 {recentMotionEvents.length > 0 && (
                   <div className={styles.eventGroup}>
                     <h4 className={styles.eventGroupTitle}>Motion Events</h4>
-                    {recentMotionEvents.slice(-3).reverse().map(event => (
+                    {recentMotionEvents.slice(-UI.MAX_MOTION_EVENTS_RECENT).reverse().map(event => (
                       <div key={event.id} className={styles.eventItem}>
                         <span className={styles.eventTime}>
                           {new Date(event.timestamp).toLocaleTimeString()}
@@ -196,7 +197,7 @@ function App() {
                 {recentAIAnalysis.length > 0 && (
                   <div className={styles.eventGroup}>
                     <h4 className={styles.eventGroupTitle}>AI Analysis</h4>
-                    {recentAIAnalysis.slice(-2).reverse().map((analysis, index) => (
+                    {recentAIAnalysis.slice(-UI.MAX_AI_ANALYSIS_RECENT).reverse().map((analysis, index) => (
                       <div key={index} className={styles.analysisItem}>
                         <span className={styles.eventTime}>
                           {new Date(analysis.timestamp).toLocaleTimeString()}

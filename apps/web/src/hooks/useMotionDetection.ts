@@ -4,6 +4,7 @@ import { motionDetectionService } from '../services/motionDetectionService';
 import { api } from '../api';
 import { ThrottledFrameCapture } from '../utils/frameCapture';
 import { LLAVA_PROMPTS } from '../config/prompts';
+import { MOTION_DETECTION, DEVICE, API, CAMERA } from '../config/constants';
 
 interface UseMotionDetectionOptions {
   videoElement: HTMLVideoElement | null;
@@ -29,7 +30,7 @@ export function useMotionDetection({
   videoElement,
   isActive,
   sensitivity,
-  detectionInterval = 100, // Check for motion every 100ms
+  detectionInterval = MOTION_DETECTION.DEFAULT_INTERVAL, // Check for motion every interval
   onAnalysisStart
 }: UseMotionDetectionOptions): UseMotionDetectionReturn {
   
@@ -39,13 +40,12 @@ export function useMotionDetection({
   useEffect(() => {
     const checkMobile = () => {
       const userAgent = navigator.userAgent.toLowerCase();
-      const mobileKeywords = ['mobile', 'android', 'iphone', 'ipad', 'ipod', 'blackberry', 'windows phone'];
-      const isMobileDevice = mobileKeywords.some(keyword => userAgent.includes(keyword));
+      const isMobileDevice = DEVICE.MOBILE_KEYWORDS.some(keyword => userAgent.includes(keyword));
       const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
       const isMobile = isMobileDevice || isTouchDevice;
       
       // Use longer intervals on mobile for better performance
-      const adjustedInterval = isMobile ? Math.max(detectionInterval, 200) : detectionInterval;
+      const adjustedInterval = isMobile ? Math.max(detectionInterval, MOTION_DETECTION.MOBILE_INTERVAL) : detectionInterval;
       setAdaptiveInterval(adjustedInterval);
     };
     
@@ -63,7 +63,7 @@ export function useMotionDetection({
   
   const intervalRef = useRef<number | null>(null);
   const isDetectingRef = useRef(false);
-  const frameCapture = useRef(new ThrottledFrameCapture(8000)); // Capture every 8 seconds max
+  const frameCapture = useRef(new ThrottledFrameCapture(MOTION_DETECTION.FRAME_CAPTURE_THROTTLE)); // Capture every throttle interval max
 
   // Update sensitivity in state when prop changes
   useEffect(() => {
@@ -97,11 +97,11 @@ export function useMotionDetection({
         }));
 
         // Send significant motion events to backend and trigger AI analysis
-        if (result.hasMotion && result.motionStrength > 20) {
+        if (result.hasMotion && result.motionStrength > MOTION_DETECTION.SIGNIFICANCE_THRESHOLD) {
           // Send motion event to backend (fire and forget - SSE will handle updates)
           api.createMotionEvent({
             confidence: result.motionStrength / 100,
-            duration: 1.0, // Approximate duration for single detection
+            duration: API.DEFAULT_MOTION_DURATION, // Approximate duration for single detection
             description: `Motion detected with ${result.motionStrength.toFixed(1)}% confidence`
           }).catch(error => {
             console.warn('Failed to send motion event to backend:', error);
@@ -162,7 +162,7 @@ export function useMotionDetection({
       // Small delay to ensure video is ready
       const timeout = setTimeout(() => {
         startDetection();
-      }, 500);
+      }, CAMERA.STREAM_READY_DELAY);
       
       return () => {
         clearTimeout(timeout);

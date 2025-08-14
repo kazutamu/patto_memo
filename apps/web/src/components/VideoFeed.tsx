@@ -4,6 +4,7 @@ import { useSSE, AIAnalysis } from '../hooks/useSSE';
 import { MotionDetectionState } from '../types';
 import { AIAnalysisOverlay } from './AIAnalysisOverlay';
 import { AIAnalysisLoading } from './AIAnalysisLoading';
+import { CAMERA, DEVICE, ERROR_MESSAGES, UI } from '../config/constants';
 import styles from './VideoFeed.module.css';
 
 interface VideoFeedProps {
@@ -52,8 +53,7 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
   useEffect(() => {
     const checkMobileAndBrowser = () => {
       const userAgent = navigator.userAgent.toLowerCase();
-      const mobileKeywords = ['mobile', 'android', 'iphone', 'ipad', 'ipod', 'blackberry', 'windows phone'];
-      const isMobileDevice = mobileKeywords.some(keyword => userAgent.includes(keyword));
+      const isMobileDevice = DEVICE.MOBILE_KEYWORDS.some(keyword => userAgent.includes(keyword));
       const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
       const mobile = isMobileDevice || isTouchDevice;
       setIsMobile(mobile);
@@ -64,17 +64,17 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
         let isCompatible = true;
         
         if (userAgent.includes('firefox')) {
-          browserName = 'Firefox';
-          isCompatible = true; // Firefox is most compatible
+          browserName = DEVICE.BROWSER_COMPATIBILITY.FIREFOX.name;
+          isCompatible = DEVICE.BROWSER_COMPATIBILITY.FIREFOX.isMobileCompatible;
         } else if (userAgent.includes('chrome') && !userAgent.includes('edg')) {
-          browserName = 'Chrome';
-          isCompatible = false; // Chrome mobile has strict SSL requirements
+          browserName = DEVICE.BROWSER_COMPATIBILITY.CHROME.name;
+          isCompatible = DEVICE.BROWSER_COMPATIBILITY.CHROME.isMobileCompatible;
         } else if (userAgent.includes('safari') && !userAgent.includes('chrome')) {
-          browserName = 'Safari';
-          isCompatible = false; // Safari iOS has strict SSL requirements
+          browserName = DEVICE.BROWSER_COMPATIBILITY.SAFARI.name;
+          isCompatible = DEVICE.BROWSER_COMPATIBILITY.SAFARI.isMobileCompatible;
         } else if (userAgent.includes('edg')) {
-          browserName = 'Edge';
-          isCompatible = false;
+          browserName = DEVICE.BROWSER_COMPATIBILITY.EDGE.name;
+          isCompatible = DEVICE.BROWSER_COMPATIBILITY.EDGE.isMobileCompatible;
         }
         
         setBrowserInfo({ name: browserName, isMobileCompatible: isCompatible });
@@ -138,15 +138,11 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
       // Mobile-optimized constraints
       const constraints: MediaStreamConstraints = {
         video: isMobile ? {
-          width: { ideal: 640, max: 1280 },
-          height: { ideal: 480, max: 720 },
+          ...CAMERA.MOBILE_CONSTRAINTS,
           facingMode: cameraFacing,
-          frameRate: { ideal: 15, max: 30 }, // Lower frame rate for mobile performance
         } : {
-          width: { ideal: 1280, max: 1920 },
-          height: { ideal: 720, max: 1080 },
+          ...CAMERA.DESKTOP_CONSTRAINTS,
           facingMode: cameraFacing,
-          frameRate: { ideal: 30 },
         },
         audio: false,
       };
@@ -169,32 +165,32 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
       if (error instanceof Error) {
         if (error.name === 'NotAllowedError') {
           errorMessage = isMobile 
-            ? 'Camera access denied. Please check your browser settings and allow camera access for this site.'
-            : 'Camera access denied. Please grant camera permissions and try again.';
+            ? ERROR_MESSAGES.CAMERA_ACCESS_DENIED_MOBILE
+            : ERROR_MESSAGES.CAMERA_ACCESS_DENIED_DESKTOP;
         } else if (error.name === 'NotFoundError') {
           errorMessage = isMobile
-            ? 'No camera found. Please ensure your device has a working camera.'
-            : 'No camera found. Please connect a camera and try again.';
+            ? ERROR_MESSAGES.NO_CAMERA_MOBILE
+            : ERROR_MESSAGES.NO_CAMERA_DESKTOP;
         } else if (error.name === 'NotReadableError') {
           errorMessage = isMobile
-            ? 'Camera is being used by another app. Please close other camera apps and try again.'
-            : 'Camera is being used by another application.';
+            ? ERROR_MESSAGES.CAMERA_IN_USE_MOBILE
+            : ERROR_MESSAGES.CAMERA_IN_USE_DESKTOP;
         } else if (error.name === 'OverconstrainedError') {
           errorMessage = isMobile
-            ? 'This camera configuration is not supported on your device. Try switching cameras.'
-            : 'Camera does not support the requested configuration.';
+            ? ERROR_MESSAGES.CAMERA_NOT_SUPPORTED_MOBILE
+            : ERROR_MESSAGES.CAMERA_NOT_SUPPORTED_DESKTOP;
         } else if (error.message === 'HTTPS_REQUIRED') {
           if (isMobile) {
             if (browserInfo.isMobileCompatible) {
-              errorMessage = '🔒 Camera access requires HTTPS. You\'re using Firefox which should work - please accept the security warning.';
+              errorMessage = ERROR_MESSAGES.HTTPS_REQUIRED_FIREFOX;
             } else {
-              errorMessage = `🔒 Camera access requires HTTPS. ${browserInfo.name} has strict security requirements. Try Firefox mobile for easier access, or accept the security warning in advanced settings.`;
+              errorMessage = ERROR_MESSAGES.HTTPS_REQUIRED_OTHER(browserInfo.name);
             }
           } else {
-            errorMessage = '🔒 Camera access requires a secure connection (HTTPS).';
+            errorMessage = ERROR_MESSAGES.HTTPS_REQUIRED_DESKTOP;
           }
         } else {
-          errorMessage = `Camera error: ${error.message}`;
+          errorMessage = `${ERROR_MESSAGES.GENERIC_CAMERA_ERROR}: ${error.message}`;
         }
       }
       
@@ -323,7 +319,7 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
           analysis={currentAnalysis}
           isVisible={showAnalysis}
           onDismiss={handleDismissAnalysis}
-          autoHideDelay={12000} // 12 seconds
+          autoHideDelay={UI.AI_ANALYSIS_AUTO_HIDE_DELAY}
         />
       </div>
       
