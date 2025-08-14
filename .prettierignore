@@ -1,0 +1,38 @@
+node_modules/
+dist/
+build/
+coverage/
+.next/
+.cache/
+public/
+*.min.js
+*.min.css
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Python
+venv/
+__pycache__/
+*.pyc
+htmlcov/
+.coverage
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+
+# Environment
+.env*
+
+# Git
+.git/
+
+# IDE
+.vscode/
+.idea/
+
+# Certificates
+*.pem
+*.key
+*.crt

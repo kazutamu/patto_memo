@@ -1,12 +1,9 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { SSEService, SSEEventHandlers } from '../services/sseService';
-import { MotionEvent } from '../types';
+import { MotionEvent, AIAnalysis } from '@motion-detector/shared-types';
 
-export interface AIAnalysis {
-  description: string;
-  processing_time: number;
-  timestamp: string;
-}
+// Re-export for backward compatibility
+export { AIAnalysis };
 
 export interface UseSSEOptions {
   autoConnect?: boolean;

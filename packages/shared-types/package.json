@@ -1,0 +1,19 @@
+{
+  "name": "@motion-detector/shared-types",
+  "version": "1.0.0",
+  "description": "Shared TypeScript types for Motion Detector monorepo",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "typescript": "^5.2.2"
+  },
+  "files": [
+    "dist",
+    "src"
+  ]
+}

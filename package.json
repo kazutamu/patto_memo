@@ -23,9 +23,13 @@
     "test:backend": "cd apps/api && (source venv/bin/activate || venv\\Scripts\\activate) && python -m pytest tests/ -v",
     "test:coverage": "npm run test:coverage:backend",
     "test:coverage:backend": "cd apps/api && (source venv/bin/activate || venv\\Scripts\\activate) && pip install pytest-cov && python -m pytest tests/ --cov=. --cov-report=term --cov-report=html",
-    "lint": "npm run lint:backend",
+    "lint": "npm run lint:js && npm run lint:backend",
+    "lint:js": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
     "lint:backend": "cd apps/api && (source venv/bin/activate || venv\\Scripts\\activate) && pip install black isort flake8 && black --check . && isort --check-only . && flake8 .",
-    "format": "npm run format:backend",
+    "format": "npm run format:js && npm run format:backend",
+    "format:js": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md,yml,yaml}\"",
+    "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,md,yml,yaml}\"",
     "format:backend": "cd apps/api && (source venv/bin/activate || venv\\Scripts\\activate) && pip install black isort && black . && isort .",
     "security:scan": "npm run security:scan:backend && npm run security:scan:npm",
     "security:scan:backend": "cd apps/api && (source venv/bin/activate || venv\\Scripts\\activate) && pip install safety bandit && safety check && bandit -r . -x tests/,venv/",
@@ -41,7 +45,18 @@
     "stop": "pkill -f \"uvicorn\\|vite\" || true"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "@motion-detector/config": "^1.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.11.0",
+    "@typescript-eslint/parser": "^6.11.0",
+    "concurrently": "^8.2.2",
+    "eslint": "^8.54.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-import-resolver-typescript": "^3.6.1",
+    "eslint-plugin-import": "^2.29.0",
+    "eslint-plugin-prettier": "^5.0.1",
+    "eslint-plugin-react": "^7.33.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "prettier": "^3.1.0"
   },
   "engines": {
     "node": ">=16.0.0",
