@@ -29,9 +29,7 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
   const streamRef = useRef<MediaStream | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
-  const [availableCameras, setAvailableCameras] = useState<MediaDeviceInfo[]>([]);
-  const [isMobile, setIsMobile] = useState(false);
-  const [browserInfo, setBrowserInfo] = useState<{name: string, isMobileCompatible: boolean}>({name: '', isMobileCompatible: true});
+  const [hasMultipleCameras, setHasMultipleCameras] = useState(false);
   const [currentAnalysis, setCurrentAnalysis] = useState<AIAnalysis | null>(null);
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -48,50 +46,13 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
     }, [])
   });
 
-  // Detect if device is mobile and browser compatibility
-  useEffect(() => {
-    const checkMobileAndBrowser = () => {
-      const userAgent = navigator.userAgent.toLowerCase();
-      const mobileKeywords = ['mobile', 'android', 'iphone', 'ipad', 'ipod', 'blackberry', 'windows phone'];
-      const isMobileDevice = mobileKeywords.some(keyword => userAgent.includes(keyword));
-      const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-      const mobile = isMobileDevice || isTouchDevice;
-      setIsMobile(mobile);
-      
-      // Detect browser for mobile compatibility guidance
-      if (mobile) {
-        let browserName = 'Unknown';
-        let isCompatible = true;
-        
-        if (userAgent.includes('firefox')) {
-          browserName = 'Firefox';
-          isCompatible = true; // Firefox is most compatible
-        } else if (userAgent.includes('chrome') && !userAgent.includes('edg')) {
-          browserName = 'Chrome';
-          isCompatible = false; // Chrome mobile has strict SSL requirements
-        } else if (userAgent.includes('safari') && !userAgent.includes('chrome')) {
-          browserName = 'Safari';
-          isCompatible = false; // Safari iOS has strict SSL requirements
-        } else if (userAgent.includes('edg')) {
-          browserName = 'Edge';
-          isCompatible = false;
-        }
-        
-        setBrowserInfo({ name: browserName, isMobileCompatible: isCompatible });
-      }
-    };
-    
-    checkMobileAndBrowser();
-    window.addEventListener('resize', checkMobileAndBrowser);
-    return () => window.removeEventListener('resize', checkMobileAndBrowser);
-  }, []);
 
   // Get available cameras
   const getAvailableCameras = useCallback(async () => {
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
       const cameras = devices.filter(device => device.kind === 'videoinput');
-      setAvailableCameras(cameras);
+      setHasMultipleCameras(cameras.length > 1);
     } catch (error) {
       console.warn('Could not enumerate devices:', error);
     }
@@ -135,16 +96,11 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
         throw new Error('HTTPS_REQUIRED');
       }
 
-      // Mobile-optimized constraints
+      // Let browser negotiate best constraints for the device
       const constraints: MediaStreamConstraints = {
-        video: isMobile ? {
-          width: { ideal: 640, max: 1280 },
-          height: { ideal: 480, max: 720 },
-          facingMode: cameraFacing,
-          frameRate: { ideal: 15, max: 30 }, // Lower frame rate for mobile performance
-        } : {
-          width: { ideal: 1280, max: 1920 },
-          height: { ideal: 720, max: 1080 },
+        video: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
           facingMode: cameraFacing,
           frameRate: { ideal: 30 },
         },
@@ -168,31 +124,15 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
       let errorMessage = 'Failed to access camera';
       if (error instanceof Error) {
         if (error.name === 'NotAllowedError') {
-          errorMessage = isMobile 
-            ? 'Camera access denied. Please check your browser settings and allow camera access for this site.'
-            : 'Camera access denied. Please grant camera permissions and try again.';
+          errorMessage = 'Camera access denied. Please grant camera permissions and try again.';
         } else if (error.name === 'NotFoundError') {
-          errorMessage = isMobile
-            ? 'No camera found. Please ensure your device has a working camera.'
-            : 'No camera found. Please connect a camera and try again.';
+          errorMessage = 'No camera found. Please ensure your device has a working camera.';
         } else if (error.name === 'NotReadableError') {
-          errorMessage = isMobile
-            ? 'Camera is being used by another app. Please close other camera apps and try again.'
-            : 'Camera is being used by another application.';
+          errorMessage = 'Camera is being used by another application. Please close other camera apps and try again.';
         } else if (error.name === 'OverconstrainedError') {
-          errorMessage = isMobile
-            ? 'This camera configuration is not supported on your device. Try switching cameras.'
-            : 'Camera does not support the requested configuration.';
+          errorMessage = 'Camera does not support the requested configuration. Try reducing quality settings.';
         } else if (error.message === 'HTTPS_REQUIRED') {
-          if (isMobile) {
-            if (browserInfo.isMobileCompatible) {
-              errorMessage = '🔒 Camera access requires HTTPS. You\'re using Firefox which should work - please accept the security warning.';
-            } else {
-              errorMessage = `🔒 Camera access requires HTTPS. ${browserInfo.name} has strict security requirements. Try Firefox mobile for easier access, or accept the security warning in advanced settings.`;
-            }
-          } else {
-            errorMessage = '🔒 Camera access requires a secure connection (HTTPS).';
-          }
+          errorMessage = '🔒 Camera access requires a secure connection (HTTPS). Please use HTTPS or accept the security warning.';
         } else {
           errorMessage = `Camera error: ${error.message}`;
         }
@@ -202,7 +142,7 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [onError, onStreamReady, isMobile, cameraFacing]);
+  }, [onError, onStreamReady, cameraFacing]);
 
   // Get available cameras on component mount
   useEffect(() => {
@@ -285,8 +225,8 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
           </div>
         )}
 
-        {/* Camera Switch Button - Only show on mobile with multiple cameras */}
-        {isMobile && availableCameras.length > 1 && isActive && hasPermission && (
+        {/* Camera Switch Button - Show when multiple cameras are available */}
+        {hasMultipleCameras && isActive && hasPermission && (
           <button 
             className={styles.cameraSwitchButton}
             onClick={handleCameraSwitch}
@@ -331,9 +271,9 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
         <span className={`${styles.status} ${isActive && hasPermission ? styles.active : ''}`}>
           {isActive && hasPermission ? 'Live' : 'Inactive'}
         </span>
-        {isMobile && (
-          <span className={styles.mobileIndicator}>
-            📱 Mobile {cameraFacing === 'user' ? 'Front' : 'Back'} Camera
+        {hasMultipleCameras && (
+          <span className={styles.cameraIndicator}>
+            📷 {cameraFacing === 'user' ? 'Front' : 'Back'} Camera
           </span>
         )}
       </div>
