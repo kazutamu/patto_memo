@@ -2,8 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { MotionDetectionState, MotionDetectionResult } from '../types';
 import { motionDetectionService } from '../services/motionDetectionService';
 import { api } from '../api';
-import { ThrottledFrameCapture } from '../utils/frameCapture';
-import { LLAVA_PROMPTS } from '../config/prompts';
+import { frameCapture } from '../utils/frameCapture';
 
 interface UseMotionDetectionOptions {
   videoElement: HTMLVideoElement | null;
@@ -44,7 +43,6 @@ export function useMotionDetection({
   
   const intervalRef = useRef<number | null>(null);
   const isDetectingRef = useRef(false);
-  const frameCapture = useRef(new ThrottledFrameCapture(8000)); // Capture every 8 seconds max
 
   // Update sensitivity in state when prop changes
   useEffect(() => {
@@ -77,32 +75,24 @@ export function useMotionDetection({
           sensitivity
         }));
 
-        // Send significant motion events to backend and trigger AI analysis
+        // Send significant motion events to backend
         if (result.hasMotion && result.motionStrength > 20) {
-          // Send motion event to backend (fire and forget - SSE will handle updates)
+          // Send motion event
           api.createMotionEvent({
             confidence: result.motionStrength / 100,
-            duration: 1.0, // Approximate duration for single detection
-            description: `Motion detected with ${result.motionStrength.toFixed(1)}% confidence`
-          }).catch(error => {
-            console.warn('Failed to send motion event to backend:', error);
-          });
+            duration: 1.0,
+            description: `Motion detected: ${result.motionStrength.toFixed(0)}%`
+          }).catch(console.warn);
 
-          // Capture LLaVA-optimized frame for AI analysis (throttled)
-          const frameBase64 = frameCapture.current.captureIfReady(videoElement, result.motionStrength);
+          // Capture frame for AI analysis (throttled)
+          const frameBase64 = frameCapture.capture(videoElement);
           if (frameBase64) {
-            onAnalysisStart?.(); // Notify parent component that analysis is starting
+            onAnalysisStart?.();
             
             api.analyzeLLaVA({
               image_base64: frameBase64,
-              prompt: LLAVA_PROMPTS.default
-            }).then(response => {
-              if (!response.success) {
-                console.warn('AI Analysis failed:', response.error_message);
-              }
-            }).catch(error => {
-              console.warn('Failed to get AI analysis:', error);
-            });
+              prompt: 'What do you see in this image?'
+            }).catch(console.warn);
           }
         }
       } catch (error) {

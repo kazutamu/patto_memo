@@ -9,7 +9,7 @@ describe('MotionDetectionService', () => {
   let mockContext: MockCanvasRenderingContext2D;
 
   beforeEach(() => {
-    service = new MotionDetectionService(320, 240);
+    service = new MotionDetectionService();
     mockVideoElement = createMockVideoElement({
       videoWidth: 1280,
       videoHeight: 720,
@@ -33,21 +33,13 @@ describe('MotionDetectionService', () => {
       defaultService.dispose();
     });
 
-    it('should create service with custom dimensions', () => {
-      const customService = new MotionDetectionService(640, 480);
-      expect(customService).toBeInstanceOf(MotionDetectionService);
-      customService.dispose();
-    });
-
     it('should create canvas with correct dimensions', () => {
-      const width = 640;
-      const height = 480;
-      const customService = new MotionDetectionService(width, height);
+      const customService = new MotionDetectionService();
       
       // Access private canvas through reflection for testing
       const canvas = (customService as any).canvas as HTMLCanvasElement;
-      expect(canvas.width).toBe(width);
-      expect(canvas.height).toBe(height);
+      expect(canvas.width).toBe(160);
+      expect(canvas.height).toBe(160);
       
       customService.dispose();
     });
@@ -263,29 +255,7 @@ describe('MotionDetectionService', () => {
     });
   });
 
-  describe('updateDimensions', () => {
-    it('should update canvas dimensions and reset state', () => {
-      // Get initial detection working
-      const staticFrame = createMockImageData(320, 240, 'black');
-      mockContext.getImageData.mockReturnValueOnce(staticFrame);
-      service.detectMotion(mockVideoElement, 50);
-
-      // Update dimensions
-      service.updateDimensions(640, 480);
-
-      // Access private canvas to verify dimensions
-      const canvas = (service as any).canvas as HTMLCanvasElement;
-      expect(canvas.width).toBe(640);
-      expect(canvas.height).toBe(480);
-
-      // Next detection should behave like first frame (reset was called)
-      const newFrame = createMockImageData(640, 480, 'white');
-      mockContext.getImageData.mockReturnValueOnce(newFrame);
-      const result = service.detectMotion(mockVideoElement, 50);
-
-      expect(result.hasMotion).toBe(false);
-    });
-  });
+  // updateDimensions test removed - method no longer exists in simplified version
 
   describe('dispose', () => {
     it('should clean up resources', () => {

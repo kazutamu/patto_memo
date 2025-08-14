@@ -1,27 +1,30 @@
 import { MotionDetectionResult } from '../types';
 
 /**
- * Simple motion detection service using pixel difference comparison
- * This service processes video frames and detects motion by comparing pixel differences
+ * Simplified motion detection service using basic frame comparison
+ * Optimized for performance and simplicity
  */
 export class MotionDetectionService {
-  private previousFrame: ImageData | null = null;
+  private previousFrame: Uint8ClampedArray | null = null;
   private canvas: HTMLCanvasElement;
   private context: CanvasRenderingContext2D;
+  private readonly CANVAS_SIZE = 160; // Small size for fast processing
 
-  constructor(width: number = 320, height: number = 240) {
-    // Create an offscreen canvas for frame processing
+  constructor() {
+    // Create small offscreen canvas for efficient processing
     this.canvas = document.createElement('canvas');
-    this.canvas.width = width;
-    this.canvas.height = height;
-    this.context = this.canvas.getContext('2d')!;
+    this.canvas.width = this.CANVAS_SIZE;
+    this.canvas.height = this.CANVAS_SIZE;
+    this.context = this.canvas.getContext('2d', { 
+      willReadFrequently: true,
+      alpha: false 
+    })!;
   }
 
-
   /**
-   * Process a video frame and detect motion
+   * Detect motion by comparing current frame with previous
    * @param videoElement - The video element to process
-   * @param sensitivity - Motion sensitivity (1-100, higher = more sensitive)
+   * @param sensitivity - Motion sensitivity (1-100)
    * @returns Motion detection result
    */
   public detectMotion(
@@ -29,13 +32,25 @@ export class MotionDetectionService {
     sensitivity: number = 50
   ): MotionDetectionResult {
     try {
-      // Capture current frame
-      this.context.drawImage(videoElement, 0, 0, this.canvas.width, this.canvas.height);
-      const currentFrame = this.context.getImageData(0, 0, this.canvas.width, this.canvas.height);
+      // Draw video frame to small canvas
+      this.context.drawImage(
+        videoElement, 
+        0, 0, 
+        this.CANVAS_SIZE, 
+        this.CANVAS_SIZE
+      );
+      
+      // Get pixel data
+      const imageData = this.context.getImageData(
+        0, 0, 
+        this.CANVAS_SIZE, 
+        this.CANVAS_SIZE
+      );
+      const currentFrame = imageData.data;
 
-      // If this is the first frame, store it and return no motion
+      // First frame - no motion
       if (!this.previousFrame) {
-        this.previousFrame = currentFrame;
+        this.previousFrame = new Uint8ClampedArray(currentFrame);
         return {
           hasMotion: false,
           motionStrength: 0,
@@ -43,15 +58,18 @@ export class MotionDetectionService {
         };
       }
 
-      // Compare frames and calculate motion strength
-      const motionStrength = this.compareFrames(currentFrame, this.previousFrame, sensitivity);
-      
-      // Determine if motion threshold is exceeded
-      const threshold = this.calculateThreshold(sensitivity);
-      const hasMotion = motionStrength > threshold;
+      // Calculate motion strength
+      const motionStrength = this.calculateMotion(
+        currentFrame, 
+        this.previousFrame, 
+        sensitivity
+      );
 
       // Update previous frame
-      this.previousFrame = currentFrame;
+      this.previousFrame.set(currentFrame);
+
+      // Simple threshold: motion detected if strength > 5%
+      const hasMotion = motionStrength > 5;
 
       return {
         hasMotion,
@@ -69,78 +87,42 @@ export class MotionDetectionService {
   }
 
   /**
-   * Compare two frames and calculate motion strength
-   * @param currentFrame - Current frame image data
-   * @param previousFrame - Previous frame image data
-   * @param sensitivity - Motion sensitivity level
-   * @returns Motion strength value (0-100)
+   * Calculate motion strength between frames
+   * Simplified algorithm for better performance
    */
-  private compareFrames(
-    currentFrame: ImageData, 
-    previousFrame: ImageData, 
+  private calculateMotion(
+    current: Uint8ClampedArray, 
+    previous: Uint8ClampedArray,
     sensitivity: number
   ): number {
-    const current = currentFrame.data;
-    const previous = previousFrame.data;
-    let totalDiff = 0;
-    let pixelCount = 0;
-
-    // Use consistent sampling for all devices (modern phones are powerful enough)
-    const step = 4; // Sample every 4th pixel for good balance of performance and accuracy
+    let changedPixels = 0;
+    const pixelCount = current.length / 4;
+    const threshold = 100 - sensitivity; // Higher sensitivity = lower threshold
     
-    for (let i = 0; i < current.length; i += step * 4) {
-      // Calculate RGB difference (skip alpha channel)
-      const rDiff = Math.abs(current[i] - previous[i]);
-      const gDiff = Math.abs(current[i + 1] - previous[i + 1]);
-      const bDiff = Math.abs(current[i + 2] - previous[i + 2]);
+    // Sample every 16th pixel for speed (4x4 grid sampling)
+    for (let i = 0; i < current.length; i += 64) {
+      // Simple luminance calculation
+      const currentLuma = (current[i] + current[i+1] + current[i+2]) / 3;
+      const previousLuma = (previous[i] + previous[i+1] + previous[i+2]) / 3;
       
-      // Calculate average difference for this pixel
-      const pixelDiff = (rDiff + gDiff + bDiff) / 3;
-      
-      // Use consistent noise threshold for all devices
-      const noiseThreshold = 12; // Balanced threshold for noise reduction
-      
-      // Only count significant differences to reduce noise
-      if (pixelDiff > noiseThreshold) {
-        totalDiff += pixelDiff;
-        pixelCount++;
+      // Count significant changes
+      if (Math.abs(currentLuma - previousLuma) > threshold) {
+        changedPixels++;
       }
     }
-
-    // Calculate normalized motion strength (0-100)
-    if (pixelCount === 0) return 0;
     
-    const averageDiff = totalDiff / pixelCount;
-    const normalizedStrength = Math.min(100, (averageDiff / 255) * 100 * (sensitivity / 50));
+    // Calculate percentage of changed pixels (0-100)
+    const sampledPixels = pixelCount / 16;
+    const percentage = (changedPixels / sampledPixels) * 100;
     
-    return normalizedStrength;
+    return Math.min(100, percentage * 2); // Scale up for visibility
   }
 
   /**
-   * Calculate motion threshold based on sensitivity
-   * @param sensitivity - Sensitivity level (1-100)
-   * @returns Threshold value for motion detection
-   */
-  private calculateThreshold(sensitivity: number): number {
-    // Higher sensitivity = lower threshold
-    // Sensitivity 1 = threshold 50, Sensitivity 100 = threshold 1
-    return Math.max(1, 51 - (sensitivity * 0.5));
-  }
-
-  /**
-   * Reset the motion detection state
+   * Reset detection state
    */
   public reset(): void {
     this.previousFrame = null;
-  }
-
-  /**
-   * Update canvas dimensions
-   */
-  public updateDimensions(width: number, height: number): void {
-    this.canvas.width = width;
-    this.canvas.height = height;
-    this.reset(); // Reset previous frame when dimensions change
   }
 
   /**
@@ -148,9 +130,9 @@ export class MotionDetectionService {
    */
   public dispose(): void {
     this.previousFrame = null;
-    // Canvas will be garbage collected
+    this.canvas.remove();
   }
 }
 
-// Export a singleton instance for shared use
+// Export singleton instance
 export const motionDetectionService = new MotionDetectionService();
