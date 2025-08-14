@@ -1,5 +1,5 @@
 import React from 'react';
-import { MotionDetectionState } from '../types';
+import { MotionDetectionState } from '@motion-detector/shared-types';
 import styles from './VideoControls.module.css';
 
 interface VideoControlsProps {

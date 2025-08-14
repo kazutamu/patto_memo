@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { MotionDetectionState, MotionDetectionResult } from '../types';
+import { MotionDetectionState, MotionDetectionResult } from '@motion-detector/shared-types';
 import { motionDetectionService } from '../services/motionDetectionService';
 import { api } from '../api';
 import { ThrottledFrameCapture } from '../utils/frameCapture';
-import { LLAVA_PROMPTS } from '../config/prompts';
+// Using default prompt from shared constants
 
 interface UseMotionDetectionOptions {
   videoElement: HTMLVideoElement | null;
@@ -114,7 +114,7 @@ export function useMotionDetection({
             
             api.analyzeLLaVA({
               image_base64: frameBase64,
-              prompt: LLAVA_PROMPTS.default
+              prompt: "Describe in 5 words or less"
             }).then(response => {
               if (!response.success) {
                 console.warn('AI Analysis failed:', response.error_message);

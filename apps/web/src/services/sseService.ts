@@ -1,4 +1,4 @@
-import { MotionEvent } from '../types';
+import { MotionEvent } from '@motion-detector/shared-types';
 
 export interface SSEEvent {
   type: 'motion_detected' | 'ai_analysis' | 'connected' | 'heartbeat';

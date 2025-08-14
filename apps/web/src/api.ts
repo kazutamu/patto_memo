@@ -1,4 +1,4 @@
-import { MotionEvent, MotionEventCreate, MotionSettings } from './types';
+import { MotionEvent, MotionEventCreate, MotionSettings } from '@motion-detector/shared-types';
 
 const API_BASE_URL = '/api/v1';
 

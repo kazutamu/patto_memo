@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { VideoFeed, VideoControls } from './components';
 import { ConnectionHelper } from './components/ConnectionHelper';
-import { MotionDetectionState, MotionEvent } from './types';
+import { MotionDetectionState, MotionEvent } from '@motion-detector/shared-types';
 import { useSSE, AIAnalysis } from './hooks/useSSE';
 import styles from './App.module.css';
 

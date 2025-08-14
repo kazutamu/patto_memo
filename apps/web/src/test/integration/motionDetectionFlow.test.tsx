@@ -5,7 +5,7 @@ import React from 'react';
 import { VideoFeed } from '../../components/VideoFeed';
 import { VideoControls } from '../../components/VideoControls';
 import { createMockMediaStream, createImageDataWithMotion } from '../test-utils';
-import { MotionDetectionState } from '../../types';
+import { MotionDetectionState } from '@motion-detector/shared-types';
 
 // Mock the motion detection service at the module level
 vi.mock('../../services/motionDetectionService', () => {

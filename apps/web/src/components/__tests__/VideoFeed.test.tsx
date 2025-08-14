@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { VideoFeed } from '../VideoFeed';
 import { useMotionDetection } from '../../hooks/useMotionDetection';
 import { createMockMediaStream, createMockVideoElement } from '../../test/test-utils';
-import { MotionDetectionState } from '../../types';
+import { MotionDetectionState } from '@motion-detector/shared-types';
 
 // Mock the useMotionDetection hook
 vi.mock('../../hooks/useMotionDetection', () => ({

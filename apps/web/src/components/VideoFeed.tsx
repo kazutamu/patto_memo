@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { useMotionDetection } from '../hooks/useMotionDetection';
 import { useSSE, AIAnalysis } from '../hooks/useSSE';
-import { MotionDetectionState } from '../types';
+import { MotionDetectionState } from '@motion-detector/shared-types';
 import { AIAnalysisOverlay } from './AIAnalysisOverlay';
 import { AIAnalysisLoading } from './AIAnalysisLoading';
 import styles from './VideoFeed.module.css';

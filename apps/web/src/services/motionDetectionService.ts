@@ -1,4 +1,4 @@
-import { MotionDetectionResult } from '../types';
+import { MotionDetectionResult } from '@motion-detector/shared-types';
 
 /**
  * Simple motion detection service using pixel difference comparison

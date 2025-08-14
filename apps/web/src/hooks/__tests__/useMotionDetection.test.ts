@@ -3,7 +3,7 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import { useMotionDetection } from '../useMotionDetection';
 import { motionDetectionService } from '../../services/motionDetectionService';
 import { createMockVideoElement } from '../../test/test-utils';
-import { MotionDetectionResult } from '../../types';
+import { MotionDetectionResult } from '@motion-detector/shared-types';
 
 // Mock the motion detection service
 vi.mock('../../services/motionDetectionService', () => ({
