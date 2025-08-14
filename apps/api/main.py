@@ -174,14 +174,14 @@ async def analyze_image_with_llava(request: LLaVAAnalysisRequest):
 
         # Prepare the request payload for Ollama
         payload = {
-            "model": "llava:latest",  # Default model, should be configurable
+            "model": "llava:latest",  # Optimized with reduced timeout for faster performance
             "prompt": request.prompt,
             "images": [request.image_base64],
             "stream": False,
         }
 
         # Make request to Ollama
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        async with httpx.AsyncClient(timeout=15.0) as client:
             response = await client.post(ollama_url, json=payload)
 
             if response.status_code != 200:
