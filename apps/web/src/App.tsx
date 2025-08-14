@@ -24,21 +24,33 @@ const SettingsIcon: React.FC<{ className?: string }> = ({ className }) => (
 );
 
 function App() {
-  const [isCameraActive, setIsCameraActive] = useState(false);
-  const [sensitivity, setSensitivity] = useState(50);
-  const [error, setError] = useState<string | null>(null);
-  const [stream, setStream] = useState<MediaStream | null>(null);
-  const [showSettings, setShowSettings] = useState(false);
-  const [cameraFacing, setCameraFacing] = useState<'user' | 'environment'>('user');
+  // Camera state
+  const [cameraState, setCameraState] = useState({
+    isActive: false,
+    stream: null as MediaStream | null,
+    facing: 'user' as 'user' | 'environment',
+    error: null as string | null
+  });
+
+  // Motion detection state
   const [motionState, setMotionState] = useState<MotionDetectionState>({
     isDetecting: false,
     motionStrength: 0,
     lastMotionTime: null,
     sensitivity: 50
   });
-  const [showConnectionHelper, setShowConnectionHelper] = useState(false);
-  const [recentMotionEvents, setRecentMotionEvents] = useState<MotionEvent[]>([]);
-  const [recentAIAnalysis, setRecentAIAnalysis] = useState<AIAnalysis[]>([]);
+
+  // UI state
+  const [uiState, setUiState] = useState({
+    showSettings: false,
+    showConnectionHelper: false
+  });
+
+  // Events state
+  const [events, setEvents] = useState({
+    motionEvents: [] as MotionEvent[],
+    aiAnalysis: [] as AIAnalysis[]
+  });
 
   // SSE integration for real-time updates
   const {
@@ -48,34 +60,54 @@ function App() {
   } = useSSE({
     autoConnect: true,
     onMotionDetected: useCallback((event: MotionEvent) => {
-      setRecentMotionEvents(prev => [...prev.slice(-4), event]); // Keep last 5 events
+      setEvents(prev => ({
+        ...prev,
+        motionEvents: [...prev.motionEvents.slice(-4), event] // Keep last 5 events
+      }));
     }, []),
     onAIAnalysis: useCallback((analysis: AIAnalysis) => {
-      setRecentAIAnalysis(prev => [...prev.slice(-2), analysis]); // Keep last 3 analyses
+      setEvents(prev => ({
+        ...prev,
+        aiAnalysis: [...prev.aiAnalysis.slice(-2), analysis] // Keep last 3 analyses
+      }));
     }, [])
   });
 
   const handleToggleCamera = useCallback(() => {
-    setIsCameraActive(prev => !prev);
-    setError(null); // Clear any previous errors when toggling
+    setCameraState(prev => ({
+      ...prev,
+      isActive: !prev.isActive,
+      error: null // Clear any previous errors when toggling
+    }));
   }, []);
 
   const handleSensitivityChange = useCallback((newSensitivity: number) => {
-    setSensitivity(newSensitivity);
+    setMotionState(prev => ({
+      ...prev,
+      sensitivity: newSensitivity
+    }));
   }, []);
 
   const handleVideoError = useCallback((errorMessage: string) => {
-    setError(errorMessage);
-    setIsCameraActive(false);
+    setCameraState(prev => ({
+      ...prev,
+      error: errorMessage,
+      isActive: false
+    }));
   }, []);
 
   const handleStreamReady = useCallback((newStream: MediaStream) => {
-    setStream(newStream);
-    // Stream is now available for future motion detection implementation
+    setCameraState(prev => ({
+      ...prev,
+      stream: newStream
+    }));
   }, []);
 
   const handleToggleSettings = useCallback(() => {
-    setShowSettings(prev => !prev);
+    setUiState(prev => ({
+      ...prev,
+      showSettings: !prev.showSettings
+    }));
   }, []);
 
   const handleMotionStateChange = useCallback((newMotionState: MotionDetectionState) => {
@@ -83,9 +115,11 @@ function App() {
   }, []);
 
   const handleCameraFacingChange = useCallback((facing: 'user' | 'environment') => {
-    setCameraFacing(facing);
-    // Clear any previous errors when switching cameras
-    setError(null);
+    setCameraState(prev => ({
+      ...prev,
+      facing,
+      error: null // Clear any previous errors when switching cameras
+    }));
   }, []);
 
 
@@ -99,13 +133,13 @@ function App() {
           </p>
         </header>
 
-        {error && (
+        {cameraState.error && (
           <div className={styles.errorBanner}>
-            <strong>Error:</strong> {error}
-            {(error.includes('HTTPS') || error.includes('Camera access')) && (
+            <strong>Error:</strong> {cameraState.error}
+            {(cameraState.error.includes('HTTPS') || cameraState.error.includes('Camera access')) && (
               <button 
                 className={styles.helpButton}
-                onClick={() => setShowConnectionHelper(true)}
+                onClick={() => setUiState(prev => ({ ...prev, showConnectionHelper: true }))}
               >
                 Need Help? 📱
               </button>
@@ -125,59 +159,59 @@ function App() {
             <span className={styles.statusDot}></span>
             Backend: {sseConnected ? 'Connected' : `Disconnected (${connectionState})`}
           </div>
-          {recentMotionEvents.length > 0 && (
+          {events.motionEvents.length > 0 && (
             <div className={styles.eventCounter}>
-              Motion Events: {recentMotionEvents.length}
+              Motion Events: {events.motionEvents.length}
             </div>
           )}
-          {recentAIAnalysis.length > 0 && (
+          {events.aiAnalysis.length > 0 && (
             <div className={styles.aiCounter}>
-              AI Analysis: {recentAIAnalysis.length}
+              AI Analysis: {events.aiAnalysis.length}
             </div>
           )}
         </div>
 
-        <main className={styles.content} data-stream-active={stream !== null}>
+        <main className={styles.content} data-stream-active={cameraState.stream !== null}>
           <div className={styles.videoSection}>
             <VideoFeed
-              isActive={isCameraActive}
+              isActive={cameraState.isActive}
               onError={handleVideoError}
               onStreamReady={handleStreamReady}
-              sensitivity={sensitivity}
+              sensitivity={motionState.sensitivity}
               onMotionStateChange={handleMotionStateChange}
-              cameraFacing={cameraFacing}
+              cameraFacing={cameraState.facing}
               onCameraFacingChange={handleCameraFacingChange}
             />
             
             <button 
-              className={`${styles.settingsToggle} ${showSettings ? styles.active : ''}`}
+              className={`${styles.settingsToggle} ${uiState.showSettings ? styles.active : ''}`}
               onClick={handleToggleSettings}
-              aria-label={showSettings ? 'Hide settings' : 'Show settings'}
-              title={showSettings ? 'Hide settings' : 'Show settings'}
+              aria-label={uiState.showSettings ? 'Hide settings' : 'Show settings'}
+              title={uiState.showSettings ? 'Hide settings' : 'Show settings'}
             >
               <SettingsIcon className={styles.settingsIcon} />
             </button>
           </div>
 
-          <div className={`${styles.settingsPanel} ${showSettings ? styles.visible : styles.hidden}`}>
+          <div className={`${styles.settingsPanel} ${uiState.showSettings ? styles.visible : styles.hidden}`}>
             <VideoControls
-              isActive={isCameraActive}
+              isActive={cameraState.isActive}
               onToggleCamera={handleToggleCamera}
-              sensitivity={sensitivity}
+              sensitivity={motionState.sensitivity}
               onSensitivityChange={handleSensitivityChange}
               disabled={false}
               motionState={motionState}
             />
 
             {/* Recent Events Section */}
-            {(recentMotionEvents.length > 0 || recentAIAnalysis.length > 0) && (
+            {(events.motionEvents.length > 0 || events.aiAnalysis.length > 0) && (
               <div className={styles.eventsSection}>
                 <h3 className={styles.sectionTitle}>Recent Events</h3>
                 
-                {recentMotionEvents.length > 0 && (
+                {events.motionEvents.length > 0 && (
                   <div className={styles.eventGroup}>
                     <h4 className={styles.eventGroupTitle}>Motion Events</h4>
-                    {recentMotionEvents.slice(-3).reverse().map(event => (
+                    {events.motionEvents.slice(-3).reverse().map(event => (
                       <div key={event.id} className={styles.eventItem}>
                         <span className={styles.eventTime}>
                           {new Date(event.timestamp).toLocaleTimeString()}
@@ -193,10 +227,10 @@ function App() {
                   </div>
                 )}
 
-                {recentAIAnalysis.length > 0 && (
+                {events.aiAnalysis.length > 0 && (
                   <div className={styles.eventGroup}>
                     <h4 className={styles.eventGroupTitle}>AI Analysis</h4>
-                    {recentAIAnalysis.slice(-2).reverse().map((analysis, index) => (
+                    {events.aiAnalysis.slice(-2).reverse().map((analysis, index) => (
                       <div key={index} className={styles.analysisItem}>
                         <span className={styles.eventTime}>
                           {new Date(analysis.timestamp).toLocaleTimeString()}
@@ -217,8 +251,8 @@ function App() {
 
       <ConnectionHelper 
         currentUrl={window.location.href}
-        isVisible={showConnectionHelper}
-        onClose={() => setShowConnectionHelper(false)}
+        isVisible={uiState.showConnectionHelper}
+        onClose={() => setUiState(prev => ({ ...prev, showConnectionHelper: false }))}
       />
     </div>
   );
