@@ -8,6 +8,7 @@ from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
+from config import LLAVA_CONFIG
 from sse_manager import sse_manager
 
 app = FastAPI()
@@ -73,7 +74,8 @@ class MotionSettings(BaseModel):
 class LLaVAAnalysisRequest(BaseModel):
     image_base64: str = Field(..., description="Base64 encoded image")
     prompt: str = Field(
-        default="Describe what you see in this image", description="Analysis prompt"
+        default=LLAVA_CONFIG["default_prompt"],
+        description="Analysis prompt",
     )
 
 
@@ -237,7 +239,8 @@ async def analyze_image_with_llava(request: LLaVAAnalysisRequest):
 
 @app.post("/api/v1/llava/analyze-upload")
 async def analyze_uploaded_image(
-    file: UploadFile = File(...), prompt: str = "Describe what you see in this image"
+    file: UploadFile = File(...),
+    prompt: str = LLAVA_CONFIG["default_prompt"],
 ):
     """
     Analyze an uploaded image file using LLaVA model
