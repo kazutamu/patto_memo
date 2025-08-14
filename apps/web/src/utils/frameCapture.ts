@@ -39,16 +39,56 @@ export function captureVideoFrame(videoElement: HTMLVideoElement, quality: numbe
 }
 
 /**
- * Captures a smaller frame for faster processing
- * @param videoElement - The video element to capture from
- * @param maxWidth - Maximum width for the captured frame (default 640)
- * @param quality - JPEG quality (0.1 to 1.0, default 0.7)
- * @returns Base64 encoded image string
+ * LLaVA-optimized resolutions for best AI processing performance
  */
-export function captureCompressedFrame(
-  videoElement: HTMLVideoElement, 
-  maxWidth: number = 640, 
-  quality: number = 0.7
+interface LLaVAResolution {
+  width: number;
+  height: number;
+  description: string;
+}
+
+const LLAVA_OPTIMAL_RESOLUTIONS: LLaVAResolution[] = [
+  { width: 336, height: 336, description: 'Square - fastest processing' },
+  { width: 336, height: 672, description: 'Portrait aspect ratio' },
+  { width: 672, height: 336, description: 'Landscape aspect ratio' },
+];
+
+/**
+ * Selects optimal LLaVA resolution based on video aspect ratio
+ * @param aspectRatio - Video height / width ratio
+ * @returns Optimal resolution for LLaVA processing
+ */
+function selectOptimalLLaVAResolution(aspectRatio: number): LLaVAResolution {
+  if (aspectRatio > 1.5) {
+    return LLAVA_OPTIMAL_RESOLUTIONS[1]; // Portrait: 336x672
+  }
+  if (aspectRatio < 0.67) {
+    return LLAVA_OPTIMAL_RESOLUTIONS[2]; // Landscape: 672x336
+  }
+  return LLAVA_OPTIMAL_RESOLUTIONS[0]; // Square: 336x336 (fastest)
+}
+
+/**
+ * Calculates adaptive quality based on motion strength
+ * Higher motion = higher quality for better AI analysis
+ * @param motionStrength - Motion detection strength (0-100)
+ * @returns JPEG quality (0.4-0.8)
+ */
+function calculateAdaptiveQuality(motionStrength: number): number {
+  // Base quality range: 0.5-0.8, with motion-based adjustment
+  return Math.max(0.4, Math.min(0.8, 0.5 + (motionStrength / 100) * 0.3));
+}
+
+/**
+ * Captures frame optimized for LLaVA AI analysis
+ * Uses LLaVA-optimal dimensions (336px base) and motion-adaptive quality
+ * @param videoElement - The video element to capture from
+ * @param motionStrength - Current motion strength for adaptive quality (0-100)
+ * @returns Base64 encoded image string optimized for LLaVA
+ */
+export function captureLLaVAOptimizedFrame(
+  videoElement: HTMLVideoElement,
+  motionStrength: number = 50
 ): string | null {
   try {
     const canvas = document.createElement('canvas');
@@ -58,29 +98,48 @@ export function captureCompressedFrame(
       throw new Error('Could not get 2D context from canvas');
     }
 
-    // Calculate scaled dimensions while maintaining aspect ratio
+    // Calculate optimal LLaVA resolution based on video aspect ratio
     const videoWidth = videoElement.videoWidth;
     const videoHeight = videoElement.videoHeight;
     const aspectRatio = videoHeight / videoWidth;
+    const targetResolution = selectOptimalLLaVAResolution(aspectRatio);
     
-    const scaledWidth = Math.min(maxWidth, videoWidth);
-    const scaledHeight = Math.round(scaledWidth * aspectRatio);
-    
-    canvas.width = scaledWidth;
-    canvas.height = scaledHeight;
+    canvas.width = targetResolution.width;
+    canvas.height = targetResolution.height;
 
-    // Draw the scaled video frame
-    context.drawImage(videoElement, 0, 0, scaledWidth, scaledHeight);
+    // Draw the video frame to LLaVA-optimal dimensions
+    context.drawImage(videoElement, 0, 0, targetResolution.width, targetResolution.height);
 
-    // Convert to base64
+    // Apply motion-adaptive quality
+    const quality = calculateAdaptiveQuality(motionStrength);
+
+    // Convert to base64 with optimized settings
     const dataURL = canvas.toDataURL('image/jpeg', quality);
     const base64 = dataURL.split(',')[1];
     
     return base64;
   } catch (error) {
-    console.error('Error capturing compressed frame:', error);
+    console.error('Error capturing LLaVA-optimized frame:', error);
     return null;
   }
+}
+
+/**
+ * Legacy function - maintains compatibility but now uses LLaVA optimization
+ * @param videoElement - The video element to capture from
+ * @param maxWidth - Maximum width (deprecated, now uses LLaVA-optimal 336px)
+ * @param quality - JPEG quality (0.1 to 1.0, default 0.7)
+ * @returns Base64 encoded image string
+ * @deprecated Use captureLLaVAOptimizedFrame for better AI performance
+ */
+export function captureCompressedFrame(
+  videoElement: HTMLVideoElement, 
+  maxWidth: number = 336, // Changed default to LLaVA-optimal
+  quality: number = 0.7
+): string | null {
+  // For backward compatibility, estimate motion strength as medium
+  const estimatedMotionStrength = 50;
+  return captureLLaVAOptimizedFrame(videoElement, estimatedMotionStrength);
 }
 
 /**
@@ -95,18 +154,26 @@ export class ThrottledFrameCapture {
   }
 
   /**
-   * Capture frame only if enough time has passed since last capture
+   * Capture LLaVA-optimized frame only if enough time has passed since last capture
    * @param videoElement - The video element to capture from
-   * @param quality - JPEG quality
+   * @param motionStrength - Current motion strength for adaptive quality (0-100)
    * @returns Base64 encoded image string or null if throttled
    */
-  captureIfReady(videoElement: HTMLVideoElement, quality: number = 0.7): string | null {
+  captureIfReady(videoElement: HTMLVideoElement, motionStrength: number = 50): string | null {
     const now = Date.now();
     if (now - this.lastCaptureTime >= this.throttleDelay) {
       this.lastCaptureTime = now;
-      return captureCompressedFrame(videoElement, 640, quality);
+      return captureLLaVAOptimizedFrame(videoElement, motionStrength);
     }
     return null;
+  }
+
+  /**
+   * Legacy method for backward compatibility
+   * @deprecated Use captureIfReady with motionStrength parameter
+   */
+  captureIfReadyLegacy(videoElement: HTMLVideoElement, quality: number = 0.7): string | null {
+    return this.captureIfReady(videoElement, 50); // Use medium motion strength
   }
 
   /**
