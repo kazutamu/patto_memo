@@ -1,11 +1,14 @@
 /// <reference types="vitest" />
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import basicSsl from '@vitejs/plugin-basic-ssl'
 
 // https://vitejs.dev/config/
-export default defineConfig({
-  plugins: [
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd() + '/apps/web', '')
+  
+  return {
+    plugins: [
     react(), 
     // Only enable SSL in non-CI environments for mobile camera support
     ...(process.env.CI ? [] : [basicSsl()])
@@ -16,7 +19,7 @@ export default defineConfig({
     https: !process.env.CI, // Disable SSL in CI environment
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: env.VITE_API_URL || 'http://localhost:8001',
         changeOrigin: true,
       },
     },
@@ -35,4 +38,5 @@ export default defineConfig({
       ],
     },
   },
+  }
 })
