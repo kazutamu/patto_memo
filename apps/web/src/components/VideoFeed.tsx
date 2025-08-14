@@ -54,7 +54,7 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
       const cameras = devices.filter(device => device.kind === 'videoinput');
       setHasMultipleCameras(cameras.length > 1);
     } catch (error) {
-      console.warn('Could not enumerate devices:', error);
+      // Could not enumerate devices
     }
   }, []);
 
@@ -118,7 +118,7 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
       setHasPermission(true);
       onStreamReady(stream);
     } catch (error) {
-      console.error('Error accessing camera:', error);
+      // Error accessing camera
       setHasPermission(false);
       
       let errorMessage = 'Failed to access camera';

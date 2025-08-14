@@ -85,7 +85,7 @@ export function useMotionDetection({
             duration: 1.0, // Approximate duration for single detection
             description: `Motion detected with ${result.motionStrength.toFixed(1)}% confidence`
           }).catch(error => {
-            console.warn('Failed to send motion event to backend:', error);
+            // Failed to send motion event to backend
           });
 
           // Capture LLaVA-optimized frame for AI analysis (throttled)
@@ -98,15 +98,15 @@ export function useMotionDetection({
               prompt: LLAVA_PROMPTS.default
             }).then(response => {
               if (!response.success) {
-                console.warn('AI Analysis failed:', response.error_message);
+                // AI Analysis failed
               }
             }).catch(error => {
-              console.warn('Failed to get AI analysis:', error);
+              // Failed to get AI analysis
             });
           }
         }
       } catch (error) {
-        console.error('Error during motion detection:', error);
+        // Error during motion detection
       }
     }, detectionInterval);
 

@@ -33,7 +33,7 @@ export function captureVideoFrame(videoElement: HTMLVideoElement, quality: numbe
     
     return base64;
   } catch (error) {
-    console.error('Error capturing video frame:', error);
+    // Error capturing video frame
     return null;
   }
 }
@@ -119,7 +119,7 @@ export function captureLLaVAOptimizedFrame(
     
     return base64;
   } catch (error) {
-    console.error('Error capturing LLaVA-optimized frame:', error);
+    // Error capturing LLaVA-optimized frame
     return null;
   }
 }

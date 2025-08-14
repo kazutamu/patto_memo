@@ -32,7 +32,7 @@ export class SSEService {
    */
   public connect(handlers: SSEEventHandlers): void {
     if (this.isConnected && this.eventSource) {
-      console.warn('SSE already connected');
+      // SSE already connected
       return;
     }
 
@@ -49,7 +49,7 @@ export class SSEService {
       this.eventSource = new EventSource(url);
 
       this.eventSource.onopen = () => {
-        console.log('SSE connection established');
+        // SSE connection established
         this.isConnected = true;
         this.reconnectAttempts = 0;
       };
@@ -57,34 +57,34 @@ export class SSEService {
       // Handle specific event types
       this.eventSource.addEventListener('connected', (event) => {
         const data = JSON.parse(event.data);
-        console.log('SSE connected:', data);
+        // SSE connected
         this.handlers.onConnected?.(data);
       });
 
       this.eventSource.addEventListener('motion_detected', (event) => {
         const motionData = JSON.parse(event.data);
-        console.log('Motion detected via SSE:', motionData);
+        // Motion detected via SSE
         this.handlers.onMotionDetected?.(motionData);
       });
 
       this.eventSource.addEventListener('ai_analysis', (event) => {
         const analysisData = JSON.parse(event.data);
-        console.log('AI analysis received via SSE:', analysisData);
+        // AI analysis received via SSE
         this.handlers.onAIAnalysis?.(analysisData);
       });
 
       this.eventSource.addEventListener('heartbeat', (event) => {
         const heartbeatData = JSON.parse(event.data);
-        console.debug('SSE heartbeat:', heartbeatData);
+        // SSE heartbeat
         // Keep connection alive, no additional action needed
       });
 
       this.eventSource.onerror = (error) => {
-        console.error('SSE connection error:', error);
+        // SSE connection error
         this.isConnected = false;
         
         if (this.eventSource?.readyState === EventSource.CLOSED) {
-          console.log('SSE connection closed, attempting to reconnect...');
+          // SSE connection closed, attempting to reconnect
           this.handleReconnection();
         }
         
@@ -92,7 +92,7 @@ export class SSEService {
       };
 
     } catch (error) {
-      console.error('Failed to create SSE connection:', error);
+      // Failed to create SSE connection
       this.handleReconnection();
     }
   }
@@ -102,7 +102,7 @@ export class SSEService {
    */
   private handleReconnection(): void {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.error('Max reconnection attempts reached');
+      // Max reconnection attempts reached
       this.handlers.onClose?.();
       return;
     }
@@ -110,7 +110,7 @@ export class SSEService {
     this.reconnectAttempts++;
     const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
     
-    console.log(`Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+    // Reconnecting with exponential backoff
     
     setTimeout(() => {
       this.disconnect();
@@ -123,7 +123,7 @@ export class SSEService {
    */
   public disconnect(): void {
     if (this.eventSource) {
-      console.log('Disconnecting SSE');
+      // Disconnecting SSE
       this.eventSource.close();
       this.eventSource = null;
     }

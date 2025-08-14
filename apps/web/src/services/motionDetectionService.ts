@@ -59,7 +59,7 @@ export class MotionDetectionService {
         timestamp: Date.now()
       };
     } catch (error) {
-      console.error('Motion detection error:', error);
+      // Motion detection error
       return {
         hasMotion: false,
         motionStrength: 0,
