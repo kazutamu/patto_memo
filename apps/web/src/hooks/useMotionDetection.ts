@@ -3,6 +3,7 @@ import { MotionDetectionState, MotionDetectionResult } from '../types';
 import { motionDetectionService } from '../services/motionDetectionService';
 import { api } from '../api';
 import { frameCapture } from '../utils/frameCapture';
+import { LLAVA_PROMPTS } from '../config/prompts';
 
 interface UseMotionDetectionOptions {
   videoElement: HTMLVideoElement | null;
@@ -91,7 +92,7 @@ export function useMotionDetection({
             
             api.analyzeLLaVA({
               image_base64: frameBase64,
-              prompt: 'What do you see in this image?'
+              prompt: LLAVA_PROMPTS.default
             }).catch(console.warn);
           }
         }
