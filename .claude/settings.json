@@ -26,6 +26,7 @@
       "Bash(docker:*)",
       "Bash(docker-compose:*)",
       "Bash(git push:*)",
+      "Bash(sleep:*)",
       "Read",
       "Edit",
       "Write",
