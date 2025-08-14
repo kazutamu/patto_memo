@@ -23,6 +23,32 @@
 - `VITE_ENABLE_ANIMATIONS` - Enable UI animations and effects
 - `VITE_THEME_MODE` - UI theme (dark/light, default: dark)
 
+## Local HTTPS Setup
+
+This application requires HTTPS for camera access. The development server automatically generates SSL certificates using `@vitejs/plugin-basic-ssl`.
+
+### Automatic Certificate Generation
+- SSL certificates are generated automatically when you run `npm run dev`
+- Certificates are stored in `apps/web/certs/` (ignored by git)
+- No manual certificate setup required
+
+### Browser Security Warnings
+When first accessing `https://localhost:3000`, you may see security warnings:
+1. Click "Advanced" or "Show Details"
+2. Click "Proceed to localhost (unsafe)" or "Accept the Risk and Continue"
+3. This is safe for local development with self-signed certificates
+
+### Mobile Device Testing
+To test camera features on mobile devices:
+1. Find your computer's IP address (e.g., `192.168.1.100`)
+2. Access `https://YOUR_IP:3000` from your mobile device
+3. Accept the security warning on your mobile browser
+
+### Why HTTPS is Required
+- **Camera Access**: `navigator.mediaDevices.getUserMedia()` only works over HTTPS
+- **Security**: Modern browsers block media access over HTTP for privacy
+- **WebRTC**: Real-time video features require secure connections
+
 ## User Experience Design
 
 ### MVP Interface Design

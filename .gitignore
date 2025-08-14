@@ -57,3 +57,12 @@ Thumbs.db
 .env.development.local
 .env.test.local
 .env.production.local
+
+# SSL Certificates (generated locally for HTTPS development)
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+apps/web/certs/
+certs/

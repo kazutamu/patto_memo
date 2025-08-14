@@ -58,6 +58,8 @@ motion-detector/
 - `npm run build` - Build all applications (details: [scripts/CLAUDE.md](scripts/CLAUDE.md))
 - `npm run test` - Run all tests (details: [scripts/CLAUDE.md](scripts/CLAUDE.md))
 
+**Note**: The web app uses HTTPS for camera access. SSL certificates are generated automatically - accept browser security warnings for `https://localhost:3000`.
+
 ### Quality Assurance
 
 - `npm run lint` - Run linting (config in `packages/config/`)
