@@ -107,8 +107,8 @@ export function useMotionDetection({
             console.warn('Failed to send motion event to backend:', error);
           });
 
-          // Capture frame for AI analysis (throttled)
-          const frameBase64 = frameCapture.current.captureIfReady(videoElement);
+          // Capture LLaVA-optimized frame for AI analysis (throttled)
+          const frameBase64 = frameCapture.current.captureIfReady(videoElement, result.motionStrength);
           if (frameBase64) {
             onAnalysisStart?.(); // Notify parent component that analysis is starting
             

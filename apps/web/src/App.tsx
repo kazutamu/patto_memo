@@ -72,7 +72,6 @@ function App() {
   const handleStreamReady = useCallback((newStream: MediaStream) => {
     setStream(newStream);
     // Stream is now available for future motion detection implementation
-    console.log('Camera stream ready:', newStream.getTracks().length, 'tracks');
   }, []);
 
   const handleToggleSettings = useCallback(() => {
