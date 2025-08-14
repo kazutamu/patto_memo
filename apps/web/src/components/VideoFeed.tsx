@@ -27,22 +27,31 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
-  const [hasMultipleCameras, setHasMultipleCameras] = useState(false);
-  const [currentAnalysis, setCurrentAnalysis] = useState<AIAnalysis | null>(null);
-  const [showAnalysis, setShowAnalysis] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisStartTime, setAnalysisStartTime] = useState<number | null>(null);
+  
+  // Consolidated state
+  const [videoState, setVideoState] = useState({
+    isLoading: false,
+    hasPermission: null as boolean | null,
+    hasMultipleCameras: false
+  });
+  
+  const [analysisState, setAnalysisState] = useState({
+    current: null as AIAnalysis | null,
+    isVisible: false,
+    isAnalyzing: false,
+    startTime: null as number | null
+  });
 
   // SSE hook to receive AI analysis updates
   useSSE({
     autoConnect: true,
     onAIAnalysis: useCallback((analysis: AIAnalysis) => {
-      setCurrentAnalysis(analysis);
-      setShowAnalysis(true);
-      setIsAnalyzing(false);
-      setAnalysisStartTime(null);
+      setAnalysisState({
+        current: analysis,
+        isVisible: true,
+        isAnalyzing: false,
+        startTime: null
+      });
     }, [])
   });
 
@@ -52,7 +61,7 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
       const cameras = devices.filter(device => device.kind === 'videoinput');
-      setHasMultipleCameras(cameras.length > 1);
+      setVideoState(prev => ({ ...prev, hasMultipleCameras: cameras.length > 1 }));
     } catch (error) {
       console.warn('Could not enumerate devices:', error);
     }
@@ -60,14 +69,17 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
 
   // Handle analysis start
   const handleAnalysisStart = useCallback(() => {
-    setIsAnalyzing(true);
-    setAnalysisStartTime(Date.now());
+    setAnalysisState(prev => ({
+      ...prev,
+      isAnalyzing: true,
+      startTime: Date.now()
+    }));
   }, []);
 
   // Motion detection integration
   const { motionState } = useMotionDetection({
     videoElement: videoRef.current,
-    isActive: isActive && hasPermission === true,
+    isActive: isActive && videoState.hasPermission === true,
     sensitivity,
     detectionInterval: 150, // Check every 150ms for good performance
     onAnalysisStart: handleAnalysisStart
@@ -88,8 +100,11 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
 
   const startStream = useCallback(async () => {
     try {
-      setIsLoading(true);
-      setHasPermission(null);
+      setVideoState(prev => ({ 
+        ...prev, 
+        isLoading: true,
+        hasPermission: null 
+      }));
 
       // Check if getUserMedia is available
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -115,11 +130,11 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
         await videoRef.current.play();
       }
       
-      setHasPermission(true);
+      setVideoState(prev => ({ ...prev, hasPermission: true }));
       onStreamReady(stream);
     } catch (error) {
       console.error('Error accessing camera:', error);
-      setHasPermission(false);
+      setVideoState(prev => ({ ...prev, hasPermission: false }));
       
       let errorMessage = 'Failed to access camera';
       if (error instanceof Error) {
@@ -140,7 +155,7 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
       
       onError(errorMessage);
     } finally {
-      setIsLoading(false);
+      setVideoState(prev => ({ ...prev, isLoading: false }));
     }
   }, [onError, onStreamReady, cameraFacing]);
 
@@ -154,7 +169,7 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
       startStream();
     } else {
       stopStream();
-      setHasPermission(null);
+      setVideoState(prev => ({ ...prev, hasPermission: null }));
     }
 
     return () => {
@@ -184,7 +199,7 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
   };
 
   const handleDismissAnalysis = useCallback(() => {
-    setShowAnalysis(false);
+    setAnalysisState(prev => ({ ...prev, isVisible: false }));
   }, []);
 
   return (
@@ -198,21 +213,21 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
           playsInline
         />
         
-        {isLoading && (
+        {videoState.isLoading && (
           <div className={styles.overlay}>
             <div className={styles.spinner}></div>
             <p className={styles.overlayText}>Accessing camera...</p>
           </div>
         )}
         
-        {!isActive && !isLoading && (
+        {!isActive && !videoState.isLoading && (
           <div className={styles.overlay}>
             <div className={styles.cameraIcon}>📹</div>
             <p className={styles.overlayText}>Camera is off</p>
           </div>
         )}
         
-        {hasPermission === false && (
+        {videoState.hasPermission === false && (
           <div className={styles.overlay}>
             <div className={styles.errorIcon}>⚠️</div>
             <p className={styles.overlayText}>Camera access failed</p>
@@ -226,7 +241,7 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
         )}
 
         {/* Camera Switch Button - Show when multiple cameras are available */}
-        {hasMultipleCameras && isActive && hasPermission && (
+        {videoState.hasMultipleCameras && isActive && videoState.hasPermission && (
           <button 
             className={styles.cameraSwitchButton}
             onClick={handleCameraSwitch}
@@ -254,24 +269,24 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
 
         {/* AI Analysis Loading Indicator */}
         <AIAnalysisLoading
-          isVisible={isAnalyzing}
-          analysisStartTime={analysisStartTime || undefined}
+          isVisible={analysisState.isAnalyzing}
+          analysisStartTime={analysisState.startTime || undefined}
         />
 
         {/* AI Analysis Overlay */}
         <AIAnalysisOverlay
-          analysis={currentAnalysis}
-          isVisible={showAnalysis}
+          analysis={analysisState.current}
+          isVisible={analysisState.isVisible}
           onDismiss={handleDismissAnalysis}
           autoHideDelay={12000} // 12 seconds
         />
       </div>
       
       <div className={styles.videoInfo}>
-        <span className={`${styles.status} ${isActive && hasPermission ? styles.active : ''}`}>
-          {isActive && hasPermission ? 'Live' : 'Inactive'}
+        <span className={`${styles.status} ${isActive && videoState.hasPermission ? styles.active : ''}`}>
+          {isActive && videoState.hasPermission ? 'Live' : 'Inactive'}
         </span>
-        {hasMultipleCameras && (
+        {videoState.hasMultipleCameras && (
           <span className={styles.cameraIndicator}>
             📷 {cameraFacing === 'user' ? 'Front' : 'Back'} Camera
           </span>
