@@ -127,15 +127,15 @@ export function captureLLaVAOptimizedFrame(
 /**
  * Legacy function - maintains compatibility but now uses LLaVA optimization
  * @param videoElement - The video element to capture from
- * @param maxWidth - Maximum width (deprecated, now uses LLaVA-optimal 336px)
- * @param quality - JPEG quality (0.1 to 1.0, default 0.7)
+ * @param _maxWidth - Maximum width (deprecated, now uses LLaVA-optimal 336px)
+ * @param _quality - JPEG quality (0.1 to 1.0, default 0.7)
  * @returns Base64 encoded image string
  * @deprecated Use captureLLaVAOptimizedFrame for better AI performance
  */
 export function captureCompressedFrame(
   videoElement: HTMLVideoElement, 
-  maxWidth: number = 336, // Changed default to LLaVA-optimal
-  quality: number = 0.7
+  _maxWidth: number = 336, // Changed default to LLaVA-optimal
+  _quality: number = 0.7
 ): string | null {
   // For backward compatibility, estimate motion strength as medium
   const estimatedMotionStrength = 50;
@@ -172,7 +172,7 @@ export class ThrottledFrameCapture {
    * Legacy method for backward compatibility
    * @deprecated Use captureIfReady with motionStrength parameter
    */
-  captureIfReadyLegacy(videoElement: HTMLVideoElement, quality: number = 0.7): string | null {
+  captureIfReadyLegacy(videoElement: HTMLVideoElement, _quality: number = 0.7): string | null {
     return this.captureIfReady(videoElement, 50); // Use medium motion strength
   }
 
