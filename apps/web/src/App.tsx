@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { VideoFeed } from './components';
 import { ConnectionHelper } from './components/ConnectionHelper';
 import { MotionDetectionState, MotionEvent } from './types';
@@ -53,12 +53,6 @@ function App() {
     }));
   }, []);
 
-  const handleSensitivityChange = useCallback((newSensitivity: number) => {
-    setMotionState(prev => ({
-      ...prev,
-      sensitivity: newSensitivity
-    }));
-  }, []);
 
   const handleVideoError = useCallback((errorMessage: string) => {
     setCameraState(prev => ({
