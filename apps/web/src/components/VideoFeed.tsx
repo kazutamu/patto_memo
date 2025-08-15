@@ -37,7 +37,6 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
   
   const [analysisState, setAnalysisState] = useState({
     current: null as AIAnalysis | null,
-    isVisible: false,
     isAnalyzing: false,
     startTime: null as number | null
   });
@@ -48,7 +47,6 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
     onAIAnalysis: useCallback((analysis: AIAnalysis) => {
       setAnalysisState({
         current: analysis,
-        isVisible: true,
         isAnalyzing: false,
         startTime: null
       });
@@ -212,9 +210,6 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
     }
   };
 
-  const handleDismissAnalysis = useCallback(() => {
-    setAnalysisState(prev => ({ ...prev, isVisible: false }));
-  }, []);
 
   return (
     <div className={styles.videoContainer}>
@@ -287,12 +282,10 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
           analysisStartTime={analysisState.startTime || undefined}
         />
 
-        {/* AI Analysis Overlay */}
+        {/* AI Analysis Overlay - Persistent */}
         <AIAnalysisOverlay
           analysis={analysisState.current}
-          isVisible={analysisState.isVisible}
-          onDismiss={handleDismissAnalysis}
-          autoHideDelay={12000} // 12 seconds
+          isPersistent={true}
         />
       </div>
       

@@ -4,91 +4,61 @@ import styles from './AIAnalysisOverlay.module.css';
 
 interface AIAnalysisOverlayProps {
   analysis: AIAnalysis | null;
-  isVisible: boolean;
+  isPersistent?: boolean; // Whether to show persistently
   onDismiss?: () => void;
-  autoHideDelay?: number; // Auto hide after X milliseconds
 }
 
 export const AIAnalysisOverlay: React.FC<AIAnalysisOverlayProps> = ({
   analysis,
-  isVisible,
-  onDismiss,
-  autoHideDelay = 10000 // 10 seconds default
+  isPersistent = false,
+  onDismiss
 }) => {
   const [shouldShow, setShouldShow] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
 
   useEffect(() => {
-    if (isVisible && analysis) {
+    if (analysis) {
       setShouldShow(true);
       setIsAnimating(true);
-      
-      // Auto hide after delay
-      if (autoHideDelay > 0) {
-        const timer = setTimeout(() => {
-          handleDismiss();
-        }, autoHideDelay);
-        
-        return () => clearTimeout(timer);
-      }
-    } else {
+    } else if (!isPersistent) {
       setIsAnimating(false);
       // Delay hiding to allow fade-out animation
       const timer = setTimeout(() => setShouldShow(false), 300);
       return () => clearTimeout(timer);
     }
-  }, [isVisible, analysis, autoHideDelay]);
+  }, [analysis, isPersistent]);
 
   const handleDismiss = () => {
     setIsAnimating(false);
     onDismiss?.();
   };
 
-  if (!shouldShow || !analysis) {
+  if (!shouldShow && !isPersistent) {
     return null;
   }
 
-  return (
-    <div className={`${styles.overlay} ${isAnimating ? styles.visible : styles.hidden}`}>
-      <div className={styles.card}>
-        <div className={styles.header}>
-          <div className={styles.title}>
-            <span className={styles.aiIcon}>🤖</span>
-            AI Analysis
-          </div>
-          <div className={styles.metadata}>
-            <span className={styles.processingTime}>
-              {analysis.processing_time.toFixed(1)}s
-            </span>
-            <button 
-              className={styles.dismissButton}
-              onClick={handleDismiss}
-              aria-label="Dismiss analysis"
-            >
-              ×
-            </button>
+  // Show placeholder when persistent but no analysis yet
+  if (isPersistent && !analysis) {
+    return (
+      <div className={`${styles.overlay} ${styles.persistent} ${styles.waiting}`}>
+        <div className={styles.card}>
+          <div className={styles.content}>
+            <p className={styles.description}>
+              Waiting for detection result...
+            </p>
           </div>
         </div>
-        
+      </div>
+    );
+  }
+
+  return (
+    <div className={`${styles.overlay} ${isPersistent ? styles.persistent : ''} ${isAnimating ? styles.visible : styles.hidden}`}>
+      <div className={styles.card}>
         <div className={styles.content}>
           <p className={styles.description}>
             {analysis.description}
           </p>
-        </div>
-        
-        <div className={styles.footer}>
-          <span className={styles.timestamp}>
-            {new Date(analysis.timestamp).toLocaleTimeString()}
-          </span>
-          <div className={styles.progressBar}>
-            <div 
-              className={styles.progressFill}
-              style={{ 
-                animationDuration: `${autoHideDelay}ms`,
-                animationPlayState: isAnimating ? 'running' : 'paused'
-              }}
-            />
-          </div>
         </div>
       </div>
     </div>
