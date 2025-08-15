@@ -117,19 +117,10 @@ function App() {
           </div>
         )}
 
-        {sseError && (
-          <div className={styles.errorBanner} style={{ backgroundColor: '#dc2626' }}>
-            <strong>Connection Error:</strong> {sseError}
-          </div>
-        )}
-
-        {/* SSE Connection Status - Only show when disconnected */}
+        {/* Backend Connection Status - Show single error when disconnected */}
         {!sseConnected && (
-          <div className={styles.statusBar}>
-            <div className={`${styles.connectionStatus} ${styles.disconnected}`}>
-              <span className={styles.statusDot}></span>
-              Backend: Disconnected ({connectionState})
-            </div>
+          <div className={styles.errorBanner} style={{ backgroundColor: '#dc2626' }}>
+            <strong>Backend Connection Error:</strong> Unable to connect to backend service
           </div>
         )}
 
