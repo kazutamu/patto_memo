@@ -5,13 +5,11 @@ import styles from './AIAnalysisOverlay.module.css';
 interface AIAnalysisOverlayProps {
   analysis: AIAnalysis | null;
   isPersistent?: boolean; // Whether to show persistently
-  onDismiss?: () => void;
 }
 
 export const AIAnalysisOverlay: React.FC<AIAnalysisOverlayProps> = ({
   analysis,
-  isPersistent = false,
-  onDismiss
+  isPersistent = false
 }) => {
   const [shouldShow, setShouldShow] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -27,11 +25,6 @@ export const AIAnalysisOverlay: React.FC<AIAnalysisOverlayProps> = ({
       return () => clearTimeout(timer);
     }
   }, [analysis, isPersistent]);
-
-  const handleDismiss = () => {
-    setIsAnimating(false);
-    onDismiss?.();
-  };
 
   if (!shouldShow && !isPersistent) {
     return null;
@@ -57,7 +50,7 @@ export const AIAnalysisOverlay: React.FC<AIAnalysisOverlayProps> = ({
       <div className={styles.card}>
         <div className={styles.content}>
           <p className={styles.description}>
-            {analysis.description}
+            {analysis?.description}
           </p>
         </div>
       </div>
