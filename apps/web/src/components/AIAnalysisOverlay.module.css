@@ -70,6 +70,37 @@
   padding: 0;
 }
 
+.analysisContainer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.loadingSpinner {
+  width: 16px;
+  height: 16px;
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spinnerRing {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border: 2px solid transparent;
+  border-top: 2px solid #4a9eff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 .description {
   margin: 0;
   color: #e8e8e8;

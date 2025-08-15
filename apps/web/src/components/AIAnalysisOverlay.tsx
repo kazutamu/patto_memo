@@ -5,11 +5,13 @@ import styles from './AIAnalysisOverlay.module.css';
 interface AIAnalysisOverlayProps {
   analysis: AIAnalysis | null;
   isPersistent?: boolean; // Whether to show persistently
+  isAnalyzing?: boolean; // Whether analysis is in progress
 }
 
 export const AIAnalysisOverlay: React.FC<AIAnalysisOverlayProps> = ({
   analysis,
-  isPersistent = false
+  isPersistent = false,
+  isAnalyzing = false
 }) => {
   const [shouldShow, setShouldShow] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -49,9 +51,16 @@ export const AIAnalysisOverlay: React.FC<AIAnalysisOverlayProps> = ({
     <div className={`${styles.overlay} ${isPersistent ? styles.persistent : ''} ${isAnimating ? styles.visible : styles.hidden}`}>
       <div className={styles.card}>
         <div className={styles.content}>
-          <p className={styles.description}>
-            {analysis?.description}
-          </p>
+          <div className={styles.analysisContainer}>
+            {isAnalyzing && (
+              <div className={styles.loadingSpinner}>
+                <div className={styles.spinnerRing}></div>
+              </div>
+            )}
+            <p className={styles.description}>
+              {analysis?.description}
+            </p>
+          </div>
         </div>
       </div>
     </div>
