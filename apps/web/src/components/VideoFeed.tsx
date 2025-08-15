@@ -231,8 +231,6 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
         
         {!isActive && !videoState.isLoading && (
           <div className={styles.overlay}>
-            <div className={styles.cameraIcon}>📹</div>
-            <p className={styles.overlayText}>Camera is off</p>
           </div>
         )}
         
