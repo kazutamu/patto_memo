@@ -3,7 +3,6 @@ import { useMotionDetection } from '../hooks/useMotionDetection';
 import { useSSE, AIAnalysis } from '../hooks/useSSE';
 import { MotionDetectionState } from '../types';
 import { AIAnalysisOverlay } from './AIAnalysisOverlay';
-import { AIAnalysisLoading } from './AIAnalysisLoading';
 import styles from './VideoFeed.module.css';
 
 interface VideoFeedProps {
@@ -274,29 +273,21 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
           </button>
         )}
 
-        {/* AI Analysis Loading Indicator */}
-        <AIAnalysisLoading
-          isVisible={analysisState.isAnalyzing}
-          analysisStartTime={analysisState.startTime || undefined}
-        />
-
         {/* AI Analysis Overlay - Persistent */}
         <AIAnalysisOverlay
           analysis={analysisState.current}
           isPersistent={true}
+          isAnalyzing={analysisState.isAnalyzing}
         />
       </div>
       
-      <div className={styles.videoInfo}>
-        <span className={`${styles.status} ${isActive && videoState.hasPermission ? styles.active : ''}`}>
-          {isActive && videoState.hasPermission ? 'Live' : 'Inactive'}
-        </span>
-        {videoState.hasMultipleCameras && (
+      {videoState.hasMultipleCameras && (
+        <div className={styles.videoInfo}>
           <span className={styles.cameraIndicator}>
             📷 {cameraFacing === 'user' ? 'Front' : 'Back'} Camera
           </span>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };
