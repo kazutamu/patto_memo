@@ -101,9 +101,6 @@ function App() {
       <div className={styles.container}>
         <header className={styles.header}>
           <h1 className={styles.title}>Motion Detector</h1>
-          <p className={styles.subtitle}>
-            Advanced motion detection with real-time video analysis
-          </p>
         </header>
 
         {cameraState.error && (
@@ -126,13 +123,15 @@ function App() {
           </div>
         )}
 
-        {/* SSE Connection Status */}
-        <div className={styles.statusBar}>
-          <div className={`${styles.connectionStatus} ${sseConnected ? styles.connected : styles.disconnected}`}>
-            <span className={styles.statusDot}></span>
-            Backend: {sseConnected ? 'Connected' : `Disconnected (${connectionState})`}
+        {/* SSE Connection Status - Only show when disconnected */}
+        {!sseConnected && (
+          <div className={styles.statusBar}>
+            <div className={`${styles.connectionStatus} ${styles.disconnected}`}>
+              <span className={styles.statusDot}></span>
+              Backend: Disconnected ({connectionState})
+            </div>
           </div>
-        </div>
+        )}
 
         <main className={styles.content} data-stream-active={cameraState.stream !== null}>
           <div className={styles.videoSection}>
