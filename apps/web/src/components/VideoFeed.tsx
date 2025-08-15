@@ -281,16 +281,13 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
         />
       </div>
       
-      <div className={styles.videoInfo}>
-        <span className={`${styles.status} ${isActive && videoState.hasPermission ? styles.active : ''}`}>
-          {isActive && videoState.hasPermission ? 'Live' : 'Inactive'}
-        </span>
-        {videoState.hasMultipleCameras && (
+      {videoState.hasMultipleCameras && (
+        <div className={styles.videoInfo}>
           <span className={styles.cameraIndicator}>
             📷 {cameraFacing === 'user' ? 'Front' : 'Back'} Camera
           </span>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };
