@@ -1,7 +1,7 @@
 /* AI Analysis Loading Inline Indicator */
 .overlay {
   position: absolute;
-  bottom: 16px;
+  top: 16px;
   left: 16px;
   z-index: 15;
   pointer-events: none;
@@ -132,7 +132,7 @@
 /* Mobile Responsive */
 @media (max-width: 768px) {
   .overlay {
-    bottom: 12px;
+    top: 12px;
     left: 12px;
   }
 
@@ -165,7 +165,7 @@
 
 @media (max-width: 480px) {
   .overlay {
-    bottom: 8px;
+    top: 8px;
     left: 8px;
   }
 
