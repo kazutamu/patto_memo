@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { VideoFeed } from './components';
 import { ConnectionHelper } from './components/ConnectionHelper';
 import { MotionDetectionState, MotionEvent } from './types';
@@ -7,7 +7,7 @@ import styles from './App.module.css';
 
 
 function App() {
-  // Camera state
+  // Camera state - start with camera inactive to prevent race conditions
   const [cameraState, setCameraState] = useState({
     isActive: false,
     stream: null as MediaStream | null,
@@ -82,6 +82,19 @@ function App() {
     }));
   }, []);
 
+  // Auto-start camera on mount with a small delay
+  useEffect(() => {
+    // Start camera after a small delay to ensure component is fully mounted
+    const timer = setTimeout(() => {
+      setCameraState(prev => ({
+        ...prev,
+        isActive: true,
+        error: null
+      }));
+    }, 500); // 500ms delay to prevent race conditions
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <div className={styles.app}>
