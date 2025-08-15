@@ -24,16 +24,36 @@ export class FrameCapture {
     }
 
     try {
-      // Create canvas at reasonable size for AI analysis
+      // Get actual video dimensions to maintain aspect ratio
+      const videoWidth = videoElement.videoWidth;
+      const videoHeight = videoElement.videoHeight;
+      
+      if (!videoWidth || !videoHeight) {
+        console.warn('Video dimensions not ready');
+        return null;
+      }
+      
+      // Calculate proper dimensions maintaining aspect ratio
+      const aspectRatio = videoWidth / videoHeight;
+      let canvasWidth = 640;
+      let canvasHeight = Math.round(canvasWidth / aspectRatio);
+      
+      // If height exceeds max, scale based on height instead
+      if (canvasHeight > 480) {
+        canvasHeight = 480;
+        canvasWidth = Math.round(canvasHeight * aspectRatio);
+      }
+      
+      // Create canvas with proper dimensions
       const canvas = document.createElement('canvas');
-      canvas.width = 640;
-      canvas.height = 480;
+      canvas.width = canvasWidth;
+      canvas.height = canvasHeight;
       
       const ctx = canvas.getContext('2d');
       if (!ctx) return null;
 
-      // Draw video frame
-      ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+      // Draw video frame maintaining aspect ratio
+      ctx.drawImage(videoElement, 0, 0, canvasWidth, canvasHeight);
       
       // Convert to base64 with compression
       const base64 = canvas.toDataURL('image/jpeg', 0.7);
