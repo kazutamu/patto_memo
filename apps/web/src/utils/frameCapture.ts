@@ -77,5 +77,5 @@ export class FrameCapture {
   }
 }
 
-// Export simplified capture utility
-export const frameCapture = new FrameCapture();
+// Export simplified capture utility with shorter interval for testing
+export const frameCapture = new FrameCapture(3000); // 3 seconds instead of 5

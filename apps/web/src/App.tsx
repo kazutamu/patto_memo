@@ -123,15 +123,6 @@ function App() {
           </div>
         )}
 
-        {/* SSE Connection Status - Only show when disconnected */}
-        {!sseConnected && (
-          <div className={styles.statusBar}>
-            <div className={`${styles.connectionStatus} ${styles.disconnected}`}>
-              <span className={styles.statusDot}></span>
-              Backend: Disconnected ({connectionState})
-            </div>
-          </div>
-        )}
 
         <main className={styles.content} data-stream-active={cameraState.stream !== null}>
           <div className={styles.videoSection}>
