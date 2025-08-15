@@ -88,6 +88,7 @@ export function useMotionDetection({
           // Capture frame for AI analysis (throttled)
           const frameBase64 = frameCapture.capture(videoElement);
           if (frameBase64) {
+            // Only start loading animation if we actually have a frame to analyze
             onAnalysisStart?.();
             
             api.analyzeLLaVA({
