@@ -134,6 +134,13 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
       onStreamReady(stream);
     } catch (error) {
       console.error('Error accessing camera:', error);
+      
+      // Don't show error for AbortError - this happens when component unmounts
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('Camera initialization was aborted (this is normal during cleanup)');
+        return;
+      }
+      
       setVideoState(prev => ({ ...prev, hasPermission: false }));
       
       let errorMessage = 'Failed to access camera';
@@ -165,17 +172,24 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
   }, [getAvailableCameras]);
 
   useEffect(() => {
-    if (isActive) {
-      startStream();
-    } else {
-      stopStream();
-      setVideoState(prev => ({ ...prev, hasPermission: null }));
-    }
+    let mounted = true;
+    
+    const initCamera = async () => {
+      if (isActive && mounted) {
+        await startStream();
+      } else if (!isActive && mounted) {
+        stopStream();
+        setVideoState(prev => ({ ...prev, hasPermission: null }));
+      }
+    };
+    
+    initCamera();
 
     return () => {
+      mounted = false;
       stopStream();
     };
-  }, [isActive, startStream, stopStream]);
+  }, [isActive]); // Remove startStream and stopStream from deps to avoid loops
 
   // Handle camera switch
   const handleCameraSwitch = useCallback(() => {
