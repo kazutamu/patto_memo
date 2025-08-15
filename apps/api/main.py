@@ -77,6 +77,10 @@ class LLaVAAnalysisRequest(BaseModel):
         default=LLAVA_CONFIG["default_prompt"],
         description="Analysis prompt",
     )
+    prompt_type: Optional[str] = Field(
+        default="default",
+        description="Type of analysis prompt: 'default', 'detailed', 'quick', or 'security'",
+    )
 
 
 class LLaVAAnalysisResponse(BaseModel):
@@ -163,6 +167,31 @@ def get_motion_settings():
     }
 
 
+@app.get("/api/v1/llava/prompts")
+def get_available_prompts():
+    """
+    Get available analysis prompt types and their descriptions
+    """
+    return {
+        "default": {
+            "prompt": LLAVA_CONFIG["default_prompt"],
+            "description": "Standard activity analysis focusing on specific actions and movements",
+        },
+        "detailed": {
+            "prompt": LLAVA_CONFIG["detailed_activity_prompt"],
+            "description": "Detailed analysis including posture, interactions, and specific activities",
+        },
+        "quick": {
+            "prompt": LLAVA_CONFIG["quick_activity_prompt"],
+            "description": "Quick summary of the main activity being performed",
+        },
+        "security": {
+            "prompt": LLAVA_CONFIG["security_prompt"],
+            "description": "Security-focused analysis identifying normal vs. suspicious behavior",
+        },
+    }
+
+
 @app.post("/api/v1/llava/analyze", response_model=LLaVAAnalysisResponse)
 async def analyze_image_with_llava(request: LLaVAAnalysisRequest):
     """
@@ -171,13 +200,23 @@ async def analyze_image_with_llava(request: LLaVAAnalysisRequest):
     start_time = datetime.now()
 
     try:
+        # Determine prompt based on prompt_type
+        if request.prompt_type == "detailed":
+            prompt = LLAVA_CONFIG["detailed_activity_prompt"]
+        elif request.prompt_type == "quick":
+            prompt = LLAVA_CONFIG["quick_activity_prompt"]
+        elif request.prompt_type == "security":
+            prompt = LLAVA_CONFIG["security_prompt"]
+        else:
+            prompt = request.prompt  # Use provided prompt or default
+
         # Ollama API endpoint (configurable via environment)
         ollama_url = "http://localhost:11434/api/generate"
 
         # Prepare the request payload for Ollama
         payload = {
             "model": "llava:latest",  # Default model, should be configurable
-            "prompt": request.prompt,
+            "prompt": prompt,
             "images": [request.image_base64],
             "stream": False,
         }
@@ -241,6 +280,7 @@ async def analyze_image_with_llava(request: LLaVAAnalysisRequest):
 async def analyze_uploaded_image(
     file: UploadFile = File(...),
     prompt: str = LLAVA_CONFIG["default_prompt"],
+    prompt_type: str = "default",
 ):
     """
     Analyze an uploaded image file using LLaVA model
@@ -251,7 +291,9 @@ async def analyze_uploaded_image(
         image_base64 = base64.b64encode(image_data).decode("utf-8")
 
         # Use the existing analysis endpoint
-        request = LLaVAAnalysisRequest(image_base64=image_base64, prompt=prompt)
+        request = LLaVAAnalysisRequest(
+            image_base64=image_base64, prompt=prompt, prompt_type=prompt_type
+        )
 
         return await analyze_image_with_llava(request)
 
