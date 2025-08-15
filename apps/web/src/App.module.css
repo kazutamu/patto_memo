@@ -97,10 +97,53 @@
   50% { opacity: 0.5; }
 }
 
-/* Video Section with Settings Toggle */
+/* Video Section */
 .videoSection {
   position: relative;
   width: 100%;
+}
+
+/* Camera Toggle Button Overlay */
+.cameraToggle {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 10;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cameraToggle:hover {
+  background: rgba(0, 0, 0, 0.7);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.cameraToggle.active {
+  background: rgba(76, 175, 80, 0.2);
+  border-color: rgba(76, 175, 80, 0.4);
+  color: #4caf50;
+}
+
+.cameraToggle.active:hover {
+  background: rgba(76, 175, 80, 0.3);
+  border-color: rgba(76, 175, 80, 0.5);
+}
+
+.cameraToggle svg {
+  width: 18px;
+  height: 18px;
 }
 
 .settingsToggle {
@@ -295,6 +338,15 @@
     width: 48px;
     height: 48px;
     /* Enhanced touch target */
+    touch-action: manipulation;
+  }
+  
+  .cameraToggle {
+    top: 12px;
+    right: 12px;
+    width: 40px;
+    height: 40px;
+    /* Enhanced touch target for mobile */
     touch-action: manipulation;
   }
 }
