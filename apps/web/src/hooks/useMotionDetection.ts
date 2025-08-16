@@ -11,6 +11,7 @@ interface UseMotionDetectionOptions {
   sensitivity: number;
   detectionInterval?: number;
   onAnalysisStart?: () => void;
+  customPrompt?: string;
 }
 
 interface UseMotionDetectionReturn {
@@ -30,7 +31,8 @@ export function useMotionDetection({
   isActive,
   sensitivity,
   detectionInterval = 100, // Check for motion every 100ms
-  onAnalysisStart
+  onAnalysisStart,
+  customPrompt
 }: UseMotionDetectionOptions): UseMotionDetectionReturn {
   
   const [motionState, setMotionState] = useState<MotionDetectionState>({
@@ -93,7 +95,7 @@ export function useMotionDetection({
             
             api.analyzeLLaVA({
               image_base64: frameBase64,
-              prompt: LLAVA_PROMPTS.default
+              prompt: customPrompt || LLAVA_PROMPTS.default
             }).catch(console.warn);
           }
         }
@@ -102,7 +104,7 @@ export function useMotionDetection({
       }
     }, detectionInterval);
 
-  }, [videoElement, sensitivity, detectionInterval, onAnalysisStart]);
+  }, [videoElement, sensitivity, detectionInterval, onAnalysisStart, customPrompt]);
 
   const stopDetection = useCallback(() => {
     if (intervalRef.current) {
