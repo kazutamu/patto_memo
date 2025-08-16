@@ -38,9 +38,16 @@ export const AIAnalysisOverlay: React.FC<AIAnalysisOverlayProps> = ({
       <div className={`${styles.overlay} ${styles.persistent} ${styles.waiting}`}>
         <div className={styles.card}>
           <div className={styles.content}>
-            <p className={styles.description}>
-              Waiting for detection result...
-            </p>
+            <div className={styles.analysisContainer}>
+              {isAnalyzing && (
+                <div className={styles.loadingSpinner}>
+                  <div className={styles.spinnerRing}></div>
+                </div>
+              )}
+              <p className={styles.description}>
+                Waiting for detection result...
+              </p>
+            </div>
           </div>
         </div>
       </div>
