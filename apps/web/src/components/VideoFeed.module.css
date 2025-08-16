@@ -2,7 +2,7 @@
 .videoContainer {
   position: relative;
   width: 100%;
-  max-width: 800px;
+  max-width: 95vw;
   margin: 0 auto;
   background: #2a2a2a;
   border-radius: 16px;
@@ -30,6 +30,22 @@
   transition: all 0.3s ease;
 }
 
+@media (max-width: 768px) {
+  .videoWrapper {
+    aspect-ratio: auto;
+    min-height: 65vw;
+    max-height: 90vh;
+  }
+}
+
+/* Landscape orientation - use width-based sizing */
+@media (max-width: 768px) and (orientation: landscape) {
+  .videoWrapper {
+    min-height: 30vw;
+    max-height: 35vh;
+  }
+}
+
 .videoWrapper.motionDetected {
   box-shadow: 
     0 0 20px rgba(255, 69, 0, 0.4),
@@ -43,6 +59,37 @@
   object-fit: cover;
   background: #1a1a1a;
   transition: opacity 0.3s ease;
+}
+
+@media (max-width: 768px) {
+  .video {
+    object-fit: cover;
+    min-height: 65vw;
+    max-height: 90vh;
+  }
+}
+
+@media (max-width: 480px) {
+  .video {
+    object-fit: cover;
+    min-height: 75vw;
+    max-height: 85vh;
+  }
+}
+
+/* Landscape orientation - adjust video sizing */
+@media (max-width: 768px) and (orientation: landscape) {
+  .video {
+    min-height: 30vw;
+    max-height: 35vh;
+  }
+}
+
+@media (max-width: 480px) and (orientation: landscape) {
+  .video {
+    min-height: 25vw;
+    max-height: 30vh;
+  }
 }
 
 .overlay {
@@ -154,6 +201,44 @@
   margin-left: 8px;
 }
 
+.textBoxOverlay {
+  position: absolute;
+  bottom: 28px;
+  left: 20px;
+  right: 20px;
+  z-index: 15;
+}
+
+.textInput {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 25px;
+  padding: 14px 20px;
+  font-size: 16px;
+  font-weight: 400;
+  color: #ffffff;
+  outline: none;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.textInput::placeholder {
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 400;
+}
+
+.textInput:focus {
+  border-color: rgba(74, 158, 255, 0.8);
+  background: rgba(0, 0, 0, 0.6);
+  box-shadow: 0 0 15px rgba(74, 158, 255, 0.4);
+}
+
+.textInput:hover:not(:focus) {
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(0, 0, 0, 0.55);
+}
+
 .videoInfo {
   display: flex;
   align-items: center;
@@ -220,6 +305,17 @@
   
   .videoWrapper {
     border-radius: 8px;
+    aspect-ratio: auto;
+    min-height: 65vw;
+    max-height: 90vh;
+  }
+  
+  /* Landscape override for tablet */
+  @media (orientation: landscape) {
+    .videoWrapper {
+      min-height: 30vw;
+      max-height: 35vh;
+    }
   }
   
   .overlayText {
@@ -263,12 +359,37 @@
     font-size: 16px;
     /* Larger touch target for mobile */
   }
+  
+  .textBoxOverlay {
+    bottom: 24px;
+    left: 16px;
+    right: 16px;
+  }
+  
+  .textInput {
+    padding: 12px 18px;
+    font-size: 15px;
+    border-radius: 22px;
+  }
 }
 
 /* Extra small screens (phones in portrait) */
 @media (max-width: 480px) {
   .videoContainer {
     margin: 0 4px;
+  }
+  
+  .videoWrapper {
+    min-height: 75vw;
+    max-height: 85vh;
+  }
+  
+  /* Landscape override for mobile */
+  @media (orientation: landscape) {
+    .videoWrapper {
+      min-height: 25vw;
+      max-height: 30vh;
+    }
   }
   
   .videoInfo {
@@ -290,5 +411,17 @@
   .status {
     font-size: 12px;
     padding: 4px 8px;
+  }
+  
+  .textBoxOverlay {
+    bottom: 20px;
+    left: 12px;
+    right: 12px;
+  }
+  
+  .textInput {
+    padding: 10px 16px;
+    font-size: 14px;
+    border-radius: 20px;
   }
 }
