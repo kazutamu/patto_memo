@@ -193,13 +193,15 @@ def get_available_prompts():
     }
 
 
-async def _process_llava_analysis(image_base64: str, prompt: str) -> LLaVAAnalysisResponse:
+async def _process_llava_analysis(
+    image_base64: str, prompt: str
+) -> LLaVAAnalysisResponse:
     """Internal function to process LLaVA analysis with queue tracking"""
     start_time = datetime.now()
-    
+
     try:
         await queue_manager.start_processing()
-        
+
         # Ollama API endpoint (configurable via environment)
         ollama_url = "http://localhost:11434/api/generate"
 
@@ -223,7 +225,7 @@ async def _process_llava_analysis(image_base64: str, prompt: str) -> LLaVAAnalys
 
             result = response.json()
             processing_time = (datetime.now() - start_time).total_seconds()
-            
+
             # Record processing time and clear old frames
             queue_manager.record_processing_time(processing_time)
             await queue_manager.clear_old_frames()
@@ -281,12 +283,12 @@ async def analyze_image_with_llava(request: LLaVAAnalysisRequest):
         image_base64=request.image_base64,
         prompt=prompt,
         prompt_type=request.prompt_type or "default",
-        timestamp=datetime.now().timestamp()
+        timestamp=datetime.now().timestamp(),
     )
-    
+
     # Try to add to queue
     added = await queue_manager.add_frame(queued_frame)
-    
+
     if not added:
         # Frame was dropped
         return LLaVAAnalysisResponse(
@@ -294,27 +296,26 @@ async def analyze_image_with_llava(request: LLaVAAnalysisRequest):
             processing_time=0.0,
             llm_model="llava:latest",
             success=False,
-            error_message="Request dropped - system busy"
+            error_message="Request dropped - system busy",
         )
-    
+
     # Get next frame to process (might not be the same one we just added)
     frame_to_process = await queue_manager.get_frame()
-    
+
     if not frame_to_process:
         return LLaVAAnalysisResponse(
             description="No frames available for processing",
             processing_time=0.0,
             llm_model="llava:latest",
             success=False,
-            error_message="Queue empty"
+            error_message="Queue empty",
         )
-    
+
     # Process the frame
     analysis_response = await _process_llava_analysis(
-        frame_to_process.image_base64, 
-        frame_to_process.prompt
+        frame_to_process.image_base64, frame_to_process.prompt
     )
-    
+
     # Broadcast AI analysis result to all connected SSE clients
     if analysis_response.success:
         await sse_manager.broadcast(
@@ -325,7 +326,7 @@ async def analyze_image_with_llava(request: LLaVAAnalysisRequest):
                 "timestamp": datetime.now().isoformat(),
             },
         )
-    
+
     return analysis_response
 
 
