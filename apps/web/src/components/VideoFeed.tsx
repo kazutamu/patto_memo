@@ -43,6 +43,8 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
 
   // Custom prompt state
   const [customPrompt, setCustomPrompt] = useState<string>(LLAVA_PROMPTS.default);
+  const [promptToUse, setPromptToUse] = useState<string>(LLAVA_PROMPTS.default);
+  const [promptSubmitted, setPromptSubmitted] = useState<boolean>(false);
 
   // SSE hook to receive AI analysis updates
   useSSE({
@@ -78,13 +80,13 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
   }, []);
 
   // Motion detection integration
-  const { motionState } = useMotionDetection({
+  const { motionState, resetDetection } = useMotionDetection({
     videoElement: videoRef.current,
     isActive: isActive && videoState.hasPermission === true,
     sensitivity,
     detectionInterval: 150, // Check every 150ms for good performance
     onAnalysisStart: handleAnalysisStart,
-    customPrompt
+    customPrompt: promptToUse
   });
 
   const stopStream = useCallback(() => {
@@ -214,6 +216,29 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
     }
   };
 
+  // Handle submit of custom prompt
+  const handlePromptSubmit = useCallback(() => {
+    if (customPrompt.trim() && customPrompt !== promptToUse) {
+      // Reset motion detection to clear any pending frames
+      resetDetection();
+      
+      // Clear any ongoing AI analysis
+      setAnalysisState({
+        current: null,
+        isAnalyzing: false,
+        startTime: null
+      });
+      
+      setPromptToUse(customPrompt);
+      setPromptSubmitted(true);
+      // Clear the input field after submission
+      setCustomPrompt('');
+      // Show feedback for 2 seconds
+      setTimeout(() => setPromptSubmitted(false), 2000);
+      console.log('Custom prompt updated, detection reset:', customPrompt);
+    }
+  }, [customPrompt, promptToUse, resetDetection]);
+
 
   return (
     <div className={styles.videoContainer}>
@@ -290,10 +315,21 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
           <input
             type="text"
             className={styles.textInput}
-            placeholder="Enter custom prompt for AI analysis..."
+            placeholder={promptToUse === LLAVA_PROMPTS.default 
+              ? "Enter custom prompt for AI analysis..." 
+              : `Current: "${promptToUse.substring(0, 40)}${promptToUse.length > 40 ? '...' : ''}"`}
             value={customPrompt}
             onChange={(e) => setCustomPrompt(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handlePromptSubmit()}
           />
+          <button
+            className={`${styles.submitButton} ${promptSubmitted ? styles.submitted : ''}`}
+            onClick={handlePromptSubmit}
+            title="Submit custom prompt"
+            disabled={!customPrompt.trim() || customPrompt === promptToUse}
+          >
+            {promptSubmitted ? '✓' : 'Submit'}
+          </button>
         </div>
       </div>
     </div>
