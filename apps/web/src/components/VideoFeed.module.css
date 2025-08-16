@@ -207,10 +207,13 @@
   left: 20px;
   right: 20px;
   z-index: 15;
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
 .textInput {
-  width: 100%;
+  flex: 1;
   background: rgba(0, 0, 0, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 25px;
@@ -237,6 +240,78 @@
 .textInput:hover:not(:focus) {
   border-color: rgba(255, 255, 255, 0.4);
   background: rgba(0, 0, 0, 0.55);
+}
+
+.submitButton {
+  padding: 14px 20px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 25px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(10px);
+  white-space: nowrap;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  position: relative;
+  overflow: hidden;
+}
+
+.submitButton::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, 
+    rgba(74, 158, 255, 0) 0%, 
+    rgba(74, 158, 255, 0.15) 50%, 
+    rgba(74, 158, 255, 0) 100%);
+  transform: translateX(-100%);
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.submitButton:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(74, 158, 255, 0.4);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.submitButton:hover::before {
+  transform: translateX(100%);
+}
+
+.submitButton:active {
+  transform: translateY(0);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.submitButton:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.submitButton:disabled:hover {
+  transform: none;
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.submitButton:disabled:hover::before {
+  transform: translateX(-100%);
+}
+
+.submitButton.submitted {
+  background: rgba(76, 175, 80, 0.15);
+  border-color: rgba(76, 175, 80, 0.3);
+  color: rgba(129, 199, 132, 0.95);
 }
 
 .videoInfo {
@@ -371,6 +446,12 @@
     font-size: 15px;
     border-radius: 22px;
   }
+  
+  .submitButton {
+    padding: 12px 18px;
+    font-size: 12px;
+    letter-spacing: 0.3px;
+  }
 }
 
 /* Extra small screens (phones in portrait) */
@@ -423,5 +504,11 @@
     padding: 10px 16px;
     font-size: 14px;
     border-radius: 20px;
+  }
+  
+  .submitButton {
+    padding: 10px 14px;
+    font-size: 11px;
+    letter-spacing: 0.2px;
   }
 }
