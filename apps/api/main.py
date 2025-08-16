@@ -9,8 +9,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from config import LLAVA_CONFIG
+from queue_manager import QueuedFrame, queue_manager
 from sse_manager import sse_manager
-from queue_manager import queue_manager, QueuedFrame
 
 app = FastAPI()
 
