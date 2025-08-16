@@ -30,8 +30,6 @@ function App() {
 
   // SSE integration for real-time updates
   const {
-    isConnected: sseConnected,
-    connectionState,
     error: sseError
   } = useSSE({
     autoConnect: true,
