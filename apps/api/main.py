@@ -239,12 +239,19 @@ async def analyze_image_with_llava(request: LLaVAAnalysisRequest):
         
     except Exception as e:
         processing_time = (datetime.now() - start_time).total_seconds()
+        # Handle specific error types for compatibility with tests
+        error_message = str(e)
+        if "Connection" in error_message or "connection" in error_message:
+            error_message = f"Connection error: {str(e)}"
+        elif "timeout" in error_message.lower():
+            error_message = f"Analysis failed: {str(e)}"
+        
         return LLaVAAnalysisResponse(
             description="",
             processing_time=processing_time,
             llm_model="llava:latest",
             success=False,
-            error_message=str(e),
+            error_message=error_message,
         )
 
 
