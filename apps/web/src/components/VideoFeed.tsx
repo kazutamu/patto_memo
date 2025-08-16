@@ -3,6 +3,7 @@ import { useMotionDetection } from '../hooks/useMotionDetection';
 import { useSSE, AIAnalysis } from '../hooks/useSSE';
 import { MotionDetectionState } from '../types';
 import { AIAnalysisOverlay } from './AIAnalysisOverlay';
+import { LLAVA_PROMPTS } from '../config/prompts';
 import styles from './VideoFeed.module.css';
 
 interface VideoFeedProps {
@@ -39,6 +40,9 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
     isAnalyzing: false,
     startTime: null as number | null
   });
+
+  // Custom prompt state
+  const [customPrompt, setCustomPrompt] = useState<string>(LLAVA_PROMPTS.default);
 
   // SSE hook to receive AI analysis updates
   useSSE({
@@ -79,7 +83,8 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
     isActive: isActive && videoState.hasPermission === true,
     sensitivity,
     detectionInterval: 150, // Check every 150ms for good performance
-    onAnalysisStart: handleAnalysisStart
+    onAnalysisStart: handleAnalysisStart,
+    customPrompt
   });
 
   const stopStream = useCallback(() => {
@@ -280,12 +285,14 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
           isAnalyzing={analysisState.isAnalyzing}
         />
 
-        {/* Text Input Field Overlay */}
+        {/* Custom Prompt Input Overlay */}
         <div className={styles.textBoxOverlay}>
           <input
             type="text"
             className={styles.textInput}
-            placeholder="Enter your message here..."
+            placeholder="Enter custom prompt for AI analysis..."
+            value={customPrompt}
+            onChange={(e) => setCustomPrompt(e.target.value)}
           />
         </div>
       </div>
