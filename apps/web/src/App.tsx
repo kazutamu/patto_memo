@@ -1,12 +1,16 @@
 import { useState, useCallback, useEffect } from 'react';
 import { VideoFeed } from './components';
 import { ConnectionHelper } from './components/ConnectionHelper';
+import { StreamingTest } from './components/StreamingTest';
 import { MotionDetectionState, MotionEvent } from './types';
 import { useSSE, AIAnalysis } from './hooks/useSSE';
 import styles from './App.module.css';
 
 
 function App() {
+  // Simple routing state
+  const [currentView, setCurrentView] = useState<'main' | 'streaming-test'>('main');
+  
   // Camera state - start with camera inactive to prevent race conditions
   const [cameraState, setCameraState] = useState({
     isActive: false,
@@ -94,11 +98,51 @@ function App() {
     return () => clearTimeout(timer);
   }, []);
 
+  // Early return for streaming test view
+  if (currentView === 'streaming-test') {
+    return (
+      <div className={styles.app}>
+        <div className={styles.container}>
+          <header className={styles.header}>
+            <h1 className={styles.title}>Ollama Streaming Test</h1>
+            <button 
+              onClick={() => setCurrentView('main')}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: '#6c757d',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              Back to Main
+            </button>
+          </header>
+          <StreamingTest />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.app}>
       <div className={styles.container}>
         <header className={styles.header}>
           <h1 className={styles.title}>Motion Detector</h1>
+          <button 
+            onClick={() => setCurrentView('streaming-test')}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#007bff',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            Test Streaming
+          </button>
         </header>
 
         {cameraState.error && (

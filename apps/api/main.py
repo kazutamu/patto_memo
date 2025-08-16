@@ -276,6 +276,130 @@ async def analyze_image_with_llava(request: LLaVAAnalysisRequest):
         )
 
 
+@app.post("/api/v1/llava/analyze-stream")
+async def analyze_image_with_llava_stream(request: LLaVAAnalysisRequest):
+    """
+    Analyze an image using LLaVA model via Ollama with streaming response
+    """
+    from fastapi.responses import StreamingResponse
+    import json
+
+    async def generate_stream():
+        start_time = datetime.now()
+        
+        try:
+            # Determine prompt based on prompt_type
+            if request.prompt_type == "detailed":
+                prompt = LLAVA_CONFIG["detailed_activity_prompt"]
+            elif request.prompt_type == "quick":
+                prompt = LLAVA_CONFIG["quick_activity_prompt"]
+            elif request.prompt_type == "security":
+                prompt = LLAVA_CONFIG["security_prompt"]
+            else:
+                prompt = request.prompt
+
+            # Ollama API endpoint
+            ollama_url = "http://localhost:11434/api/generate"
+
+            # Prepare the request payload for Ollama with streaming enabled
+            payload = {
+                "model": "llava:latest",
+                "prompt": prompt,
+                "images": [request.image_base64],
+                "stream": True,
+            }
+
+            # Send initial status
+            yield f"data: {json.dumps({'status': 'analyzing', 'timestamp': datetime.now().isoformat()})}\n\n"
+
+            # Make streaming request to Ollama
+            async with httpx.AsyncClient(timeout=120.0) as client:
+                async with client.stream("POST", ollama_url, json=payload) as response:
+                    if response.status_code != 200:
+                        error_data = {
+                            "status": "error",
+                            "error": f"LLaVA service unavailable: {response.status_code}",
+                            "timestamp": datetime.now().isoformat()
+                        }
+                        yield f"data: {json.dumps(error_data)}\n\n"
+                        return
+
+                    full_response = ""
+                    async for line in response.aiter_lines():
+                        if line.strip():
+                            try:
+                                chunk_data = json.loads(line)
+                                if "response" in chunk_data:
+                                    chunk_text = chunk_data["response"]
+                                    full_response += chunk_text
+                                    
+                                    # Send each chunk to the client
+                                    chunk_response = {
+                                        "status": "streaming",
+                                        "chunk": chunk_text,
+                                        "partial_response": full_response,
+                                        "timestamp": datetime.now().isoformat()
+                                    }
+                                    yield f"data: {json.dumps(chunk_response)}\n\n"
+                                    
+                                    # Also broadcast to SSE clients in real-time
+                                    await sse_manager.broadcast(
+                                        "ai_analysis_chunk",
+                                        {
+                                            "chunk": chunk_text,
+                                            "partial_response": full_response,
+                                            "timestamp": datetime.now().isoformat(),
+                                        },
+                                    )
+                                
+                                # Check if this is the final chunk
+                                if chunk_data.get("done", False):
+                                    processing_time = (datetime.now() - start_time).total_seconds()
+                                    final_response = {
+                                        "status": "completed",
+                                        "description": full_response,
+                                        "processing_time": processing_time,
+                                        "llm_model": "llava:latest",
+                                        "success": True,
+                                        "timestamp": datetime.now().isoformat()
+                                    }
+                                    yield f"data: {json.dumps(final_response)}\n\n"
+                                    
+                                    # Send final result to SSE clients
+                                    await sse_manager.broadcast(
+                                        "ai_analysis_complete",
+                                        {
+                                            "description": full_response,
+                                            "processing_time": processing_time,
+                                            "timestamp": datetime.now().isoformat(),
+                                        },
+                                    )
+                                    break
+                                    
+                            except json.JSONDecodeError:
+                                continue
+
+        except Exception as e:
+            processing_time = (datetime.now() - start_time).total_seconds()
+            error_response = {
+                "status": "error",
+                "error": str(e),
+                "processing_time": processing_time,
+                "timestamp": datetime.now().isoformat()
+            }
+            yield f"data: {json.dumps(error_response)}\n\n"
+
+    return StreamingResponse(
+        generate_stream(),
+        media_type="text/plain",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "Content-Type": "text/plain; charset=utf-8"
+        }
+    )
+
+
 @app.post("/api/v1/llava/analyze-upload")
 async def analyze_uploaded_image(
     file: UploadFile = File(...),
