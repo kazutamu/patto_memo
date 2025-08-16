@@ -194,15 +194,13 @@ def get_available_prompts():
     }
 
 
-
-
 @app.post("/api/v1/llava/analyze", response_model=LLaVAAnalysisResponse)
 async def analyze_image_with_llava(request: LLaVAAnalysisRequest):
     """
     Analyze an image using LangGraph workflow with LLaVA model
     """
     start_time = datetime.now()
-    
+
     try:
         # Determine prompt based on prompt_type
         if request.prompt_type == "detailed":
@@ -215,11 +213,32 @@ async def analyze_image_with_llava(request: LLaVAAnalysisRequest):
             prompt = request.prompt  # Use provided prompt or default
 
         # Use LangGraph
-        result = await analyze_with_graph(request.image_base64, prompt)
+        graph_result = await analyze_with_graph(request.image_base64, prompt)
         processing_time = (datetime.now() - start_time).total_seconds()
-        
+
+        # Check if graph returned error information
+        if isinstance(graph_result, dict) and "error_type" in graph_result:
+            if graph_result["error_type"] == "service_unavailable":
+                raise HTTPException(status_code=503, detail="Service unavailable")
+
+            # Return error response for other error types
+            return LLaVAAnalysisResponse(
+                description="",
+                processing_time=processing_time,
+                llm_model="llava:latest",
+                success=False,
+                error_message=graph_result.get("error_message", "Unknown error"),
+            )
+
+        # Handle successful response
+        result_text = (
+            graph_result
+            if isinstance(graph_result, str)
+            else graph_result.get("result", "")
+        )
+
         response = LLaVAAnalysisResponse(
-            description=result,
+            description=result_text,
             processing_time=processing_time,
             llm_model="llava:latest",
             success=True,
@@ -236,7 +255,10 @@ async def analyze_image_with_llava(request: LLaVAAnalysisRequest):
         )
 
         return response
-        
+
+    except HTTPException:
+        # Re-raise HTTPExceptions to let FastAPI handle them
+        raise
     except Exception as e:
         processing_time = (datetime.now() - start_time).total_seconds()
         # Handle specific error types for compatibility with tests
@@ -245,7 +267,7 @@ async def analyze_image_with_llava(request: LLaVAAnalysisRequest):
             error_message = f"Connection error: {str(e)}"
         elif "timeout" in error_message.lower():
             error_message = f"Analysis failed: {str(e)}"
-        
+
         return LLaVAAnalysisResponse(
             description="",
             processing_time=processing_time,
@@ -314,5 +336,3 @@ def get_queue_status():
     Get current queue status and drop statistics
     """
     return queue_manager.get_queue_status()
-
-
