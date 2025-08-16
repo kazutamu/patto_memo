@@ -279,15 +279,16 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
           isPersistent={true}
           isAnalyzing={analysisState.isAnalyzing}
         />
-      </div>
-      
-      {videoState.hasMultipleCameras && (
-        <div className={styles.videoInfo}>
-          <span className={styles.cameraIndicator}>
-            📷 {cameraFacing === 'user' ? 'Front' : 'Back'} Camera
-          </span>
+
+        {/* Text Input Field Overlay */}
+        <div className={styles.textBoxOverlay}>
+          <input
+            type="text"
+            className={styles.textInput}
+            placeholder="Enter your message here..."
+          />
         </div>
-      )}
+      </div>
     </div>
   );
 };

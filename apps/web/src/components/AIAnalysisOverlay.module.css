@@ -1,10 +1,11 @@
 /* AI Analysis Overlay Styles */
 .overlay {
   position: absolute;
-  bottom: 20px;
+  bottom: 95px;
+  left: 32px;
   right: 20px;
   z-index: 20;
-  max-width: 400px;
+  max-width: none;
   min-width: 280px;
   pointer-events: auto;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -17,7 +18,7 @@
 
 .overlay.hidden {
   opacity: 0;
-  transform: translateX(20px) scale(0.95);
+  transform: translateY(20px) scale(0.95);
   pointer-events: none;
 }
 
@@ -50,17 +51,17 @@
   border-radius: 0;
   overflow: visible;
   box-shadow: none;
-  animation: slideInFromRight 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: slideInFromBottom 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-@keyframes slideInFromRight {
+@keyframes slideInFromBottom {
   from {
     opacity: 0;
-    transform: translateX(30px) scale(0.9);
+    transform: translateY(30px) scale(0.9);
   }
   to {
     opacity: 1;
-    transform: translateX(0) scale(1);
+    transform: translateY(0) scale(1);
   }
 }
 
@@ -148,9 +149,9 @@
 /* Mobile Responsive */
 @media (max-width: 768px) {
   .overlay {
-    bottom: 16px;
+    bottom: 85px;
+    left: 24px;
     right: 16px;
-    left: 16px;
     max-width: none;
   }
 
@@ -165,9 +166,9 @@
 
 @media (max-width: 480px) {
   .overlay {
-    bottom: 12px;
+    bottom: 80px;
+    left: 20px;
     right: 12px;
-    left: 12px;
   }
 
   .content {
