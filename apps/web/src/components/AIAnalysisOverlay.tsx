@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AIAnalysis } from '../hooks/useSSE';
+import { useStreamingText } from '../hooks/useStreamingText';
 import styles from './AIAnalysisOverlay.module.css';
 
 interface AIAnalysisOverlayProps {
@@ -15,6 +16,12 @@ export const AIAnalysisOverlay: React.FC<AIAnalysisOverlayProps> = ({
 }) => {
   const [shouldShow, setShouldShow] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
+  
+  // Streaming text effect for AI analysis
+  const { displayText, isComplete, isStreaming, skipToEnd } = useStreamingText(
+    analysis?.description || '', 
+    { speed: 25, delay: 200 }
+  );
 
   useEffect(() => {
     if (analysis) {
@@ -64,9 +71,19 @@ export const AIAnalysisOverlay: React.FC<AIAnalysisOverlayProps> = ({
                 <div className={styles.spinnerRing}></div>
               </div>
             )}
-            <p className={styles.description}>
-              {analysis?.description}
-            </p>
+            <div className={styles.streamingContainer} onClick={skipToEnd}>
+              <p className={`${styles.description} ${isStreaming ? styles.streaming : ''}`}>
+                {displayText}
+                {isStreaming && <span className={styles.cursor}>|</span>}
+              </p>
+              {!isComplete && isStreaming && (
+                <div className={styles.streamingIndicator}>
+                  <span className={styles.streamingDot}></span>
+                  <span className={styles.streamingDot}></span>
+                  <span className={styles.streamingDot}></span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
