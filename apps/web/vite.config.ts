@@ -19,7 +19,7 @@ export default defineConfig(({ mode }) => {
     https: !process.env.CI, // Disable SSL in CI environment
     proxy: {
       '/api': {
-        target: env.VITE_API_URL || 'http://localhost:8001',
+        target: env.VITE_API_URL || 'http://localhost:8000',
         changeOrigin: true,
       },
     },

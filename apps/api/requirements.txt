@@ -21,3 +21,6 @@ pytest-cov
 # Development/formatting tools
 black
 isort
+
+# Minimal LangGraph for agent workflows
+langgraph

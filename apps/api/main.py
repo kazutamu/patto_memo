@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 from config import LLAVA_CONFIG
 from queue_manager import QueuedFrame, queue_manager
 from sse_manager import sse_manager
+from graph import analyze_with_graph
 
 app = FastAPI()
 
@@ -193,63 +194,49 @@ def get_available_prompts():
     }
 
 
-async def _process_llava_analysis(
-    image_base64: str, prompt: str
-) -> LLaVAAnalysisResponse:
-    """Internal function to process LLaVA analysis with queue tracking"""
+
+
+@app.post("/api/v1/llava/analyze", response_model=LLaVAAnalysisResponse)
+async def analyze_image_with_llava(request: LLaVAAnalysisRequest):
+    """
+    Analyze an image using LangGraph workflow with LLaVA model
+    """
     start_time = datetime.now()
-
+    
     try:
-        await queue_manager.start_processing()
+        # Determine prompt based on prompt_type
+        if request.prompt_type == "detailed":
+            prompt = LLAVA_CONFIG["detailed_activity_prompt"]
+        elif request.prompt_type == "quick":
+            prompt = LLAVA_CONFIG["quick_activity_prompt"]
+        elif request.prompt_type == "security":
+            prompt = LLAVA_CONFIG["security_prompt"]
+        else:
+            prompt = request.prompt  # Use provided prompt or default
 
-        # Ollama API endpoint (configurable via environment)
-        ollama_url = "http://localhost:11434/api/generate"
-
-        # Prepare the request payload for Ollama
-        payload = {
-            "model": "llava:latest",  # Default model, should be configurable
-            "prompt": prompt,
-            "images": [image_base64],
-            "stream": False,
-        }
-
-        # Make request to Ollama
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            response = await client.post(ollama_url, json=payload)
-
-            if response.status_code != 200:
-                raise HTTPException(
-                    status_code=503,
-                    detail=f"LLaVA service unavailable: {response.text}",
-                )
-
-            result = response.json()
-            processing_time = (datetime.now() - start_time).total_seconds()
-
-            # Record processing time and clear old frames
-            queue_manager.record_processing_time(processing_time)
-            await queue_manager.clear_old_frames()
-
-            analysis_response = LLaVAAnalysisResponse(
-                description=result.get("response", "No description available"),
-                processing_time=processing_time,
-                llm_model="llava:latest",
-                success=True,
-            )
-
-            return analysis_response
-
-    except httpx.RequestError as e:
+        # Use LangGraph
+        result = await analyze_with_graph(request.image_base64, prompt)
         processing_time = (datetime.now() - start_time).total_seconds()
-        return LLaVAAnalysisResponse(
-            description="",
+        
+        response = LLaVAAnalysisResponse(
+            description=result,
             processing_time=processing_time,
             llm_model="llava:latest",
-            success=False,
-            error_message=f"Connection error: {str(e)}",
+            success=True,
         )
-    except HTTPException:
-        raise
+
+        # Broadcast AI analysis result to all connected SSE clients
+        await sse_manager.broadcast(
+            "ai_analysis",
+            {
+                "description": response.description,
+                "processing_time": response.processing_time,
+                "timestamp": datetime.now().isoformat(),
+            },
+        )
+
+        return response
+        
     except Exception as e:
         processing_time = (datetime.now() - start_time).total_seconds()
         return LLaVAAnalysisResponse(
@@ -257,77 +244,8 @@ async def _process_llava_analysis(
             processing_time=processing_time,
             llm_model="llava:latest",
             success=False,
-            error_message=f"Analysis failed: {str(e)}",
+            error_message=str(e),
         )
-    finally:
-        await queue_manager.end_processing()
-
-
-@app.post("/api/v1/llava/analyze", response_model=LLaVAAnalysisResponse)
-async def analyze_image_with_llava(request: LLaVAAnalysisRequest):
-    """
-    Analyze an image using LLaVA model via Ollama with queue management
-    """
-    # Determine prompt based on prompt_type
-    if request.prompt_type == "detailed":
-        prompt = LLAVA_CONFIG["detailed_activity_prompt"]
-    elif request.prompt_type == "quick":
-        prompt = LLAVA_CONFIG["quick_activity_prompt"]
-    elif request.prompt_type == "security":
-        prompt = LLAVA_CONFIG["security_prompt"]
-    else:
-        prompt = request.prompt  # Use provided prompt or default
-
-    # Create queued frame
-    queued_frame = QueuedFrame(
-        image_base64=request.image_base64,
-        prompt=prompt,
-        prompt_type=request.prompt_type or "default",
-        timestamp=datetime.now().timestamp(),
-    )
-
-    # Try to add to queue
-    added = await queue_manager.add_frame(queued_frame)
-
-    if not added:
-        # Frame was dropped
-        return LLaVAAnalysisResponse(
-            description="Analysis request dropped due to high load",
-            processing_time=0.0,
-            llm_model="llava:latest",
-            success=False,
-            error_message="Request dropped - system busy",
-        )
-
-    # Get next frame to process (might not be the same one we just added)
-    frame_to_process = await queue_manager.get_frame()
-
-    if not frame_to_process:
-        return LLaVAAnalysisResponse(
-            description="No frames available for processing",
-            processing_time=0.0,
-            llm_model="llava:latest",
-            success=False,
-            error_message="Queue empty",
-        )
-
-    # Process the frame
-    analysis_response = await _process_llava_analysis(
-        frame_to_process.image_base64, frame_to_process.prompt
-    )
-
-    # Broadcast AI analysis result to all connected SSE clients
-    if analysis_response.success:
-        await sse_manager.broadcast(
-            "ai_analysis",
-            {
-                "description": analysis_response.description,
-                "processing_time": analysis_response.processing_time,
-                "timestamp": datetime.now().isoformat(),
-            },
-        )
-
-    return analysis_response
 
 
 @app.post("/api/v1/llava/analyze-upload")
@@ -337,7 +255,7 @@ async def analyze_uploaded_image(
     prompt_type: str = "default",
 ):
     """
-    Analyze an uploaded image file using LLaVA model
+    Analyze an uploaded image file using LangGraph workflow
     """
     try:
         # Read and encode the uploaded file
@@ -389,3 +307,5 @@ def get_queue_status():
     Get current queue status and drop statistics
     """
     return queue_manager.get_queue_status()
+
+
