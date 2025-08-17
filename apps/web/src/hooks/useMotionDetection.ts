@@ -3,7 +3,6 @@ import { MotionDetectionState, MotionDetectionResult } from '../types';
 import { motionDetectionService } from '../services/motionDetectionService';
 import { api } from '../api';
 import { frameCapture } from '../utils/frameCapture';
-import { LLAVA_PROMPTS } from '../config/prompts';
 
 interface UseMotionDetectionOptions {
   videoElement: HTMLVideoElement | null;

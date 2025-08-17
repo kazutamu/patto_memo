@@ -3,7 +3,6 @@ import { useMotionDetection } from '../hooks/useMotionDetection';
 import { useSSE, AIAnalysis } from '../hooks/useSSE';
 import { MotionDetectionState } from '../types';
 import { AIAnalysisOverlay } from './AIAnalysisOverlay';
-import { LLAVA_PROMPTS } from '../config/prompts';
 import styles from './VideoFeed.module.css';
 
 interface VideoFeedProps {
