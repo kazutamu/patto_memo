@@ -587,7 +587,7 @@
 }
 
 .validationToast.hiding {
-  animation: toastSlideOut 0.2s ease-in;
+  animation: toastSlideOut 0.3s ease-out;
 }
 
 .toastIcon {
@@ -617,11 +617,11 @@
 @keyframes toastSlideOut {
   0% {
     opacity: 1;
-    transform: translateX(0);
+    transform: translateX(0) scale(1);
   }
   100% {
     opacity: 0;
-    transform: translateX(-100%);
+    transform: translateX(0) scale(0.9);
   }
 }
 
