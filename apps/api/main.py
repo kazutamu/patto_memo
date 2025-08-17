@@ -323,22 +323,48 @@ async def analyze_uploaded_image(
 @app.post("/api/v1/llava/validate-prompt", response_model=PromptValidationResponse)
 async def validate_prompt(request: PromptValidationRequest):
     """
-    Validate prompt using LangChain - starting simple with question mark check
+    Validate prompt using LLaVA to check if it can be answered with yes/no
     """
     try:
-        # Simple validation: check if prompt contains a question mark
-        has_question_mark = "?" in request.prompt.strip()
+        # Create validation prompt for LLaVA
+        validation_prompt = f"""
+Analyze this question: "{request.prompt}"
 
-        if has_question_mark:
-            return PromptValidationResponse(
-                valid=True,
-                reason="Prompt contains a question mark and appears to be a valid question",
+Can this question be answered with just "yes" or "no"? 
+
+Respond with only:
+- "YES" if it can be answered with yes/no
+- "NO" if it requires a more detailed explanation
+
+Question: {request.prompt}
+Answer:"""
+
+        # Call LLaVA for text-only validation
+        payload = {
+            "model": "llava:latest",
+            "prompt": validation_prompt,
+            "stream": False,
+        }
+
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                "http://localhost:11434/api/generate", json=payload
             )
-        else:
-            return PromptValidationResponse(
-                valid=False,
-                reason="Prompt should contain a question mark to form a proper question",
-            )
+            response.raise_for_status()
+            result = response.json()
+            
+            llava_response = result.get("response", "").strip().upper()
+            
+            if "YES" in llava_response:
+                return PromptValidationResponse(
+                    valid=True,
+                    reason="LLaVA determined this question can be answered with yes/no"
+                )
+            else:
+                return PromptValidationResponse(
+                    valid=False,
+                    reason="LLaVA determined this question requires a detailed explanation, not yes/no"
+                )
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Validation error: {str(e)}")
