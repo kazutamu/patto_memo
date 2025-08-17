@@ -44,6 +44,7 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
   const [customPrompt, setCustomPrompt] = useState<string>('');
   const [promptToUse, setPromptToUse] = useState<string>('');
   const [promptSubmitted, setPromptSubmitted] = useState<boolean>(false);
+  const [validationStatus, setValidationStatus] = useState<'idle' | 'validating' | 'valid' | 'invalid'>('idle');
 
   // SSE hook to receive AI analysis updates
   useSSE({
@@ -218,23 +219,41 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
   // Handle submit of custom prompt
   const handlePromptSubmit = useCallback(() => {
     if (customPrompt.trim() && customPrompt !== promptToUse) {
-      // Reset motion detection to clear any pending frames
-      resetDetection();
+      setValidationStatus('validating');
       
-      // Clear any ongoing AI analysis
-      setAnalysisState({
-        current: null,
-        isAnalyzing: false,
-        startTime: null
-      });
+      // Simple validation: check if prompt contains a question mark
+      const isValid = customPrompt.includes('?');
       
-      setPromptToUse(customPrompt);
-      setPromptSubmitted(true);
-      // Clear the input field after submission
-      setCustomPrompt('');
-      // Show feedback for 2 seconds
-      setTimeout(() => setPromptSubmitted(false), 2000);
-      console.log('Custom prompt updated, detection reset:', customPrompt);
+      setTimeout(() => {
+        if (isValid) {
+          setValidationStatus('valid');
+          
+          // Reset motion detection to clear any pending frames
+          resetDetection();
+          
+          // Clear any ongoing AI analysis
+          setAnalysisState({
+            current: null,
+            isAnalyzing: false,
+            startTime: null
+          });
+          
+          setPromptToUse(customPrompt);
+          setPromptSubmitted(true);
+          // Clear the input field after submission
+          setCustomPrompt('');
+          // Show feedback for 2 seconds
+          setTimeout(() => {
+            setPromptSubmitted(false);
+            setValidationStatus('idle');
+          }, 2000);
+          console.log('Custom prompt updated, detection reset:', customPrompt);
+        } else {
+          setValidationStatus('invalid');
+          // Reset validation status after 2 seconds
+          setTimeout(() => setValidationStatus('idle'), 2000);
+        }
+      }, 500); // 500ms validation delay for animation
     }
   }, [customPrompt, promptToUse, resetDetection]);
 
@@ -313,7 +332,7 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
         <div className={styles.textBoxOverlay}>
           <input
             type="text"
-            className={styles.textInput}
+            className={`${styles.textInput} ${validationStatus !== 'idle' ? styles[validationStatus] : ''}`}
             placeholder={!promptToUse 
               ? "Enter prompt for AI analysis..." 
               : `Current: "${promptToUse.substring(0, 40)}${promptToUse.length > 40 ? '...' : ''}"`}
@@ -321,12 +340,15 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
             onChange={(e) => setCustomPrompt(e.target.value)}
           />
           <button
-            className={`${styles.submitButton} ${promptSubmitted ? styles.submitted : ''}`}
+            className={`${styles.submitButton} ${promptSubmitted ? styles.submitted : ''} ${validationStatus !== 'idle' ? styles[validationStatus] : ''}`}
             onClick={handlePromptSubmit}
             title="Submit custom prompt"
-            disabled={!customPrompt.trim() || customPrompt === promptToUse}
+            disabled={!customPrompt.trim() || customPrompt === promptToUse || validationStatus === 'validating'}
           >
-            {promptSubmitted ? '✓' : 'Submit'}
+            {validationStatus === 'validating' ? '...' : 
+             validationStatus === 'valid' ? '✓' : 
+             validationStatus === 'invalid' ? '✗' : 
+             promptSubmitted ? '✓' : 'Submit'}
           </button>
         </div>
       </div>
