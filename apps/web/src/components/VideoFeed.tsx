@@ -216,60 +216,117 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
     }
   };
 
+  // Validate if prompt is a yes/no question using rule-based approach
+  const validateYesNoPrompt = (prompt: string): { valid: boolean; reason: string } => {
+    const promptLower = prompt.toLowerCase().trim();
+    
+    // Check if it ends with a question mark (basic requirement)
+    if (!prompt.trim().endsWith('?')) {
+      return { valid: false, reason: "Not a question (missing '?')" };
+    }
+    
+    // Common yes/no question starters
+    const yesNoStarters = [
+      'is', 'are', 'was', 'were', 'will', 'would', 'should', 'could', 
+      'can', 'may', 'might', 'must', 'shall', 'do', 'does', 'did', 
+      'have', 'has', 'had', 'am'
+    ];
+    
+    // Open-ended question words that indicate NOT yes/no
+    const openEndedWords = [
+      'what', 'where', 'when', 'why', 'how', 'which', 'who', 'whose'
+    ];
+    
+    // Words that suggest explanation needed (not yes/no)
+    const explanationKeywords = [
+      'explain', 'describe', 'tell me', 'elaborate', 'discuss', 
+      'analyze', 'compare', 'list', 'name', 'identify'
+    ];
+    
+    // Get first word of the question
+    const words = promptLower.split(/\s+/);
+    const firstWord = words[0];
+    
+    // Check for open-ended question words
+    if (openEndedWords.includes(firstWord)) {
+      return { valid: false, reason: `Open-ended question starting with '${firstWord}'` };
+    }
+    
+    // Check for explanation keywords
+    for (const keyword of explanationKeywords) {
+      if (promptLower.includes(keyword)) {
+        return { valid: false, reason: `Contains explanation keyword '${keyword}'` };
+      }
+    }
+    
+    // Check if starts with yes/no indicator
+    if (yesNoStarters.includes(firstWord)) {
+      return { valid: true, reason: "Valid yes/no question format" };
+    }
+    
+    // Check for pattern like "Are you...", "Is there...", etc.
+    if (words.length >= 2) {
+      const firstTwoWords = `${words[0]} ${words[1]}`;
+      const validPatterns = [
+        /^am i/, /^are you/, /^is (he|she|it|this|that|there)/,
+        /^are (we|they|these|those|there)/, /^will (you|he|she|it|we|they)/,
+        /^would (you|he|she|it|we|they)/, /^can (i|you|he|she|it|we|they)/,
+        /^could (i|you|he|she|it|we|they)/, /^should (i|you|he|she|it|we|they)/,
+        /^do (i|you|we|they)/, /^does (he|she|it)/, /^did (i|you|he|she|it|we|they)/,
+        /^have (i|you|we|they)/, /^has (he|she|it)/, /^had (i|you|he|she|it|we|they)/
+      ];
+      
+      for (const pattern of validPatterns) {
+        if (pattern.test(firstTwoWords)) {
+          return { valid: true, reason: "Valid yes/no question pattern" };
+        }
+      }
+    }
+    
+    return { valid: false, reason: "Does not match yes/no question pattern" };
+  };
+
   // Handle submit of custom prompt
-  const handlePromptSubmit = useCallback(async () => {
+  const handlePromptSubmit = useCallback(() => {
     if (customPrompt.trim() && customPrompt !== promptToUse) {
       setValidationStatus('validating');
       
-      try {
-        // Call backend validation API
-        const response = await fetch('/api/v1/llava/validate-prompt', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ prompt: customPrompt }),
-        });
-        
-        const result = await response.json();
-        
-        setTimeout(() => {
-          if (result.valid) {
-            setValidationStatus('valid');
-            
-            // Reset motion detection to clear any pending frames
-            resetDetection();
-            
-            // Clear any ongoing AI analysis
-            setAnalysisState({
-              current: null,
-              isAnalyzing: false,
-              startTime: null
-            });
-            
-            setPromptToUse(customPrompt);
-            setPromptSubmitted(true);
-            // Clear the input field after submission
-            setCustomPrompt('');
-            // Show feedback for 2 seconds
-            setTimeout(() => {
-              setPromptSubmitted(false);
-              setValidationStatus('idle');
-            }, 2000);
-            console.log('Custom prompt updated, detection reset:', customPrompt);
-          } else {
-            setValidationStatus('invalid');
-            console.log('Validation failed:', result.reason);
-            // Reset validation status after 2 seconds
-            setTimeout(() => setValidationStatus('idle'), 2000);
-          }
-        }, 300); // 300ms delay for smoother UX
-        
-      } catch (error) {
-        console.error('Validation error:', error);
-        setValidationStatus('invalid');
-        setTimeout(() => setValidationStatus('idle'), 2000);
-      }
+      // Client-side validation
+      const validation = validateYesNoPrompt(customPrompt);
+      
+      setTimeout(() => {
+        if (validation.valid) {
+          setValidationStatus('valid');
+          
+          // Reset motion detection to clear any pending frames
+          resetDetection();
+          
+          // Clear any ongoing AI analysis
+          setAnalysisState({
+            current: null,
+            isAnalyzing: false,
+            startTime: null
+          });
+          
+          setPromptToUse(customPrompt);
+          setPromptSubmitted(true);
+          // Clear the input field after submission
+          setCustomPrompt('');
+          // Show feedback for 2 seconds
+          setTimeout(() => {
+            setPromptSubmitted(false);
+            setValidationStatus('idle');
+          }, 2000);
+          console.log('Custom prompt validated and updated:', customPrompt);
+        } else {
+          setValidationStatus('invalid');
+          console.log('Validation failed:', validation.reason);
+          // Show alert with reason
+          alert(`Invalid prompt: ${validation.reason}\n\nPlease enter a yes/no question (e.g., "Is there a person?", "Are the lights on?")`);
+          // Reset validation status after 2 seconds
+          setTimeout(() => setValidationStatus('idle'), 2000);
+        }
+      }, 300); // 300ms delay for smoother UX
     }
   }, [customPrompt, promptToUse, resetDetection]);
 

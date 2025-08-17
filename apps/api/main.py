@@ -94,14 +94,6 @@ class LLaVAAnalysisResponse(BaseModel):
     error_message: Optional[str] = None
 
 
-class PromptValidationRequest(BaseModel):
-    prompt: str = Field(..., description="Prompt to validate")
-
-
-class PromptValidationResponse(BaseModel):
-    valid: bool = Field(..., description="Whether the prompt is valid")
-    reason: Optional[str] = Field(None, description="Reason for validation result")
-
 
 @app.get("/health")
 def health_check():
@@ -317,56 +309,6 @@ async def analyze_uploaded_image(
             success=False,
             error_message=f"File processing failed: {str(e)}",
         )
-
-
-@app.post("/api/v1/llava/validate-prompt", response_model=PromptValidationResponse)
-async def validate_prompt(request: PromptValidationRequest):
-    """
-    Validate prompt using LLaVA to check if it can be answered with yes/no
-    """
-    try:
-        # Create validation prompt for LLaVA
-        validation_prompt = f"""
-Analyze this question: "{request.prompt}"
-
-Can this question be answered with just "yes" or "no"? 
-
-Respond with only:
-- "YES" if it can be answered with yes/no
-- "NO" if it requires a more detailed explanation
-
-Question: {request.prompt}
-Answer:"""
-
-        # Call LLaVA for text-only validation
-        payload = {
-            "model": "llava:latest",
-            "prompt": validation_prompt,
-            "stream": False,
-        }
-
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.post(
-                "http://localhost:11434/api/generate", json=payload
-            )
-            response.raise_for_status()
-            result = response.json()
-
-            llava_response = result.get("response", "").strip().upper()
-
-            if "YES" in llava_response:
-                return PromptValidationResponse(
-                    valid=True,
-                    reason="LLaVA determined this question can be answered with yes/no",
-                )
-            else:
-                return PromptValidationResponse(
-                    valid=False,
-                    reason="LLaVA determined this question requires a detailed explanation, not yes/no",
-                )
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Validation error: {str(e)}")
 
 
 @app.get("/api/v1/events/stream")
