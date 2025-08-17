@@ -319,7 +319,6 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
               : `Current: "${promptToUse.substring(0, 40)}${promptToUse.length > 40 ? '...' : ''}"`}
             value={customPrompt}
             onChange={(e) => setCustomPrompt(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handlePromptSubmit()}
           />
           <button
             className={`${styles.submitButton} ${promptSubmitted ? styles.submitted : ''}`}
