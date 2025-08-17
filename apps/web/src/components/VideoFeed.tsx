@@ -450,7 +450,6 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
         {/* Validation Popup */}
         {showValidationPopup && (
           <div className={`${styles.validationToast} ${popupHiding ? styles.hiding : ''}`}>
-            <span className={styles.toastIcon}>❌</span>
             <span className={styles.toastMessage}>Try a yes/no question</span>
           </div>
         )}
