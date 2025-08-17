@@ -352,18 +352,18 @@ Answer:"""
             )
             response.raise_for_status()
             result = response.json()
-            
+
             llava_response = result.get("response", "").strip().upper()
-            
+
             if "YES" in llava_response:
                 return PromptValidationResponse(
                     valid=True,
-                    reason="LLaVA determined this question can be answered with yes/no"
+                    reason="LLaVA determined this question can be answered with yes/no",
                 )
             else:
                 return PromptValidationResponse(
                     valid=False,
-                    reason="LLaVA determined this question requires a detailed explanation, not yes/no"
+                    reason="LLaVA determined this question requires a detailed explanation, not yes/no",
                 )
 
     except Exception as e:
