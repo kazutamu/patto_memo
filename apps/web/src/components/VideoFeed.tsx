@@ -45,6 +45,7 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
   const [promptToUse, setPromptToUse] = useState<string>('');
   const [promptSubmitted, setPromptSubmitted] = useState<boolean>(false);
   const [validationStatus, setValidationStatus] = useState<'idle' | 'validating' | 'valid' | 'invalid'>('idle');
+  const [validationMessage, setValidationMessage] = useState<string>('');
 
   // SSE hook to receive AI analysis updates
   useSSE({
@@ -320,11 +321,13 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
           console.log('Custom prompt validated and updated:', customPrompt);
         } else {
           setValidationStatus('invalid');
+          setValidationMessage('Try a yes/no question');
           console.log('Validation failed:', validation.reason);
-          // Show alert with reason
-          alert(`Invalid prompt: ${validation.reason}\n\nPlease enter a yes/no question (e.g., "Is there a person?", "Are the lights on?")`);
-          // Reset validation status after 2 seconds
-          setTimeout(() => setValidationStatus('idle'), 2000);
+          // Reset validation status after 3 seconds
+          setTimeout(() => {
+            setValidationStatus('idle');
+            setValidationMessage('');
+          }, 3000);
         }
       }, 300); // 300ms delay for smoother UX
     }
@@ -406,11 +409,18 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
           <input
             type="text"
             className={`${styles.textInput} ${validationStatus !== 'idle' ? styles[validationStatus] : ''}`}
-            placeholder={!promptToUse 
+            placeholder={validationMessage || (!promptToUse 
               ? "Enter prompt for AI analysis..." 
-              : `Current: "${promptToUse.substring(0, 40)}${promptToUse.length > 40 ? '...' : ''}"`}
+              : `Current: "${promptToUse.substring(0, 40)}${promptToUse.length > 40 ? '...' : ''}"`)}
             value={customPrompt}
-            onChange={(e) => setCustomPrompt(e.target.value)}
+            onChange={(e) => {
+              setCustomPrompt(e.target.value);
+              // Clear validation message when user starts typing
+              if (validationMessage) {
+                setValidationMessage('');
+                setValidationStatus('idle');
+              }
+            }}
           />
           <button
             className={`${styles.submitButton} ${promptSubmitted ? styles.submitted : ''} ${validationStatus !== 'idle' ? styles[validationStatus] : ''}`}

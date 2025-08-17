@@ -530,7 +530,12 @@
   border-color: rgba(244, 67, 54, 0.8);
   background: rgba(244, 67, 54, 0.1);
   box-shadow: 0 0 15px rgba(244, 67, 54, 0.4);
-  animation: shake 0.5s ease-in-out;
+  animation: shake 0.6s ease-in-out;
+}
+
+.textInput.invalid::placeholder {
+  color: rgba(244, 67, 54, 0.9) !important;
+  font-weight: 500;
 }
 
 .submitButton.validating {
@@ -559,7 +564,7 @@
 }
 
 @keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-5px); }
-  75% { transform: translateX(5px); }
+  0%, 100% { transform: translateX(0) scale(1); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-8px) scale(1.02); }
+  20%, 40%, 60%, 80% { transform: translateX(8px) scale(1.02); }
 }
