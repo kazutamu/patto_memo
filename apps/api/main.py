@@ -399,5 +399,5 @@ def get_queue_status():
         "max_size": 0,
         "drop_count": 0,
         "total_frames": 0,
-        "message": "Queue manager not implemented"
+        "message": "Queue manager not implemented",
     }
