@@ -324,7 +324,11 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
           setValidationStatus('invalid');
           setShowValidationPopup(true);
           console.log('Validation failed:', validation.reason);
-          // Reset validation status after showing popup
+          // Auto-dismiss toast after 2.5 seconds
+          setTimeout(() => {
+            handleDismissPopup();
+          }, 2500);
+          // Reset validation status
           setTimeout(() => {
             setValidationStatus('idle');
           }, 300);
@@ -445,22 +449,10 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
 
         {/* Validation Popup */}
         {showValidationPopup && (
-          <>
-            <div className={styles.validationOverlay} onClick={handleDismissPopup}></div>
-            <div className={`${styles.validationPopup} ${popupHiding ? styles.hiding : ''}`}>
-              <div className={styles.validationIcon}>❌</div>
-              <h3 className={styles.validationTitle}>Try a yes/no question</h3>
-              <p className={styles.validationMessage}>
-                Like "Is there a person?" or "Are the lights on?"
-              </p>
-              <button 
-                className={styles.validationDismiss}
-                onClick={handleDismissPopup}
-              >
-                Got it
-              </button>
-            </div>
-          </>
+          <div className={`${styles.validationToast} ${popupHiding ? styles.hiding : ''}`}>
+            <span className={styles.toastIcon}>❌</span>
+            <span className={styles.toastMessage}>Try a yes/no question</span>
+          </div>
         )}
       </div>
     </div>
