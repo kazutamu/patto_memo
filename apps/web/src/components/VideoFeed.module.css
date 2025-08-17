@@ -512,3 +512,54 @@
     letter-spacing: 0.2px;
   }
 }
+
+/* Validation states */
+.textInput.validating {
+  border-color: rgba(255, 193, 7, 0.8);
+  background: rgba(255, 193, 7, 0.1);
+  animation: validationPulse 1s ease-in-out infinite;
+}
+
+.textInput.valid {
+  border-color: rgba(76, 175, 80, 0.8);
+  background: rgba(76, 175, 80, 0.1);
+  box-shadow: 0 0 15px rgba(76, 175, 80, 0.4);
+}
+
+.textInput.invalid {
+  border-color: rgba(244, 67, 54, 0.8);
+  background: rgba(244, 67, 54, 0.1);
+  box-shadow: 0 0 15px rgba(244, 67, 54, 0.4);
+  animation: shake 0.5s ease-in-out;
+}
+
+.submitButton.validating {
+  border-color: rgba(255, 193, 7, 0.8);
+  background: rgba(255, 193, 7, 0.1);
+  color: rgba(255, 193, 7, 0.9);
+  animation: validationPulse 1s ease-in-out infinite;
+}
+
+.submitButton.valid {
+  border-color: rgba(76, 175, 80, 0.8);
+  background: rgba(76, 175, 80, 0.15);
+  color: rgba(129, 199, 132, 0.95);
+}
+
+.submitButton.invalid {
+  border-color: rgba(244, 67, 54, 0.8);
+  background: rgba(244, 67, 54, 0.1);
+  color: rgba(244, 67, 54, 0.9);
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes validationPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
