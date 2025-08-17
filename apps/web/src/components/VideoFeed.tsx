@@ -3,7 +3,6 @@ import { useMotionDetection } from '../hooks/useMotionDetection';
 import { useSSE, AIAnalysis } from '../hooks/useSSE';
 import { MotionDetectionState } from '../types';
 import { AIAnalysisOverlay } from './AIAnalysisOverlay';
-import { LLAVA_PROMPTS } from '../config/prompts';
 import styles from './VideoFeed.module.css';
 
 interface VideoFeedProps {
@@ -42,8 +41,8 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
   });
 
   // Custom prompt state
-  const [customPrompt, setCustomPrompt] = useState<string>(LLAVA_PROMPTS.default);
-  const [promptToUse, setPromptToUse] = useState<string>(LLAVA_PROMPTS.default);
+  const [customPrompt, setCustomPrompt] = useState<string>('');
+  const [promptToUse, setPromptToUse] = useState<string>('');
   const [promptSubmitted, setPromptSubmitted] = useState<boolean>(false);
 
   // SSE hook to receive AI analysis updates
@@ -315,8 +314,8 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
           <input
             type="text"
             className={styles.textInput}
-            placeholder={promptToUse === LLAVA_PROMPTS.default 
-              ? "Enter custom prompt for AI analysis..." 
+            placeholder={!promptToUse 
+              ? "Enter prompt for AI analysis..." 
               : `Current: "${promptToUse.substring(0, 40)}${promptToUse.length > 40 ? '...' : ''}"`}
             value={customPrompt}
             onChange={(e) => setCustomPrompt(e.target.value)}
