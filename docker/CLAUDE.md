@@ -51,7 +51,7 @@ docker/
 - **Ollama**: LLaVA model server with automated model pulls
 - **Database**: MySQL with persistent volumes
 - **Redis**: Cache and job queue with data persistence
-- **Nginx**: Load balancer with SSL termination
+- **Nginx**: Reverse proxy with SSL termination
 
 All Dockerfiles use multi-stage builds with health checks and security best practices.
 

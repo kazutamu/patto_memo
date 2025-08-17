@@ -119,7 +119,10 @@ class TestLLaVAAnalysisEndpoints:
         else:
             assert response.status_code == 200
             data = response.json()
-            if error_scenario in ["timeout", "connection_error"]:
+            if error_scenario == "timeout":
+                assert data["success"] is False
+                assert "Timeout error" in data["error_message"]
+            elif error_scenario == "connection_error":
                 assert data["success"] is False
                 assert "Connection error" in data["error_message"]
             elif error_scenario == "malformed_response":
