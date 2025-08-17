@@ -10,7 +10,6 @@ from pydantic import BaseModel, Field
 
 from config import LLAVA_CONFIG
 from graph import analyze_with_graph
-from queue_manager import QueuedFrame, queue_manager
 from sse_manager import sse_manager
 
 app = FastAPI()
@@ -394,4 +393,11 @@ def get_queue_status():
     """
     Get current queue status and drop statistics
     """
-    return queue_manager.get_queue_status()
+    # Queue manager removed - returning empty status
+    return {
+        "queue_size": 0,
+        "max_size": 0,
+        "drop_count": 0,
+        "total_frames": 0,
+        "message": "Queue manager not implemented"
+    }
