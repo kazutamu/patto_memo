@@ -45,7 +45,8 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
   const [promptToUse, setPromptToUse] = useState<string>('');
   const [promptSubmitted, setPromptSubmitted] = useState<boolean>(false);
   const [validationStatus, setValidationStatus] = useState<'idle' | 'validating' | 'valid' | 'invalid'>('idle');
-  const [validationMessage, setValidationMessage] = useState<string>('');
+  const [showValidationPopup, setShowValidationPopup] = useState<boolean>(false);
+  const [popupHiding, setPopupHiding] = useState<boolean>(false);
 
   // SSE hook to receive AI analysis updates
   useSSE({
@@ -321,17 +322,25 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
           console.log('Custom prompt validated and updated:', customPrompt);
         } else {
           setValidationStatus('invalid');
-          setValidationMessage('Try a yes/no question');
+          setShowValidationPopup(true);
           console.log('Validation failed:', validation.reason);
-          // Reset validation status after 3 seconds
+          // Reset validation status after showing popup
           setTimeout(() => {
             setValidationStatus('idle');
-            setValidationMessage('');
-          }, 3000);
+          }, 300);
         }
       }, 300); // 300ms delay for smoother UX
     }
   }, [customPrompt, promptToUse, resetDetection]);
+
+  // Handle popup dismissal with animation
+  const handleDismissPopup = useCallback(() => {
+    setPopupHiding(true);
+    setTimeout(() => {
+      setShowValidationPopup(false);
+      setPopupHiding(false);
+    }, 300); // Match the CSS animation duration
+  }, []);
 
 
   return (
@@ -409,16 +418,15 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
           <input
             type="text"
             className={`${styles.textInput} ${validationStatus !== 'idle' ? styles[validationStatus] : ''}`}
-            placeholder={validationMessage || (!promptToUse 
+            placeholder={!promptToUse 
               ? "Enter prompt for AI analysis..." 
-              : `Current: "${promptToUse.substring(0, 40)}${promptToUse.length > 40 ? '...' : ''}"`)}
+              : `Current: "${promptToUse.substring(0, 40)}${promptToUse.length > 40 ? '...' : ''}"`}
             value={customPrompt}
             onChange={(e) => {
               setCustomPrompt(e.target.value);
-              // Clear validation message when user starts typing
-              if (validationMessage) {
-                setValidationMessage('');
-                setValidationStatus('idle');
+              // Hide popup when user starts typing
+              if (showValidationPopup) {
+                handleDismissPopup();
               }
             }}
           />
@@ -434,6 +442,32 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
              promptSubmitted ? '✓' : 'Submit'}
           </button>
         </div>
+
+        {/* Validation Popup */}
+        {showValidationPopup && (
+          <div className={`${styles.validationPopup} ${popupHiding ? styles.hiding : ''}`}>
+            <div className={styles.validationIcon}>❌</div>
+            <h3 className={styles.validationTitle}>Invalid Question Format</h3>
+            <p className={styles.validationMessage}>
+              Please enter a question that can be answered with "yes" or "no"
+            </p>
+            <div className={styles.validationExamples}>
+              <p className={styles.validationExampleTitle}>Examples:</p>
+              <ul className={styles.validationExampleList}>
+                <li className={styles.validationExampleItem}>Is there a person?</li>
+                <li className={styles.validationExampleItem}>Are the lights on?</li>
+                <li className={styles.validationExampleItem}>Is someone moving?</li>
+                <li className={styles.validationExampleItem}>Can you see a car?</li>
+              </ul>
+            </div>
+            <button 
+              className={styles.validationDismiss}
+              onClick={handleDismissPopup}
+            >
+              Got it
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
