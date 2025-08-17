@@ -217,43 +217,59 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
   };
 
   // Handle submit of custom prompt
-  const handlePromptSubmit = useCallback(() => {
+  const handlePromptSubmit = useCallback(async () => {
     if (customPrompt.trim() && customPrompt !== promptToUse) {
       setValidationStatus('validating');
       
-      // Simple validation: check if prompt contains a question mark
-      const isValid = customPrompt.includes('?');
-      
-      setTimeout(() => {
-        if (isValid) {
-          setValidationStatus('valid');
-          
-          // Reset motion detection to clear any pending frames
-          resetDetection();
-          
-          // Clear any ongoing AI analysis
-          setAnalysisState({
-            current: null,
-            isAnalyzing: false,
-            startTime: null
-          });
-          
-          setPromptToUse(customPrompt);
-          setPromptSubmitted(true);
-          // Clear the input field after submission
-          setCustomPrompt('');
-          // Show feedback for 2 seconds
-          setTimeout(() => {
-            setPromptSubmitted(false);
-            setValidationStatus('idle');
-          }, 2000);
-          console.log('Custom prompt updated, detection reset:', customPrompt);
-        } else {
-          setValidationStatus('invalid');
-          // Reset validation status after 2 seconds
-          setTimeout(() => setValidationStatus('idle'), 2000);
-        }
-      }, 500); // 500ms validation delay for animation
+      try {
+        // Call backend validation API
+        const response = await fetch('/api/v1/llava/validate-prompt', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ prompt: customPrompt }),
+        });
+        
+        const result = await response.json();
+        
+        setTimeout(() => {
+          if (result.valid) {
+            setValidationStatus('valid');
+            
+            // Reset motion detection to clear any pending frames
+            resetDetection();
+            
+            // Clear any ongoing AI analysis
+            setAnalysisState({
+              current: null,
+              isAnalyzing: false,
+              startTime: null
+            });
+            
+            setPromptToUse(customPrompt);
+            setPromptSubmitted(true);
+            // Clear the input field after submission
+            setCustomPrompt('');
+            // Show feedback for 2 seconds
+            setTimeout(() => {
+              setPromptSubmitted(false);
+              setValidationStatus('idle');
+            }, 2000);
+            console.log('Custom prompt updated, detection reset:', customPrompt);
+          } else {
+            setValidationStatus('invalid');
+            console.log('Validation failed:', result.reason);
+            // Reset validation status after 2 seconds
+            setTimeout(() => setValidationStatus('idle'), 2000);
+          }
+        }, 300); // 300ms delay for smoother UX
+        
+      } catch (error) {
+        console.error('Validation error:', error);
+        setValidationStatus('invalid');
+        setTimeout(() => setValidationStatus('idle'), 2000);
+      }
     }
   }, [customPrompt, promptToUse, resetDetection]);
 

@@ -95,6 +95,15 @@ class LLaVAAnalysisResponse(BaseModel):
     error_message: Optional[str] = None
 
 
+class PromptValidationRequest(BaseModel):
+    prompt: str = Field(..., description="Prompt to validate")
+
+
+class PromptValidationResponse(BaseModel):
+    valid: bool = Field(..., description="Whether the prompt is valid")
+    reason: Optional[str] = Field(None, description="Reason for validation result")
+
+
 @app.get("/health")
 def health_check():
     return {"status": "ok", "sse_connections": sse_manager.connection_count}
@@ -308,6 +317,33 @@ async def analyze_uploaded_image(
             llm_model="llava:latest",
             success=False,
             error_message=f"File processing failed: {str(e)}",
+        )
+
+
+@app.post("/api/v1/llava/validate-prompt", response_model=PromptValidationResponse)
+async def validate_prompt(request: PromptValidationRequest):
+    """
+    Validate prompt using LangChain - starting simple with question mark check
+    """
+    try:
+        # Simple validation: check if prompt contains a question mark
+        has_question_mark = "?" in request.prompt.strip()
+        
+        if has_question_mark:
+            return PromptValidationResponse(
+                valid=True,
+                reason="Prompt contains a question mark and appears to be a valid question"
+            )
+        else:
+            return PromptValidationResponse(
+                valid=False,
+                reason="Prompt should contain a question mark to form a proper question"
+            )
+            
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Validation error: {str(e)}"
         )
 
 
