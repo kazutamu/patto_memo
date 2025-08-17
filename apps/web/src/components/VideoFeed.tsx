@@ -445,19 +445,22 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
 
         {/* Validation Popup */}
         {showValidationPopup && (
-          <div className={`${styles.validationPopup} ${popupHiding ? styles.hiding : ''}`}>
-            <div className={styles.validationIcon}>❌</div>
-            <h3 className={styles.validationTitle}>Try a yes/no question</h3>
-            <p className={styles.validationMessage}>
-              Like "Is there a person?" or "Are the lights on?"
-            </p>
-            <button 
-              className={styles.validationDismiss}
-              onClick={handleDismissPopup}
-            >
-              Got it
-            </button>
-          </div>
+          <>
+            <div className={styles.validationOverlay} onClick={handleDismissPopup}></div>
+            <div className={`${styles.validationPopup} ${popupHiding ? styles.hiding : ''}`}>
+              <div className={styles.validationIcon}>❌</div>
+              <h3 className={styles.validationTitle}>Try a yes/no question</h3>
+              <p className={styles.validationMessage}>
+                Like "Is there a person?" or "Are the lights on?"
+              </p>
+              <button 
+                className={styles.validationDismiss}
+                onClick={handleDismissPopup}
+              >
+                Got it
+              </button>
+            </div>
+          </>
         )}
       </div>
     </div>
