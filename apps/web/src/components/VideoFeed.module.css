@@ -579,8 +579,8 @@
   backdrop-filter: blur(20px);
   border: 1px solid rgba(244, 67, 54, 0.5);
   border-radius: 16px;
-  padding: 24px 32px;
-  max-width: 400px;
+  padding: 20px 28px;
+  max-width: 320px;
   z-index: 20;
   box-shadow: 
     0 20px 40px rgba(0, 0, 0, 0.5),
@@ -612,46 +612,8 @@
   color: rgba(255, 255, 255, 0.85);
   font-size: 14px;
   text-align: center;
-  margin: 0 0 20px 0;
-  line-height: 1.5;
-}
-
-.validationExamples {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
-  padding: 12px 16px;
-  margin-top: 16px;
-}
-
-.validationExampleTitle {
-  color: rgba(74, 158, 255, 0.9);
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  margin: 0 0 8px 0;
-}
-
-.validationExampleList {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.validationExampleItem {
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 13px;
-  margin: 4px 0;
-  padding-left: 16px;
-  position: relative;
-}
-
-.validationExampleItem::before {
-  content: '✓';
-  position: absolute;
-  left: 0;
-  color: rgba(76, 175, 80, 0.8);
-  font-weight: bold;
+  margin: 0 0 16px 0;
+  line-height: 1.4;
 }
 
 .validationDismiss {
@@ -720,13 +682,13 @@
 @media (max-width: 768px) {
   .validationPopup {
     max-width: 90vw;
-    padding: 20px 24px;
+    padding: 18px 22px;
     margin: 0 16px;
   }
   
   .validationIcon {
     font-size: 40px;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
   }
   
   .validationTitle {
@@ -735,5 +697,6 @@
   
   .validationMessage {
     font-size: 13px;
+    margin-bottom: 14px;
   }
 }
