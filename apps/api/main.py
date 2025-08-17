@@ -328,23 +328,20 @@ async def validate_prompt(request: PromptValidationRequest):
     try:
         # Simple validation: check if prompt contains a question mark
         has_question_mark = "?" in request.prompt.strip()
-        
+
         if has_question_mark:
             return PromptValidationResponse(
                 valid=True,
-                reason="Prompt contains a question mark and appears to be a valid question"
+                reason="Prompt contains a question mark and appears to be a valid question",
             )
         else:
             return PromptValidationResponse(
                 valid=False,
-                reason="Prompt should contain a question mark to form a proper question"
+                reason="Prompt should contain a question mark to form a proper question",
             )
-            
+
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Validation error: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Validation error: {str(e)}")
 
 
 @app.get("/api/v1/events/stream")
