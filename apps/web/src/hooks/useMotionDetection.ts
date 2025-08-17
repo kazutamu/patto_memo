@@ -87,16 +87,18 @@ export function useMotionDetection({
             description: `Motion detected: ${result.motionStrength.toFixed(0)}%`
           }).catch(console.warn);
 
-          // Capture frame for AI analysis (throttled)
-          const frameBase64 = frameCapture.capture(videoElement);
-          if (frameBase64) {
-            // Only start loading animation if we actually have a frame to analyze
-            onAnalysisStart?.();
-            
-            api.analyzeLLaVA({
-              image_base64: frameBase64,
-              prompt: customPrompt || LLAVA_PROMPTS.default
-            }).catch(console.warn);
+          // Capture frame for AI analysis (throttled) - only if user provided a prompt
+          if (customPrompt && customPrompt.trim()) {
+            const frameBase64 = frameCapture.capture(videoElement);
+            if (frameBase64) {
+              // Only start loading animation if we actually have a frame to analyze
+              onAnalysisStart?.();
+              
+              api.analyzeLLaVA({
+                image_base64: frameBase64,
+                prompt: customPrompt
+              }).catch(console.warn);
+            }
           }
         }
       } catch (error) {

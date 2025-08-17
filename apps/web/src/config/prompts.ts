@@ -2,7 +2,6 @@
  * Centralized prompt configuration for LLaVA analysis
  */
 export const LLAVA_PROMPTS = {
-  default: "Describe in 5 words or less",
   detailed: "Provide a detailed description of what you see",
   security: "Identify any security concerns or unusual activity",
 } as const;
