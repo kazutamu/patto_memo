@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AIAnalysis } from '../hooks/useSSE';
 import { useStreamingText } from '../hooks/useStreamingText';
+import { ANIMATION_CONSTANTS } from '../constants/animation';
 import styles from './AIAnalysisOverlay.module.css';
 
 interface AIAnalysisOverlayProps {
@@ -20,7 +21,7 @@ export const AIAnalysisOverlay: React.FC<AIAnalysisOverlayProps> = ({
   // Streaming text effect for AI analysis
   const { displayText, isComplete, isStreaming, skipToEnd } = useStreamingText(
     analysis?.description || '', 
-    { speed: 25, delay: 200 }
+    { speed: ANIMATION_CONSTANTS.STREAMING_SPEED, delay: ANIMATION_CONSTANTS.STREAMING_DELAY }
   );
 
   useEffect(() => {

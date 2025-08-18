@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { api } from '../api';
+import { calculateOptimalResponseLength } from '../constants/animation';
 
 interface UsePeriodicCaptureOptions {
   videoElement: HTMLVideoElement | null;
@@ -84,9 +85,13 @@ export function usePeriodicCapture({
         onAnalysisStart?.();
         
         // Send to AI for analysis
+        // Calculate optimal response length for animation timing
+        const optimalResponseLength = calculateOptimalResponseLength(intervalSeconds);
+        
+        const enhancedPrompt = `${customPrompt} Please provide a response that is exactly ${optimalResponseLength} characters long to match our animation timing.`;
         api.analyzeLLaVA({
           image_base64: base64,
-          prompt: customPrompt
+          prompt: enhancedPrompt
         }).then(response => {
           console.log('AI analysis response:', response);
         }).catch(error => {

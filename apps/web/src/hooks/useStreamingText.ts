@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { ANIMATION_CONSTANTS } from '../constants/animation';
 
 interface UseStreamingTextOptions {
   speed?: number; // Characters per second
@@ -9,7 +10,10 @@ export const useStreamingText = (
   text: string, 
   options: UseStreamingTextOptions = {}
 ) => {
-  const { speed = 30, delay = 100 } = options;
+  const { 
+    speed = ANIMATION_CONSTANTS.DEFAULT_STREAMING_SPEED, 
+    delay = ANIMATION_CONSTANTS.DEFAULT_STREAMING_DELAY 
+  } = options;
   const [displayText, setDisplayText] = useState('');
   const [isComplete, setIsComplete] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
