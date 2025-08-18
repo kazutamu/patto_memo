@@ -84,7 +84,14 @@ export function usePeriodicCapture({
         onAnalysisStart?.();
         
         // Send to AI for analysis
-        const enhancedPrompt = `${customPrompt} Please provide a response that is exactly 120 characters long to match our animation timing.`;
+        // Calculate optimal response length for animation timing
+        const ANIMATION_SPEED = 25; // characters per second (from useStreamingText)
+        const ANIMATION_DELAY = 200; // milliseconds initial delay
+        const BUFFER_TIME = 200; // milliseconds buffer before next frame
+        const availableAnimationTime = (intervalSeconds * 1000) - ANIMATION_DELAY - BUFFER_TIME; // milliseconds
+        const optimalResponseLength = Math.floor((availableAnimationTime / 1000) * ANIMATION_SPEED);
+        
+        const enhancedPrompt = `${customPrompt} Please provide a response that is exactly ${optimalResponseLength} characters long to match our animation timing.`;
         api.analyzeLLaVA({
           image_base64: base64,
           prompt: enhancedPrompt
