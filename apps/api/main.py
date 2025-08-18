@@ -94,7 +94,6 @@ class LLaVAAnalysisResponse(BaseModel):
     error_message: Optional[str] = None
 
 
-
 @app.get("/health")
 def health_check():
     return {"status": "ok", "sse_connections": sse_manager.connection_count}
