@@ -47,6 +47,26 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
   const [validationStatus, setValidationStatus] = useState<'idle' | 'validating' | 'valid' | 'invalid'>('idle');
   const [showValidationPopup, setShowValidationPopup] = useState<boolean>(false);
   const [popupHiding, setPopupHiding] = useState<boolean>(false);
+  const [showSuccessToast, setShowSuccessToast] = useState<boolean>(false);
+  const [successHiding, setSuccessHiding] = useState<boolean>(false);
+
+  // Example prompts for placeholder
+  const examplePrompts = [
+    "Is he smiling?",
+    "Are they waving?", 
+    "Is someone sleeping?",
+    "Are they standing?",
+    "Is she reading?",
+    "Are they dancing?",
+    "Is he walking?",
+    "Are they talking?",
+    "Is someone eating?",
+    "Are they sitting?"
+  ];
+
+  const [currentExample, setCurrentExample] = useState<string>(() => 
+    examplePrompts[Math.floor(Math.random() * examplePrompts.length)]
+  );
 
   // SSE hook to receive AI analysis updates
   useSSE({
@@ -79,7 +99,10 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
       isAnalyzing: true,
       startTime: Date.now()
     }));
-  }, []);
+    
+    // Shuffle example prompt when analysis starts
+    setCurrentExample(examplePrompts[Math.floor(Math.random() * examplePrompts.length)]);
+  }, [examplePrompts]);
 
   // Motion detection integration
   const { motionState, resetDetection } = useMotionDetection({
@@ -291,6 +314,11 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
   // Handle submit of custom prompt
   const handlePromptSubmit = useCallback(() => {
     if (customPrompt.trim() && customPrompt !== promptToUse) {
+      // Hide previous success toast when submitting new prompt
+      if (showSuccessToast) {
+        handleDismissSuccess();
+      }
+      
       setValidationStatus('validating');
       
       // Client-side validation
@@ -312,6 +340,10 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
           
           setPromptToUse(customPrompt);
           setPromptSubmitted(true);
+          
+          // Show success toast (stays until prompt changes)
+          setShowSuccessToast(true);
+          
           // Clear the input field after submission
           setCustomPrompt('');
           // Show feedback for 2 seconds
@@ -344,6 +376,15 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
       setShowValidationPopup(false);
       setPopupHiding(false);
     }, 300); // Match the CSS animation duration
+  }, []);
+
+  // Handle success toast dismissal
+  const handleDismissSuccess = useCallback(() => {
+    setSuccessHiding(true);
+    setTimeout(() => {
+      setShowSuccessToast(false);
+      setSuccessHiding(false);
+    }, 300);
   }, []);
 
 
@@ -422,9 +463,7 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
           <input
             type="text"
             className={`${styles.textInput} ${validationStatus !== 'idle' ? styles[validationStatus] : ''}`}
-            placeholder={!promptToUse 
-              ? "Enter prompt for AI analysis..." 
-              : `Current: "${promptToUse.substring(0, 40)}${promptToUse.length > 40 ? '...' : ''}"`}
+            placeholder={`Try: ${currentExample}`}
             value={customPrompt}
             onChange={(e) => {
               setCustomPrompt(e.target.value);
@@ -451,6 +490,13 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
         {showValidationPopup && (
           <div className={`${styles.validationToast} ${popupHiding ? styles.hiding : ''}`}>
             <span className={styles.toastMessage}>Try a yes/no question</span>
+          </div>
+        )}
+
+        {/* Success Toast */}
+        {showSuccessToast && (
+          <div className={`${styles.successToast} ${successHiding ? styles.hiding : ''}`}>
+            <span className={styles.toastMessage}>{promptToUse}</span>
           </div>
         )}
       </div>
