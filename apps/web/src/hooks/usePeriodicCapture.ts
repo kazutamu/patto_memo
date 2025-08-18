@@ -74,7 +74,7 @@ export function usePeriodicCapture({
       const base64 = canvas.toDataURL('image/jpeg', 0.7).replace(/^data:image\/\w+;base64,/, '');
       
       if (base64) {
-        console.log(`Analyzing current video frame for motion detection and preparing data for artificial intelligence processing`);
+        console.log(`Capturing frame #${captureCount + 1} for analysis with prompt: "${customPrompt}"`);
         
         // Update state
         setLastCaptureTime(Date.now());
@@ -84,9 +84,10 @@ export function usePeriodicCapture({
         onAnalysisStart?.();
         
         // Send to AI for analysis
+        const enhancedPrompt = `${customPrompt} Please provide a response that is exactly 120 characters long to match our animation timing.`;
         api.analyzeLLaVA({
           image_base64: base64,
-          prompt: customPrompt
+          prompt: enhancedPrompt
         }).then(response => {
           console.log('AI analysis response:', response);
         }).catch(error => {
