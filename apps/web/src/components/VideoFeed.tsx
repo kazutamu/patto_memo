@@ -104,7 +104,7 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
   }, [examplePrompts]);
 
   // Periodic capture integration
-  const { isCapturing, lastCaptureTime, captureCount, resetCapture } = usePeriodicCapture({
+  const { isCapturing, resetCapture } = usePeriodicCapture({
     videoElement: videoRef.current,
     isActive: isActive && videoState.hasPermission === true,
     intervalSeconds: captureInterval,
@@ -449,23 +449,6 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
           isPersistent={true}
           isAnalyzing={analysisState.isAnalyzing}
         />
-
-        {/* Capture Status Overlay */}
-        {isCapturing && promptToUse && (
-          <div className={styles.captureStatus}>
-            <div className={styles.captureIndicator}>
-              <span className={styles.captureIcon}>📸</span>
-              <span className={styles.captureText}>
-                Capturing every {captureInterval}s | Count: {captureCount}
-              </span>
-            </div>
-            {lastCaptureTime && (
-              <div className={styles.lastCapture}>
-                Last: {new Date(lastCaptureTime).toLocaleTimeString()}
-              </div>
-            )}
-          </div>
-        )}
 
         {/* Custom Prompt Input Overlay */}
         <div className={styles.textBoxOverlay}>
