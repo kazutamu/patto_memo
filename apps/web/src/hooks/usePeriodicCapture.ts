@@ -74,7 +74,7 @@ export function usePeriodicCapture({
       const base64 = canvas.toDataURL('image/jpeg', 0.7).replace(/^data:image\/\w+;base64,/, '');
       
       if (base64) {
-        console.log(`Capturing frame #${captureCount + 1} for analysis with prompt: "${customPrompt}"`);
+        console.log(`Analyzing current video frame for motion detection and preparing data for artificial intelligence processing`);
         
         // Update state
         setLastCaptureTime(Date.now());
