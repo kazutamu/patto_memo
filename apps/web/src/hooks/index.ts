@@ -1,2 +1,2 @@
-export { useMotionDetection } from './useMotionDetection';
+export { usePeriodicCapture } from './usePeriodicCapture';
 export { useSSE } from './useSSE';

@@ -1,7 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { useMotionDetection } from '../hooks/useMotionDetection';
+import { usePeriodicCapture } from '../hooks/usePeriodicCapture';
 import { useSSE, AIAnalysis } from '../hooks/useSSE';
-import { MotionDetectionState } from '../types';
 import { AIAnalysisOverlay } from './AIAnalysisOverlay';
 import styles from './VideoFeed.module.css';
 
@@ -10,19 +9,19 @@ interface VideoFeedProps {
   onError: (error: string) => void;
   onStreamReady: (stream: MediaStream) => void;
   sensitivity: number;
-  onMotionStateChange?: (motionState: MotionDetectionState) => void;
   cameraFacing?: 'user' | 'environment';
   onCameraFacingChange?: (facing: 'user' | 'environment') => void;
+  captureInterval?: number; // Interval in seconds
 }
 
 export const VideoFeed: React.FC<VideoFeedProps> = ({
   isActive,
   onError,
   onStreamReady,
-  sensitivity,
-  onMotionStateChange,
+  sensitivity: _sensitivity, // Keep for interface compatibility but unused
   cameraFacing = 'user',
   onCameraFacingChange,
+  captureInterval = 5, // Default: capture every 5 seconds
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -104,14 +103,13 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
     setCurrentExample(examplePrompts[Math.floor(Math.random() * examplePrompts.length)]);
   }, [examplePrompts]);
 
-  // Motion detection integration
-  const { motionState, resetDetection } = useMotionDetection({
+  // Periodic capture integration
+  const { isCapturing, resetCapture } = usePeriodicCapture({
     videoElement: videoRef.current,
     isActive: isActive && videoState.hasPermission === true,
-    sensitivity,
-    detectionInterval: 150, // Check every 150ms for good performance
-    onAnalysisStart: handleAnalysisStart,
-    customPrompt: promptToUse
+    intervalSeconds: captureInterval,
+    customPrompt: promptToUse,
+    onAnalysisStart: handleAnalysisStart
   });
 
   const stopStream = useCallback(() => {
@@ -228,12 +226,6 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
     }
   }, [cameraFacing, onCameraFacingChange]);
 
-  // Notify parent about motion state changes
-  useEffect(() => {
-    if (onMotionStateChange) {
-      onMotionStateChange(motionState);
-    }
-  }, [motionState, onMotionStateChange]);
 
   const handleRetry = () => {
     if (isActive) {
@@ -328,8 +320,8 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
         if (validation.valid) {
           setValidationStatus('valid');
           
-          // Reset motion detection to clear any pending frames
-          resetDetection();
+          // Reset capture to start fresh with new prompt
+          resetCapture();
           
           // Clear any ongoing AI analysis
           setAnalysisState({
@@ -367,7 +359,7 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
         }
       }, 300); // 300ms delay for smoother UX
     }
-  }, [customPrompt, promptToUse, resetDetection]);
+  }, [customPrompt, promptToUse, resetCapture]);
 
   // Handle popup dismissal with animation
   const handleDismissPopup = useCallback(() => {
@@ -390,7 +382,7 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
 
   return (
     <div className={styles.videoContainer}>
-      <div className={`${styles.videoWrapper} ${motionState.motionStrength > 0 ? styles.motionDetected : ''}`}>
+      <div className={`${styles.videoWrapper} ${isCapturing ? styles.capturing : ''}`}>
         <video
           ref={videoRef}
           className={styles.video}

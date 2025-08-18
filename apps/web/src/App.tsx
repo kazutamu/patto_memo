@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { VideoFeed } from './components';
 import { ConnectionHelper } from './components/ConnectionHelper';
-import { MotionDetectionState, MotionEvent } from './types';
+import { MotionEvent } from './types';
 import { useSSE, AIAnalysis } from './hooks/useSSE';
 import styles from './App.module.css';
 
@@ -15,13 +15,8 @@ function App() {
     error: null as string | null
   });
 
-  // Motion detection state
-  const [motionState, setMotionState] = useState<MotionDetectionState>({
-    isDetecting: false,
-    motionStrength: 0,
-    lastMotionTime: null,
-    sensitivity: 50
-  });
+  // Sensitivity state (keeping for future use)
+  const [sensitivity] = useState(50);
 
   // UI state
   const [uiState, setUiState] = useState({
@@ -67,10 +62,6 @@ function App() {
     }));
   }, []);
 
-
-  const handleMotionStateChange = useCallback((newMotionState: MotionDetectionState) => {
-    setMotionState(newMotionState);
-  }, []);
 
   const handleCameraFacingChange = useCallback((facing: 'user' | 'environment') => {
     setCameraState(prev => ({
@@ -128,10 +119,10 @@ function App() {
               isActive={cameraState.isActive}
               onError={handleVideoError}
               onStreamReady={handleStreamReady}
-              sensitivity={motionState.sensitivity}
-              onMotionStateChange={handleMotionStateChange}
+              sensitivity={sensitivity}
               cameraFacing={cameraState.facing}
               onCameraFacingChange={handleCameraFacingChange}
+              captureInterval={5}
             />
             
             {/* Camera toggle button overlay */}
