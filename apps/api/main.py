@@ -1,5 +1,6 @@
 import asyncio
 import base64
+import json
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -86,6 +87,7 @@ class LLaVAAnalysisRequest(BaseModel):
 
 class LLaVAAnalysisResponse(BaseModel):
     description: str
+    detected: Optional[str] = None  # "YES" or "NO" for detection status
     processing_time: float
     llm_model: (
         str  # Changed from model_used to avoid Pydantic's protected namespace "model_"
@@ -236,8 +238,22 @@ async def analyze_image_with_llava(request: LLaVAAnalysisRequest):
             else graph_result.get("result", "")
         )
 
+        # Try to parse JSON response to extract detection status
+        detected_status = None
+        description_text = result_text
+        
+        try:
+            parsed_result = json.loads(result_text)
+            if isinstance(parsed_result, dict):
+                detected_status = parsed_result.get("detected", None)
+                description_text = parsed_result.get("description", result_text)
+        except (json.JSONDecodeError, AttributeError):
+            # If not valid JSON, use the raw text as description
+            pass
+
         response = LLaVAAnalysisResponse(
-            description=result_text,
+            description=description_text,
+            detected=detected_status,
             processing_time=processing_time,
             llm_model="llava:latest",
             success=True,
@@ -248,6 +264,7 @@ async def analyze_image_with_llava(request: LLaVAAnalysisRequest):
             "ai_analysis",
             {
                 "description": response.description,
+                "detected": response.detected,
                 "processing_time": response.processing_time,
                 "timestamp": datetime.now().isoformat(),
             },

@@ -4,6 +4,7 @@ import { MotionEvent } from '../types';
 
 export interface AIAnalysis {
   description: string;
+  detected?: 'YES' | 'NO' | null;  // Detection status from LLaVA
   processing_time: number;
   timestamp: string;
 }
