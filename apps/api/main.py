@@ -211,7 +211,13 @@ async def analyze_image_with_llava(request: LLaVAAnalysisRequest):
         elif request.prompt_type == "security":
             prompt = LLAVA_CONFIG["security_prompt"]
         else:
-            prompt = request.prompt  # Use provided prompt or default
+            # If user provided a custom prompt, wrap it with JSON format instructions
+            if request.prompt and request.prompt != LLAVA_CONFIG["default_prompt"]:
+                # Enhance user's custom prompt with JSON format
+                prompt = f'Respond ONLY with valid JSON in this exact format: {{"detected": "YES" or "NO", "description": "your answer"}}. Set detected to "YES" if the answer to the question is affirmative/positive or if activity is detected, "NO" otherwise. Answer this question: {request.prompt}'
+            else:
+                # Use default prompt if no custom prompt provided
+                prompt = request.prompt if request.prompt else LLAVA_CONFIG["default_prompt"]
 
         # Use LangGraph
         graph_result = await analyze_with_graph(request.image_base64, prompt)
