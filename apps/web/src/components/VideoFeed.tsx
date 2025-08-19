@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { usePeriodicCapture } from '../hooks/usePeriodicCapture';
 import { useSSE, AIAnalysis } from '../hooks/useSSE';
 import { AIAnalysisOverlay } from './AIAnalysisOverlay';
@@ -49,8 +49,8 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
   const [showSuccessToast, setShowSuccessToast] = useState<boolean>(false);
   const [successHiding, setSuccessHiding] = useState<boolean>(false);
 
-  // Example prompts for placeholder
-  const examplePrompts = [
+  // Example prompts for placeholder (defined outside component or memoized to prevent recreating)
+  const examplePrompts = useMemo(() => [
     "Is he smiling?",
     "Are they waving?", 
     "Is someone sleeping?",
@@ -61,7 +61,7 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
     "Are they talking?",
     "Is someone eating?",
     "Are they sitting?"
-  ];
+  ], []);
 
   const [currentExample, setCurrentExample] = useState<string>(() => 
     examplePrompts[Math.floor(Math.random() * examplePrompts.length)]
