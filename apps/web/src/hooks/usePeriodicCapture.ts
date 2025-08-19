@@ -101,7 +101,7 @@ export function usePeriodicCapture({
     } catch (error) {
       console.error('Error capturing frame:', error);
     }
-  }, [videoElement, customPrompt, onAnalysisStart, captureCount]);
+  }, [videoElement, customPrompt, onAnalysisStart, captureCount, intervalSeconds]);
   
   // Start periodic capture
   const startCapture = useCallback(() => {
@@ -144,9 +144,16 @@ export function usePeriodicCapture({
   // Auto start/stop based on isActive prop
   useEffect(() => {
     if (isActive && videoElement && customPrompt) {
+      // Prevent double execution in React.StrictMode
+      if (intervalRef.current) {
+        return;
+      }
+      
       // Small delay to ensure video is ready
       const timeout = setTimeout(() => {
-        startCapture();
+        if (!intervalRef.current) {  // Double check before starting
+          startCapture();
+        }
       }, 500);
       
       return () => {
@@ -154,9 +161,12 @@ export function usePeriodicCapture({
         stopCapture();
       };
     } else {
-      stopCapture();
+      if (intervalRef.current) {
+        stopCapture();
+      }
     }
-  }, [isActive, videoElement, customPrompt, startCapture, stopCapture]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isActive, videoElement, customPrompt, intervalSeconds]);
   
   // Cleanup on unmount
   useEffect(() => {
