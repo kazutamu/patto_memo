@@ -9,7 +9,6 @@ from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from config import LLAVA_CONFIG
 from graph import analyze_with_graph
 from sse_manager import sse_manager
 
@@ -75,9 +74,9 @@ class MotionSettings(BaseModel):
 
 class LLaVAAnalysisRequest(BaseModel):
     image_base64: str = Field(..., description="Base64 encoded image")
-    prompt: str = Field(
-        default=LLAVA_CONFIG["default_prompt"],
-        description="Analysis prompt",
+    prompt: Optional[str] = Field(
+        default=None,
+        description="Custom analysis prompt from user",
     )
     prompt_type: Optional[str] = Field(
         default="default",
@@ -175,23 +174,16 @@ def get_available_prompts():
     """
     Get available analysis prompt types and their descriptions
     """
+    # This endpoint is kept for backward compatibility but simplified
     return {
-        "default": {
-            "prompt": LLAVA_CONFIG["default_prompt"],
-            "description": "Standard activity analysis focusing on specific actions and movements",
-        },
-        "detailed": {
-            "prompt": LLAVA_CONFIG["detailed_activity_prompt"],
-            "description": "Detailed analysis including posture, interactions, and specific activities",
-        },
-        "quick": {
-            "prompt": LLAVA_CONFIG["quick_activity_prompt"],
-            "description": "Quick summary of the main activity being performed",
-        },
-        "security": {
-            "prompt": LLAVA_CONFIG["security_prompt"],
-            "description": "Security-focused analysis identifying normal vs. suspicious behavior",
-        },
+        "info": "Custom prompts are now preferred. The system will automatically format your questions for optimal results.",
+        "example_prompts": [
+            "Is someone at the door?",
+            "Are they smiling?",
+            "Is anyone sleeping?",
+            "What are they holding?",
+            "Are they exercising?"
+        ]
     }
 
 
@@ -203,21 +195,21 @@ async def analyze_image_with_llava(request: LLaVAAnalysisRequest):
     start_time = datetime.now()
 
     try:
-        # Determine prompt based on prompt_type
-        if request.prompt_type == "detailed":
-            prompt = LLAVA_CONFIG["detailed_activity_prompt"]
+        # Create JSON-formatted prompt
+        json_format = 'Respond ONLY with valid JSON in this exact format: {"detected": "YES" or "NO", "description": "your answer"}.'
+        
+        if request.prompt:
+            # User provided a custom prompt
+            prompt = f'{json_format} Set detected to "YES" if the answer to the question is affirmative/positive or if activity is detected, "NO" otherwise. Answer this question: {request.prompt}'
+        elif request.prompt_type == "detailed":
+            prompt = f'{json_format} Set detected to "YES" if people are visible and active, "NO" if not. In description, describe in detail what each person is doing including: body position, what they are holding, specific actions, and any movements or gestures.'
         elif request.prompt_type == "quick":
-            prompt = LLAVA_CONFIG["quick_activity_prompt"]
+            prompt = f'{json_format} Set detected to "YES" if activity is detected, "NO" if not. In description, briefly state what specific activity the person is performing.'
         elif request.prompt_type == "security":
-            prompt = LLAVA_CONFIG["security_prompt"]
+            prompt = f'{json_format} Set detected to "YES" if there is any security concern, "NO" if normal. In description, analyze from a security perspective what the person is doing and whether their behavior is normal or suspicious.'
         else:
-            # If user provided a custom prompt, wrap it with JSON format instructions
-            if request.prompt and request.prompt != LLAVA_CONFIG["default_prompt"]:
-                # Enhance user's custom prompt with JSON format
-                prompt = f'Respond ONLY with valid JSON in this exact format: {{"detected": "YES" or "NO", "description": "your answer"}}. Set detected to "YES" if the answer to the question is affirmative/positive or if activity is detected, "NO" otherwise. Answer this question: {request.prompt}'
-            else:
-                # Use default prompt if no custom prompt provided
-                prompt = request.prompt if request.prompt else LLAVA_CONFIG["default_prompt"]
+            # Default prompt
+            prompt = f'{json_format} Set detected to "YES" if motion/activity is detected, "NO" if not. In description, analyze what the person is doing, focusing on their actions, posture, and activities. Be specific about movements, gestures, or tasks being performed.'
 
         # Use LangGraph
         graph_result = await analyze_with_graph(request.image_base64, prompt)
@@ -302,7 +294,7 @@ async def analyze_image_with_llava(request: LLaVAAnalysisRequest):
 @app.post("/api/v1/llava/analyze-upload")
 async def analyze_uploaded_image(
     file: UploadFile = File(...),
-    prompt: str = LLAVA_CONFIG["default_prompt"],
+    prompt: Optional[str] = None,
     prompt_type: str = "default",
 ):
     """
