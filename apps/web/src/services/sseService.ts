@@ -7,7 +7,7 @@ export interface SSEEvent {
 
 export interface SSEEventHandlers {
   onMotionDetected?: (event: MotionEvent) => void;
-  onAIAnalysis?: (analysis: { description: string; detected?: string | null; processing_time: number; timestamp: string }) => void;
+  onAIAnalysis?: (analysis: { description: string; detected?: 'YES' | 'NO' | null; processing_time: number; timestamp: string }) => void;
   onConnected?: (data: { client_id: string; timestamp: string }) => void;
   onError?: (error: Event) => void;
   onClose?: () => void;

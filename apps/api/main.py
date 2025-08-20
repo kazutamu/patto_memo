@@ -179,8 +179,8 @@ def get_available_prompts():
             "Are they smiling?",
             "Is anyone sleeping?",
             "What are they holding?",
-            "Are they exercising?"
-        ]
+            "Are they exercising?",
+        ],
     }
 
 
@@ -193,7 +193,7 @@ async def analyze_image_with_llava(request: LLaVAAnalysisRequest):
 
     try:
         # Create more strict JSON-formatted prompt
-        json_format = '''You MUST respond with ONLY a valid JSON object. Do not include any text before or after the JSON.
+        json_format = """You MUST respond with ONLY a valid JSON object. Do not include any text before or after the JSON.
 The JSON must have exactly this structure:
 {
   "detected": "YES" or "NO",
@@ -205,8 +205,8 @@ Important rules:
 2. Use double quotes for all strings
 3. The "detected" field must be exactly "YES" or "NO" (uppercase)
 4. The "description" field must contain your analysis
-5. No additional text, explanations, or formatting outside the JSON'''
-        
+5. No additional text, explanations, or formatting outside the JSON"""
+
         if request.prompt:
             # User provided a custom prompt
             prompt = f'{json_format}\n\nSet detected to "YES" if the answer to this question is affirmative/positive, "NO" otherwise.\nQuestion: {request.prompt}'
@@ -242,7 +242,7 @@ Important rules:
         # Try to parse JSON response to extract detection status
         detected_status = None
         description_text = result_text
-        
+
         # First, try to parse as direct JSON
         try:
             parsed_result = json.loads(result_text)
@@ -252,7 +252,9 @@ Important rules:
         except (json.JSONDecodeError, AttributeError):
             # If not valid JSON, try to extract JSON from the text
             # Try to find JSON object in the response
-            json_match = re.search(r'\{[^{}]*"detected"[^{}]*\}', result_text, re.DOTALL)
+            json_match = re.search(
+                r'\{[^{}]*"detected"[^{}]*\}', result_text, re.DOTALL
+            )
             if json_match:
                 try:
                     parsed_result = json.loads(json_match.group())
@@ -262,16 +264,16 @@ Important rules:
                 except json.JSONDecodeError:
                     # Even the extracted JSON is invalid
                     pass
-            
+
             # As a last resort, look for YES/NO pattern in the text
             if detected_status is None:
-                if re.search(r'\b(YES|yes|Yes)\b', result_text):
+                if re.search(r"\b(YES|yes|Yes)\b", result_text):
                     detected_status = "YES"
-                elif re.search(r'\b(NO|no|No)\b', result_text):
+                elif re.search(r"\b(NO|no|No)\b", result_text):
                     detected_status = "NO"
-                    
+
                 # Clean up the description by removing any JSON-like formatting
-                description_text = re.sub(r'[{}"]', '', result_text).strip()
+                description_text = re.sub(r'[{}"]', "", result_text).strip()
 
         response = LLaVAAnalysisResponse(
             description=description_text,
@@ -329,9 +331,7 @@ async def analyze_uploaded_image(
         image_base64 = base64.b64encode(image_data).decode("utf-8")
 
         # Use the existing analysis endpoint
-        request = LLaVAAnalysisRequest(
-            image_base64=image_base64, prompt=prompt
-        )
+        request = LLaVAAnalysisRequest(image_base64=image_base64, prompt=prompt)
 
         return await analyze_image_with_llava(request)
 
