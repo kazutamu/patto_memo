@@ -91,6 +91,7 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
     }
   }, []);
 
+
   // Handle analysis start
   const handleAnalysisStart = useCallback(() => {
     setAnalysisState(prev => ({
@@ -380,9 +381,16 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
   }, []);
 
 
+  // Determine detection status class
+  const detectionClass = analysisState.current?.detected === 'YES' 
+    ? styles.detectedYes 
+    : analysisState.current?.detected === 'NO' 
+    ? styles.detectedNo 
+    : '';
+
   return (
     <div className={styles.videoContainer}>
-      <div className={`${styles.videoWrapper} ${isCapturing ? styles.capturing : ''}`}>
+      <div className={`${styles.videoWrapper} ${isCapturing ? styles.capturing : ''} ${detectionClass}`}>
         <video
           ref={videoRef}
           className={styles.video}

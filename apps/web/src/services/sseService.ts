@@ -7,7 +7,7 @@ export interface SSEEvent {
 
 export interface SSEEventHandlers {
   onMotionDetected?: (event: MotionEvent) => void;
-  onAIAnalysis?: (analysis: { description: string; processing_time: number; timestamp: string }) => void;
+  onAIAnalysis?: (analysis: { description: string; detected?: 'YES' | 'NO' | null; processing_time: number; timestamp: string }) => void;
   onConnected?: (data: { client_id: string; timestamp: string }) => void;
   onError?: (error: Event) => void;
   onClose?: () => void;
@@ -69,7 +69,6 @@ export class SSEService {
 
       this.eventSource.addEventListener('ai_analysis', (event) => {
         const analysisData = JSON.parse(event.data);
-        console.log('AI analysis received via SSE:', analysisData);
         this.handlers.onAIAnalysis?.(analysisData);
       });
 

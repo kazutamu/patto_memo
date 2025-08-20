@@ -198,6 +198,7 @@
   to { transform: translateX(0); }
 }
 
+
 /* Mobile Responsive */
 @media (max-width: 768px) {
   .overlay {

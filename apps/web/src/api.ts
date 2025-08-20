@@ -41,6 +41,7 @@ export interface LLaVAAnalysisRequest {
 
 export interface LLaVAAnalysisResponse {
   description: string;
+  detected?: string | null;  // "YES" or "NO" detection status
   processing_time: number;
   llm_model: string;
   success: boolean;
