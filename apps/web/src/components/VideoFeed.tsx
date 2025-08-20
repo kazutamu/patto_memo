@@ -91,6 +91,7 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
     }
   }, []);
 
+
   // Handle analysis start
   const handleAnalysisStart = useCallback(() => {
     setAnalysisState(prev => ({

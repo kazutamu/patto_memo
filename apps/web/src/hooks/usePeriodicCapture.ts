@@ -13,6 +13,7 @@ interface UsePeriodicCaptureReturn {
   isCapturing: boolean;
   lastCaptureTime: number | null;
   captureCount: number;
+  lastCapturedFrame: string | null;
   startCapture: () => void;
   stopCapture: () => void;
   resetCapture: () => void;
@@ -33,6 +34,7 @@ export function usePeriodicCapture({
   const [isCapturing, setIsCapturing] = useState(false);
   const [lastCaptureTime, setLastCaptureTime] = useState<number | null>(null);
   const [captureCount, setCaptureCount] = useState(0);
+  const [lastCapturedFrame, setLastCapturedFrame] = useState<string | null>(null);
   
   const intervalRef = useRef<number | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -49,12 +51,10 @@ export function usePeriodicCapture({
   // Capture and analyze a single frame
   const captureFrame = useCallback(() => {
     if (!videoElement || !canvasRef.current || videoElement.readyState < 2) {
-      console.log('Video not ready for capture');
       return;
     }
     
     if (!customPrompt || !customPrompt.trim()) {
-      console.log('No custom prompt provided, skipping capture');
       return;
     }
     
@@ -67,29 +67,55 @@ export function usePeriodicCapture({
         return;
       }
       
-      // Draw current video frame to canvas
+      // Update canvas size to match video's natural dimensions to preserve aspect ratio
+      const videoWidth = videoElement.videoWidth;
+      const videoHeight = videoElement.videoHeight;
+      
+      if (videoWidth && videoHeight) {
+        // Set canvas size to match video aspect ratio
+        // Cap at reasonable size to avoid huge images
+        const maxWidth = 1280;
+        const maxHeight = 720;
+        
+        let targetWidth = videoWidth;
+        let targetHeight = videoHeight;
+        
+        // Scale down if needed while preserving aspect ratio
+        if (videoWidth > maxWidth || videoHeight > maxHeight) {
+          const widthRatio = maxWidth / videoWidth;
+          const heightRatio = maxHeight / videoHeight;
+          const ratio = Math.min(widthRatio, heightRatio);
+          
+          targetWidth = Math.floor(videoWidth * ratio);
+          targetHeight = Math.floor(videoHeight * ratio);
+        }
+        
+        // Only update canvas size if it changed (to avoid unnecessary reallocation)
+        if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
+          canvas.width = targetWidth;
+          canvas.height = targetHeight;
+        }
+      }
+      
+      // Draw current video frame to canvas (will use canvas's current dimensions)
       ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
       
       // Convert to base64
       const base64 = canvas.toDataURL('image/jpeg', 0.7).replace(/^data:image\/\w+;base64,/, '');
       
       if (base64) {
-        console.log(`Capturing frame #${captureCount + 1} for analysis with prompt: "${customPrompt}"`);
-        
         // Update state
         setLastCaptureTime(Date.now());
         setCaptureCount(prev => prev + 1);
+        setLastCapturedFrame(canvas.toDataURL('image/jpeg', 0.7));
         
         // Notify UI that analysis is starting
         onAnalysisStart?.();
         
         // Send to AI for analysis
-        // The backend will wrap the prompt with JSON format instructions
         api.analyzeLLaVA({
           image_base64: base64,
           prompt: customPrompt
-        }).then(response => {
-          console.log('AI analysis response:', response);
         }).catch(error => {
           console.error('AI analysis error:', error);
         });
@@ -101,12 +127,12 @@ export function usePeriodicCapture({
   
   // Start periodic capture
   const startCapture = useCallback(() => {
+    // Stop any existing interval first
     if (intervalRef.current) {
-      console.log('Capture already running');
-      return;
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
     }
     
-    console.log(`Starting periodic capture every ${intervalSeconds} seconds`);
     setIsCapturing(true);
     
     // Capture first frame immediately
@@ -127,7 +153,6 @@ export function usePeriodicCapture({
     }
     
     setIsCapturing(false);
-    console.log('Stopped periodic capture');
   }, []);
   
   // Reset capture state
@@ -140,16 +165,9 @@ export function usePeriodicCapture({
   // Auto start/stop based on isActive prop
   useEffect(() => {
     if (isActive && videoElement && customPrompt) {
-      // Prevent double execution in React.StrictMode
-      if (intervalRef.current) {
-        return;
-      }
-      
       // Small delay to ensure video is ready
       const timeout = setTimeout(() => {
-        if (!intervalRef.current) {  // Double check before starting
-          startCapture();
-        }
+        startCapture();
       }, 500);
       
       return () => {
@@ -157,12 +175,21 @@ export function usePeriodicCapture({
         stopCapture();
       };
     } else {
-      if (intervalRef.current) {
-        stopCapture();
-      }
+      stopCapture();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isActive, videoElement, customPrompt, intervalSeconds]);
+  }, [isActive, videoElement, customPrompt]);
+  
+  // Handle interval changes separately to avoid restarting capture
+  useEffect(() => {
+    if (isCapturing && intervalRef.current) {
+      // Restart the interval with new timing
+      clearInterval(intervalRef.current);
+      intervalRef.current = window.setInterval(() => {
+        captureFrame();
+      }, intervalSeconds * 1000);
+    }
+  }, [intervalSeconds, isCapturing, captureFrame]);
   
   // Cleanup on unmount
   useEffect(() => {
@@ -175,6 +202,7 @@ export function usePeriodicCapture({
     isCapturing,
     lastCaptureTime,
     captureCount,
+    lastCapturedFrame,
     startCapture,
     stopCapture,
     resetCapture
