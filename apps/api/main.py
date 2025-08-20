@@ -75,12 +75,8 @@ class MotionSettings(BaseModel):
 class LLaVAAnalysisRequest(BaseModel):
     image_base64: str = Field(..., description="Base64 encoded image")
     prompt: Optional[str] = Field(
-        default=None,
+        default="Analyze this image and describe specifically what the person is doing. Focus on their actions, posture, and activities. If multiple people are present, describe each person's activity. Be specific about movements, gestures, or tasks being performed.",
         description="Custom analysis prompt from user",
-    )
-    prompt_type: Optional[str] = Field(
-        default="default",
-        description="Type of analysis prompt: 'default', 'detailed', 'quick', or 'security'",
     )
 
 
@@ -201,12 +197,6 @@ async def analyze_image_with_llava(request: LLaVAAnalysisRequest):
         if request.prompt:
             # User provided a custom prompt
             prompt = f'{json_format} Set detected to "YES" if the answer to the question is affirmative/positive or if activity is detected, "NO" otherwise. Answer this question: {request.prompt}'
-        elif request.prompt_type == "detailed":
-            prompt = f'{json_format} Set detected to "YES" if people are visible and active, "NO" if not. In description, describe in detail what each person is doing including: body position, what they are holding, specific actions, and any movements or gestures.'
-        elif request.prompt_type == "quick":
-            prompt = f'{json_format} Set detected to "YES" if activity is detected, "NO" if not. In description, briefly state what specific activity the person is performing.'
-        elif request.prompt_type == "security":
-            prompt = f'{json_format} Set detected to "YES" if there is any security concern, "NO" if normal. In description, analyze from a security perspective what the person is doing and whether their behavior is normal or suspicious.'
         else:
             # Default prompt
             prompt = f'{json_format} Set detected to "YES" if motion/activity is detected, "NO" if not. In description, analyze what the person is doing, focusing on their actions, posture, and activities. Be specific about movements, gestures, or tasks being performed.'
@@ -295,7 +285,6 @@ async def analyze_image_with_llava(request: LLaVAAnalysisRequest):
 async def analyze_uploaded_image(
     file: UploadFile = File(...),
     prompt: Optional[str] = None,
-    prompt_type: str = "default",
 ):
     """
     Analyze an uploaded image file using LangGraph workflow
@@ -307,7 +296,7 @@ async def analyze_uploaded_image(
 
         # Use the existing analysis endpoint
         request = LLaVAAnalysisRequest(
-            image_base64=image_base64, prompt=prompt, prompt_type=prompt_type
+            image_base64=image_base64, prompt=prompt
         )
 
         return await analyze_image_with_llava(request)
