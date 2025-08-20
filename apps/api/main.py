@@ -1,6 +1,7 @@
 import asyncio
 import base64
 import json
+import re
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -191,15 +192,27 @@ async def analyze_image_with_llava(request: LLaVAAnalysisRequest):
     start_time = datetime.now()
 
     try:
-        # Create JSON-formatted prompt
-        json_format = 'Respond ONLY with valid JSON in this exact format: {"detected": "YES" or "NO", "description": "your answer"}.'
+        # Create more strict JSON-formatted prompt
+        json_format = '''You MUST respond with ONLY a valid JSON object. Do not include any text before or after the JSON.
+The JSON must have exactly this structure:
+{
+  "detected": "YES" or "NO",
+  "description": "your detailed answer here"
+}
+
+Important rules:
+1. Start your response with { and end with }
+2. Use double quotes for all strings
+3. The "detected" field must be exactly "YES" or "NO" (uppercase)
+4. The "description" field must contain your analysis
+5. No additional text, explanations, or formatting outside the JSON'''
         
         if request.prompt:
             # User provided a custom prompt
-            prompt = f'{json_format} Set detected to "YES" if the answer to the question is affirmative/positive or if activity is detected, "NO" otherwise. Answer this question: {request.prompt}'
+            prompt = f'{json_format}\n\nSet detected to "YES" if the answer to this question is affirmative/positive, "NO" otherwise.\nQuestion: {request.prompt}'
         else:
             # Default prompt
-            prompt = f'{json_format} Set detected to "YES" if motion/activity is detected, "NO" if not. In description, analyze what the person is doing, focusing on their actions, posture, and activities. Be specific about movements, gestures, or tasks being performed.'
+            prompt = f'{json_format}\n\nSet detected to "YES" if you see any motion/activity/person in the image, "NO" if the image appears static or empty.\nIn the description field, analyze what you see, focusing on any actions, posture, and activities.'
 
         # Use LangGraph
         graph_result = await analyze_with_graph(request.image_base64, prompt)
@@ -230,14 +243,35 @@ async def analyze_image_with_llava(request: LLaVAAnalysisRequest):
         detected_status = None
         description_text = result_text
         
+        # First, try to parse as direct JSON
         try:
             parsed_result = json.loads(result_text)
             if isinstance(parsed_result, dict):
                 detected_status = parsed_result.get("detected", None)
                 description_text = parsed_result.get("description", result_text)
         except (json.JSONDecodeError, AttributeError):
-            # If not valid JSON, use the raw text as description
-            pass
+            # If not valid JSON, try to extract JSON from the text
+            # Try to find JSON object in the response
+            json_match = re.search(r'\{[^{}]*"detected"[^{}]*\}', result_text, re.DOTALL)
+            if json_match:
+                try:
+                    parsed_result = json.loads(json_match.group())
+                    if isinstance(parsed_result, dict):
+                        detected_status = parsed_result.get("detected", None)
+                        description_text = parsed_result.get("description", result_text)
+                except json.JSONDecodeError:
+                    # Even the extracted JSON is invalid
+                    pass
+            
+            # As a last resort, look for YES/NO pattern in the text
+            if detected_status is None:
+                if re.search(r'\b(YES|yes|Yes)\b', result_text):
+                    detected_status = "YES"
+                elif re.search(r'\b(NO|no|No)\b', result_text):
+                    detected_status = "NO"
+                    
+                # Clean up the description by removing any JSON-like formatting
+                description_text = re.sub(r'[{}"]', '', result_text).strip()
 
         response = LLaVAAnalysisResponse(
             description=description_text,

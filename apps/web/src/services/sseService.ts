@@ -68,8 +68,11 @@ export class SSEService {
       });
 
       this.eventSource.addEventListener('ai_analysis', (event) => {
+        console.log('Raw AI analysis event data:', event.data);
         const analysisData = JSON.parse(event.data);
-        console.log('AI analysis received via SSE:', analysisData);
+        console.log('Parsed AI analysis data:', analysisData);
+        console.log('Description field:', analysisData.description);
+        console.log('Detected field:', analysisData.detected);
         this.handlers.onAIAnalysis?.(analysisData);
       });
 

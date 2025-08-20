@@ -17,6 +17,7 @@ export const AIAnalysisOverlay: React.FC<AIAnalysisOverlayProps> = ({
 }) => {
   const [shouldShow, setShouldShow] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [showDebug, setShowDebug] = useState(false);
   
   // Streaming text effect for AI analysis
   const { displayText, isComplete, isStreaming, skipToEnd } = useStreamingText(
@@ -85,6 +86,24 @@ export const AIAnalysisOverlay: React.FC<AIAnalysisOverlayProps> = ({
                 </div>
               )}
             </div>
+            
+            {/* Debug toggle and JSON output */}
+            <button 
+              className={styles.debugToggle}
+              onClick={() => setShowDebug(!showDebug)}
+              title="Toggle debug output"
+            >
+              🐛 Debug
+            </button>
+            
+            {showDebug && analysis && (
+              <div className={styles.debugSection}>
+                <h4>Raw JSON Response:</h4>
+                <pre className={styles.debugJson}>
+                  {JSON.stringify(analysis, null, 2)}
+                </pre>
+              </div>
+            )}
           </div>
         </div>
       </div>
