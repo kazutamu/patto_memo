@@ -32,17 +32,21 @@
 
 @media (max-width: 768px) {
   .videoWrapper {
-    aspect-ratio: auto;
-    min-height: 65vw;
-    max-height: 90vh;
+    aspect-ratio: unset; /* Let video determine its own aspect ratio */
+    height: 75vh;
+    max-height: 80vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 }
 
 /* Landscape orientation - use width-based sizing */
 @media (max-width: 768px) and (orientation: landscape) {
   .videoWrapper {
-    min-height: 30vw;
-    max-height: 35vh;
+    aspect-ratio: unset;
+    height: 90vh;
+    max-height: 95vh;
   }
 }
 
@@ -109,39 +113,35 @@
 .video {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: cover; /* Fill the container, may crop edges */
   background: #1a1a1a;
   transition: opacity 0.3s ease;
 }
 
 @media (max-width: 768px) {
   .video {
-    object-fit: cover;
-    min-height: 65vw;
-    max-height: 90vh;
+    object-fit: cover; /* Fill container on mobile too */
+    width: 100%;
+    height: 100%;
   }
 }
 
 @media (max-width: 480px) {
   .video {
     object-fit: cover;
-    min-height: 75vw;
-    max-height: 85vh;
   }
 }
 
 /* Landscape orientation - adjust video sizing */
 @media (max-width: 768px) and (orientation: landscape) {
   .video {
-    min-height: 30vw;
-    max-height: 35vh;
+    object-fit: cover;
   }
 }
 
 @media (max-width: 480px) and (orientation: landscape) {
   .video {
-    min-height: 25vw;
-    max-height: 30vh;
+    object-fit: cover;
   }
 }
 
@@ -433,16 +433,20 @@
   
   .videoWrapper {
     border-radius: 8px;
-    aspect-ratio: auto;
-    min-height: 65vw;
-    max-height: 90vh;
+    aspect-ratio: unset;
+    height: 70vh;
+    max-height: 75vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   
   /* Landscape override for tablet */
   @media (orientation: landscape) {
     .videoWrapper {
-      min-height: 30vw;
-      max-height: 35vh;
+      aspect-ratio: unset;
+      height: 88vh;
+      max-height: 92vh;
     }
   }
   
@@ -514,15 +518,20 @@
   }
   
   .videoWrapper {
-    min-height: 75vw;
-    max-height: 85vh;
+    aspect-ratio: unset;
+    height: 65vh;
+    max-height: 70vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   
   /* Landscape override for mobile */
   @media (orientation: landscape) {
     .videoWrapper {
-      min-height: 25vw;
-      max-height: 30vh;
+      aspect-ratio: unset;
+      height: 85vh;
+      max-height: 90vh;
     }
   }
   
