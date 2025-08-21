@@ -16,6 +16,9 @@ html, body {
 
 #root {
   min-height: 100vh;
+  min-height: 100dvh; /* Use dynamic viewport height to handle mobile keyboards */
+  overflow-x: hidden;
+  position: relative;
 }
 
 /* Scrollbar Styling for Dark Theme */
