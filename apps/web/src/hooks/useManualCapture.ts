@@ -1,42 +1,33 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { api } from '../api';
 
-interface UsePeriodicCaptureOptions {
+interface UseManualCaptureOptions {
   videoElement: HTMLVideoElement | null;
-  isActive: boolean;
-  intervalSeconds?: number; // How often to capture frames
   customPrompt?: string;
   onAnalysisStart?: () => void;
 }
 
-interface UsePeriodicCaptureReturn {
-  isCapturing: boolean;
+interface UseManualCaptureReturn {
   lastCaptureTime: number | null;
   captureCount: number;
   lastCapturedFrame: string | null;
-  startCapture: () => void;
-  stopCapture: () => void;
   resetCapture: () => void;
+  captureFrame: () => void;
 }
 
 /**
- * Hook for periodic frame capture and analysis
- * Captures frames at regular intervals and sends them for AI analysis
+ * Hook for manual frame capture and analysis
  */
-export function usePeriodicCapture({
+export function useManualCapture({
   videoElement,
-  isActive,
-  intervalSeconds = 5, // Default: capture every 5 seconds
   customPrompt,
   onAnalysisStart
-}: UsePeriodicCaptureOptions): UsePeriodicCaptureReturn {
+}: UseManualCaptureOptions): UseManualCaptureReturn {
   
-  const [isCapturing, setIsCapturing] = useState(false);
   const [lastCaptureTime, setLastCaptureTime] = useState<number | null>(null);
   const [captureCount, setCaptureCount] = useState(0);
   const [lastCapturedFrame, setLastCapturedFrame] = useState<string | null>(null);
   
-  const intervalRef = useRef<number | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   
   // Initialize canvas for frame capture
@@ -123,88 +114,19 @@ export function usePeriodicCapture({
     } catch (error) {
       console.error('Error capturing frame:', error);
     }
-  }, [videoElement, customPrompt, onAnalysisStart, captureCount]);
-  
-  // Start periodic capture
-  const startCapture = useCallback(() => {
-    // Stop any existing interval first
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-    
-    setIsCapturing(true);
-    
-    // Capture first frame immediately
-    captureFrame();
-    
-    // Set up interval for periodic capture
-    intervalRef.current = window.setInterval(() => {
-      captureFrame();
-    }, intervalSeconds * 1000);
-    
-  }, [captureFrame, intervalSeconds]);
-  
-  // Stop periodic capture
-  const stopCapture = useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-    
-    setIsCapturing(false);
-  }, []);
+  }, [videoElement, customPrompt, onAnalysisStart]);
   
   // Reset capture state
   const resetCapture = useCallback(() => {
-    stopCapture();
     setLastCaptureTime(null);
     setCaptureCount(0);
-  }, [stopCapture]);
-  
-  // Auto start/stop based on isActive prop
-  useEffect(() => {
-    if (isActive && videoElement && customPrompt) {
-      // Small delay to ensure video is ready
-      const timeout = setTimeout(() => {
-        startCapture();
-      }, 500);
-      
-      return () => {
-        clearTimeout(timeout);
-        stopCapture();
-      };
-    } else {
-      stopCapture();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isActive, videoElement, customPrompt]);
-  
-  // Handle interval changes separately to avoid restarting capture
-  useEffect(() => {
-    if (isCapturing && intervalRef.current) {
-      // Restart the interval with new timing
-      clearInterval(intervalRef.current);
-      intervalRef.current = window.setInterval(() => {
-        captureFrame();
-      }, intervalSeconds * 1000);
-    }
-  }, [intervalSeconds, isCapturing, captureFrame]);
-  
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      stopCapture();
-    };
-  }, [stopCapture]);
+  }, []);
   
   return {
-    isCapturing,
     lastCaptureTime,
     captureCount,
     lastCapturedFrame,
-    startCapture,
-    stopCapture,
-    resetCapture
+    resetCapture,
+    captureFrame
   };
 }

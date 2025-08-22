@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
-import { usePeriodicCapture } from '../hooks/usePeriodicCapture';
+import { useManualCapture } from '../hooks/useManualCapture';
 import { useSSE, AIAnalysis } from '../hooks/useSSE';
 import { AIAnalysisOverlay } from './AIAnalysisOverlay';
 import styles from './VideoFeed.module.css';
@@ -11,7 +11,6 @@ interface VideoFeedProps {
   sensitivity: number;
   cameraFacing?: 'user' | 'environment';
   onCameraFacingChange?: (facing: 'user' | 'environment') => void;
-  captureInterval?: number; // Interval in seconds
 }
 
 export const VideoFeed: React.FC<VideoFeedProps> = ({
@@ -21,7 +20,6 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
   sensitivity: _sensitivity, // Keep for interface compatibility but unused
   cameraFacing = 'user',
   onCameraFacingChange,
-  captureInterval = 5, // Default: capture every 5 seconds
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -46,8 +44,6 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
   const [validationStatus, setValidationStatus] = useState<'idle' | 'validating' | 'valid' | 'invalid'>('idle');
   const [showValidationPopup, setShowValidationPopup] = useState<boolean>(false);
   const [popupHiding, setPopupHiding] = useState<boolean>(false);
-  const [showSuccessToast, setShowSuccessToast] = useState<boolean>(false);
-  const [successHiding, setSuccessHiding] = useState<boolean>(false);
 
   // Example prompts for placeholder (defined outside component or memoized to prevent recreating)
   const examplePrompts = useMemo(() => [
@@ -104,11 +100,9 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
     setCurrentExample(examplePrompts[Math.floor(Math.random() * examplePrompts.length)]);
   }, [examplePrompts]);
 
-  // Periodic capture integration
-  const { isCapturing, resetCapture } = usePeriodicCapture({
+  // Manual capture integration
+  const { resetCapture, captureFrame } = useManualCapture({
     videoElement: videoRef.current,
-    isActive: isActive && videoState.hasPermission === true,
-    intervalSeconds: captureInterval,
     customPrompt: promptToUse,
     onAnalysisStart: handleAnalysisStart
   });
@@ -307,11 +301,6 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
   // Handle submit of custom prompt
   const handlePromptSubmit = useCallback(() => {
     if (customPrompt.trim() && customPrompt !== promptToUse) {
-      // Hide previous success toast when submitting new prompt
-      if (showSuccessToast) {
-        handleDismissSuccess();
-      }
-      
       setValidationStatus('validating');
       
       // Client-side validation
@@ -333,9 +322,6 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
           
           setPromptToUse(customPrompt);
           setPromptSubmitted(true);
-          
-          // Show success toast (stays until prompt changes)
-          setShowSuccessToast(true);
           
           // Clear the input field after submission
           setCustomPrompt('');
@@ -371,15 +357,6 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
     }, 300); // Match the CSS animation duration
   }, []);
 
-  // Handle success toast dismissal
-  const handleDismissSuccess = useCallback(() => {
-    setSuccessHiding(true);
-    setTimeout(() => {
-      setShowSuccessToast(false);
-      setSuccessHiding(false);
-    }, 300);
-  }, []);
-
 
   // Determine detection status class
   const detectionClass = analysisState.current?.detected === 'YES' 
@@ -390,7 +367,7 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
 
   return (
     <div className={styles.videoContainer}>
-      <div className={`${styles.videoWrapper} ${isCapturing ? styles.capturing : ''} ${detectionClass}`}>
+      <div className={`${styles.videoWrapper} ${detectionClass}`}>
         <video
           ref={videoRef}
           className={styles.video}
@@ -486,17 +463,40 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
           </button>
         </div>
 
-        {/* Validation Popup */}
-        {showValidationPopup && (
-          <div className={`${styles.validationToast} ${popupHiding ? styles.hiding : ''}`}>
-            <span className={styles.toastMessage}>Try a yes/no question</span>
+        {/* Combined Prompt Display & Capture Button */}
+        {promptToUse && isActive && videoState.hasPermission && (
+          <div className={styles.captureButtonOverlay}>
+            <button
+              className={`${styles.captureButton} ${analysisState.isAnalyzing ? styles.analyzing : ''}`}
+              onClick={captureFrame}
+              disabled={analysisState.isAnalyzing || !promptToUse}
+              title="Click to capture and analyze"
+            >
+              {analysisState.isAnalyzing ? (
+                <span className={styles.captureButtonContent}>
+                  <div className={styles.spinner}></div>
+                  <span className={styles.captureButtonText}>Analyzing...</span>
+                </span>
+              ) : (
+                <span className={styles.captureButtonContent}>
+                  <span className={styles.capturePrompt}>{promptToUse}</span>
+                </span>
+              )}
+            </button>
           </div>
         )}
 
-        {/* Success Toast */}
-        {showSuccessToast && (
-          <div className={`${styles.successToast} ${successHiding ? styles.hiding : ''}`}>
-            <span className={styles.toastMessage}>{promptToUse}</span>
+        {/* Validation Popup */}
+        {showValidationPopup && (
+          <div 
+            className={`${styles.validationToast} ${popupHiding ? styles.hiding : ''}`}
+            style={{ 
+              top: promptToUse && isActive && videoState.hasPermission 
+                ? window.innerWidth <= 480 ? '48px' : '56px' // Adjust spacing based on screen size
+                : window.innerWidth <= 480 ? '8px' : '16px' 
+            }}
+          >
+            <span className={styles.toastMessage}>Try a yes/no question</span>
           </div>
         )}
       </div>

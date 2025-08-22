@@ -1,2 +1,2 @@
-export { usePeriodicCapture } from './usePeriodicCapture';
+export { useManualCapture } from './useManualCapture';
 export { useSSE } from './useSSE';

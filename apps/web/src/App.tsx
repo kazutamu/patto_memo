@@ -122,7 +122,6 @@ function App() {
               sensitivity={sensitivity}
               cameraFacing={cameraState.facing}
               onCameraFacingChange={handleCameraFacingChange}
-              captureInterval={5}
             />
             
             {/* Camera toggle button overlay */}
