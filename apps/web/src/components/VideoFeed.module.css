@@ -50,12 +50,6 @@
   }
 }
 
-.videoWrapper.capturing {
-  box-shadow: 
-    0 0 20px rgba(76, 175, 80, 0.3),
-    0 0 40px rgba(76, 175, 80, 0.15);
-  border: 2px solid rgba(76, 175, 80, 0.5);
-}
 
 /* Detection status borders */
 .videoWrapper.detectedYes {

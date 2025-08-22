@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
-import { usePeriodicCapture } from '../hooks/usePeriodicCapture';
+import { useManualCapture } from '../hooks/useManualCapture';
 import { useSSE, AIAnalysis } from '../hooks/useSSE';
 import { AIAnalysisOverlay } from './AIAnalysisOverlay';
 import styles from './VideoFeed.module.css';
@@ -11,7 +11,6 @@ interface VideoFeedProps {
   sensitivity: number;
   cameraFacing?: 'user' | 'environment';
   onCameraFacingChange?: (facing: 'user' | 'environment') => void;
-  captureInterval?: number; // Interval in seconds
 }
 
 export const VideoFeed: React.FC<VideoFeedProps> = ({
@@ -21,7 +20,6 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
   sensitivity: _sensitivity, // Keep for interface compatibility but unused
   cameraFacing = 'user',
   onCameraFacingChange,
-  captureInterval = 5, // Default: capture every 5 seconds
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -103,13 +101,10 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
   }, [examplePrompts]);
 
   // Manual capture integration
-  const { isCapturing, resetCapture, captureFrame } = usePeriodicCapture({
+  const { resetCapture, captureFrame } = useManualCapture({
     videoElement: videoRef.current,
-    isActive: isActive && videoState.hasPermission === true,
-    intervalSeconds: captureInterval,
     customPrompt: promptToUse,
-    onAnalysisStart: handleAnalysisStart,
-    manualMode: true // Enable manual mode
+    onAnalysisStart: handleAnalysisStart
   });
 
   const stopStream = useCallback(() => {
@@ -372,7 +367,7 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
 
   return (
     <div className={styles.videoContainer}>
-      <div className={`${styles.videoWrapper} ${isCapturing ? styles.capturing : ''} ${detectionClass}`}>
+      <div className={`${styles.videoWrapper} ${detectionClass}`}>
         <video
           ref={videoRef}
           className={styles.video}
