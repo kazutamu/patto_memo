@@ -4,9 +4,10 @@ import { api } from '../api';
 interface UsePeriodicCaptureOptions {
   videoElement: HTMLVideoElement | null;
   isActive: boolean;
-  intervalSeconds?: number; // How often to capture frames
+  intervalSeconds?: number; // How often to capture frames (for backward compatibility)
   customPrompt?: string;
   onAnalysisStart?: () => void;
+  manualMode?: boolean; // New: if true, only capture manually
 }
 
 interface UsePeriodicCaptureReturn {
@@ -17,18 +18,20 @@ interface UsePeriodicCaptureReturn {
   startCapture: () => void;
   stopCapture: () => void;
   resetCapture: () => void;
+  captureFrame: () => void; // New: manual capture function
 }
 
 /**
- * Hook for periodic frame capture and analysis
- * Captures frames at regular intervals and sends them for AI analysis
+ * Hook for frame capture and analysis
+ * Supports both periodic and manual capture modes
  */
 export function usePeriodicCapture({
   videoElement,
   isActive,
   intervalSeconds = 5, // Default: capture every 5 seconds
   customPrompt,
-  onAnalysisStart
+  onAnalysisStart,
+  manualMode = false // Default: automatic periodic capture
 }: UsePeriodicCaptureOptions): UsePeriodicCaptureReturn {
   
   const [isCapturing, setIsCapturing] = useState(false);
@@ -162,9 +165,9 @@ export function usePeriodicCapture({
     setCaptureCount(0);
   }, [stopCapture]);
   
-  // Auto start/stop based on isActive prop
+  // Auto start/stop based on isActive prop (only if not in manual mode)
   useEffect(() => {
-    if (isActive && videoElement && customPrompt) {
+    if (!manualMode && isActive && videoElement && customPrompt) {
       // Small delay to ensure video is ready
       const timeout = setTimeout(() => {
         startCapture();
@@ -178,18 +181,18 @@ export function usePeriodicCapture({
       stopCapture();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isActive, videoElement, customPrompt]);
+  }, [isActive, videoElement, customPrompt, manualMode]);
   
-  // Handle interval changes separately to avoid restarting capture
+  // Handle interval changes separately to avoid restarting capture (only in automatic mode)
   useEffect(() => {
-    if (isCapturing && intervalRef.current) {
+    if (!manualMode && isCapturing && intervalRef.current) {
       // Restart the interval with new timing
       clearInterval(intervalRef.current);
       intervalRef.current = window.setInterval(() => {
         captureFrame();
       }, intervalSeconds * 1000);
     }
-  }, [intervalSeconds, isCapturing, captureFrame]);
+  }, [intervalSeconds, isCapturing, captureFrame, manualMode]);
   
   // Cleanup on unmount
   useEffect(() => {
@@ -205,6 +208,7 @@ export function usePeriodicCapture({
     lastCapturedFrame,
     startCapture,
     stopCapture,
-    resetCapture
+    resetCapture,
+    captureFrame
   };
 }

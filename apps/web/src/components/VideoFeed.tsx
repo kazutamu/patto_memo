@@ -46,8 +46,6 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
   const [validationStatus, setValidationStatus] = useState<'idle' | 'validating' | 'valid' | 'invalid'>('idle');
   const [showValidationPopup, setShowValidationPopup] = useState<boolean>(false);
   const [popupHiding, setPopupHiding] = useState<boolean>(false);
-  const [showSuccessToast, setShowSuccessToast] = useState<boolean>(false);
-  const [successHiding, setSuccessHiding] = useState<boolean>(false);
 
   // Example prompts for placeholder (defined outside component or memoized to prevent recreating)
   const examplePrompts = useMemo(() => [
@@ -104,13 +102,14 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
     setCurrentExample(examplePrompts[Math.floor(Math.random() * examplePrompts.length)]);
   }, [examplePrompts]);
 
-  // Periodic capture integration
-  const { isCapturing, resetCapture } = usePeriodicCapture({
+  // Manual capture integration
+  const { isCapturing, resetCapture, captureFrame } = usePeriodicCapture({
     videoElement: videoRef.current,
     isActive: isActive && videoState.hasPermission === true,
     intervalSeconds: captureInterval,
     customPrompt: promptToUse,
-    onAnalysisStart: handleAnalysisStart
+    onAnalysisStart: handleAnalysisStart,
+    manualMode: true // Enable manual mode
   });
 
   const stopStream = useCallback(() => {
@@ -307,11 +306,6 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
   // Handle submit of custom prompt
   const handlePromptSubmit = useCallback(() => {
     if (customPrompt.trim() && customPrompt !== promptToUse) {
-      // Hide previous success toast when submitting new prompt
-      if (showSuccessToast) {
-        handleDismissSuccess();
-      }
-      
       setValidationStatus('validating');
       
       // Client-side validation
@@ -333,9 +327,6 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
           
           setPromptToUse(customPrompt);
           setPromptSubmitted(true);
-          
-          // Show success toast (stays until prompt changes)
-          setShowSuccessToast(true);
           
           // Clear the input field after submission
           setCustomPrompt('');
@@ -369,15 +360,6 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
       setShowValidationPopup(false);
       setPopupHiding(false);
     }, 300); // Match the CSS animation duration
-  }, []);
-
-  // Handle success toast dismissal
-  const handleDismissSuccess = useCallback(() => {
-    setSuccessHiding(true);
-    setTimeout(() => {
-      setShowSuccessToast(false);
-      setSuccessHiding(false);
-    }, 300);
   }, []);
 
 
@@ -486,17 +468,40 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
           </button>
         </div>
 
-        {/* Validation Popup */}
-        {showValidationPopup && (
-          <div className={`${styles.validationToast} ${popupHiding ? styles.hiding : ''}`}>
-            <span className={styles.toastMessage}>Try a yes/no question</span>
+        {/* Combined Prompt Display & Capture Button */}
+        {promptToUse && isActive && videoState.hasPermission && (
+          <div className={styles.captureButtonOverlay}>
+            <button
+              className={`${styles.captureButton} ${analysisState.isAnalyzing ? styles.analyzing : ''}`}
+              onClick={captureFrame}
+              disabled={analysisState.isAnalyzing || !promptToUse}
+              title="Click to capture and analyze"
+            >
+              {analysisState.isAnalyzing ? (
+                <span className={styles.captureButtonContent}>
+                  <div className={styles.spinner}></div>
+                  <span className={styles.captureButtonText}>Analyzing...</span>
+                </span>
+              ) : (
+                <span className={styles.captureButtonContent}>
+                  <span className={styles.capturePrompt}>{promptToUse}</span>
+                </span>
+              )}
+            </button>
           </div>
         )}
 
-        {/* Success Toast */}
-        {showSuccessToast && (
-          <div className={`${styles.successToast} ${successHiding ? styles.hiding : ''}`}>
-            <span className={styles.toastMessage}>{promptToUse}</span>
+        {/* Validation Popup */}
+        {showValidationPopup && (
+          <div 
+            className={`${styles.validationToast} ${popupHiding ? styles.hiding : ''}`}
+            style={{ 
+              top: promptToUse && isActive && videoState.hasPermission 
+                ? window.innerWidth <= 480 ? '48px' : '56px' // Adjust spacing based on screen size
+                : window.innerWidth <= 480 ? '8px' : '16px' 
+            }}
+          >
+            <span className={styles.toastMessage}>Try a yes/no question</span>
           </div>
         )}
       </div>
