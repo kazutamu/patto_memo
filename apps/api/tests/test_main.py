@@ -22,7 +22,7 @@ def test_health_check(client: TestClient):
     "endpoint,method,expected_status",
     [
         ("/api/v1/nonexistent", "GET", 404),
-        ("/api/v1/llava/analyze", "GET", 405),  # POST only endpoint
+        ("/api/v1/ai/analyze-image", "GET", 405),  # POST only endpoint
         ("/invalid", "GET", 404),
     ],
 )
@@ -78,8 +78,8 @@ def test_get_queue_status(client: TestClient):
 
 
 def test_get_available_prompts(client: TestClient):
-    """Test LLaVA prompts endpoint."""
-    response = client.get("/api/v1/llava/prompts")
+    """Test AI prompts endpoint."""
+    response = client.get("/api/v1/ai/prompts")
     assert response.status_code == 200
     data = response.json()
 

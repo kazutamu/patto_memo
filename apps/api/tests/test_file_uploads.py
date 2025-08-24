@@ -23,7 +23,7 @@ class TestFileUploadValidation:
         with TestClient(app) as client:
             if file_upload_data["scenario"] == "empty_file":
                 response = client.post(
-                    "/api/v1/llava/analyze-upload",
+                    "/api/v1/ai/analyze-upload",
                     files={
                         "file": (
                             file_upload_data["filename"],
@@ -38,7 +38,7 @@ class TestFileUploadValidation:
 
             elif file_upload_data["scenario"] in ["valid_jpeg", "valid_png"]:
                 response = client.post(
-                    "/api/v1/llava/analyze-upload",
+                    "/api/v1/ai/analyze-upload",
                     files={
                         "file": (
                             file_upload_data["filename"],
@@ -52,7 +52,7 @@ class TestFileUploadValidation:
 
             elif file_upload_data["scenario"] == "invalid_type":
                 response = client.post(
-                    "/api/v1/llava/analyze-upload",
+                    "/api/v1/ai/analyze-upload",
                     files={
                         "file": (
                             file_upload_data["filename"],
@@ -87,7 +87,7 @@ class TestFileUploadValidation:
                     # Use a smaller size to avoid memory issues in tests
                     test_data = b"x" * (10 * 1024 * 1024)  # 10MB instead of 50MB
                     response = client.post(
-                        "/api/v1/llava/analyze-upload",
+                        "/api/v1/ai/analyze-upload",
                         files={"file": ("large.jpg", BytesIO(test_data), "image/jpeg")},
                     )
                     assert response.status_code in [200, 413, 422, 503]
@@ -99,7 +99,7 @@ class TestFileUploadValidation:
             file_data = b"x" * file_size
             with TestClient(app) as client:
                 response = client.post(
-                    "/api/v1/llava/analyze-upload",
+                    "/api/v1/ai/analyze-upload",
                     files={"file": ("test.jpg", BytesIO(file_data), "image/jpeg")},
                 )
 
@@ -137,7 +137,7 @@ class TestFileUploadValidation:
 
             with TestClient(app) as client:
                 response = client.post(
-                    "/api/v1/llava/analyze-upload",
+                    "/api/v1/ai/analyze-upload",
                     files={"file": ("test.jpg", BytesIO(b"test_data"), "image/jpeg")},
                     data={"prompt": f"Test {scenario_name}"},
                 )
@@ -214,7 +214,7 @@ class TestFileUploadSecurityAndEdgeCases:
                 form_data["prompt"] = test_data["prompt"]
 
             response = client.post(
-                "/api/v1/llava/analyze-upload", files=files_data, data=form_data
+                "/api/v1/ai/analyze-upload", files=files_data, data=form_data
             )
 
         # Should handle all security scenarios safely
@@ -232,7 +232,7 @@ class TestFileUploadSecurityAndEdgeCases:
             data = f"concurrent_test_{file_id}".encode()
             with TestClient(app) as client:
                 return client.post(
-                    "/api/v1/llava/analyze-upload",
+                    "/api/v1/ai/analyze-upload",
                     files={
                         "file": (f"test_{file_id}.jpg", BytesIO(data), "image/jpeg")
                     },
@@ -278,14 +278,14 @@ class TestFileUploadSecurityAndEdgeCases:
         with TestClient(app) as client:
             # Upload file
             upload_response = client.post(
-                "/api/v1/llava/analyze-upload",
+                "/api/v1/ai/analyze-upload",
                 files={"file": ("test.jpg", BytesIO(test_data), "image/jpeg")},
                 data={"prompt": "consistency test"},
             )
 
             # Test base64 endpoint for comparison
             base64_response = client.post(
-                "/api/v1/llava/analyze",
+                "/api/v1/ai/analyze-image",
                 json={"image_base64": expected_base64, "prompt": "consistency test"},
             )
 
@@ -313,7 +313,7 @@ class TestFileUploadEdgeCases:
 
         with TestClient(app) as client:
             response = client.post(
-                "/api/v1/llava/analyze-upload",
+                "/api/v1/ai/analyze-upload",
                 files={"file": ("random.jpg", BytesIO(random_data), "image/jpeg")},
             )
 
@@ -327,7 +327,7 @@ class TestFileUploadEdgeCases:
         """Test uploading with incorrect field names."""
         with TestClient(app) as client:
             response = client.post(
-                "/api/v1/llava/analyze-upload",
+                "/api/v1/ai/analyze-upload",
                 files={field_name: ("test.jpg", BytesIO(b"test_data"), "image/jpeg")},
             )
 
@@ -340,7 +340,7 @@ class TestFileUploadEdgeCases:
         """Test behavior when multiple files are uploaded."""
         with TestClient(app) as client:
             response = client.post(
-                "/api/v1/llava/analyze-upload",
+                "/api/v1/ai/analyze-upload",
                 files=[
                     ("file", ("test1.jpg", BytesIO(b"data1"), "image/jpeg")),
                     ("file", ("test2.jpg", BytesIO(b"data2"), "image/jpeg")),
