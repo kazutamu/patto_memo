@@ -6,7 +6,7 @@ import base64
 import io
 import json
 import os
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from PIL import Image
@@ -227,7 +227,7 @@ class TestGeminiAnalyzer:
         result = await analyzer.analyze_image("fake_base64")
 
         assert result["success"] is False
-        assert "Invalid or missing Gemini API key" in result["error_message"]
+        assert "GEMINI_API_KEY environment variable is required" in result["error_message"]
         assert result["processing_time"] > 0
 
     @pytest.mark.asyncio
@@ -239,8 +239,18 @@ class TestGeminiAnalyzer:
         mock_model.generate_content.side_effect = Exception("quota exceeded")
         mock_model_class.return_value = mock_model
 
+        # Create valid base64 image data
+        from PIL import Image
+        import io
+        import base64
+        img = Image.new("RGB", (10, 10), color="red")
+        buffer = io.BytesIO()
+        img.save(buffer, format="PNG")
+        img_data = buffer.getvalue()
+        valid_base64 = base64.b64encode(img_data).decode("utf-8")
+
         analyzer = GeminiAnalyzer()
-        result = await analyzer.analyze_image("fake_base64")
+        result = await analyzer.analyze_image(valid_base64)
 
         assert result["success"] is False
         assert "Gemini API quota exceeded" in result["error_message"]
@@ -254,8 +264,18 @@ class TestGeminiAnalyzer:
         mock_model.generate_content.side_effect = Exception("timeout occurred")
         mock_model_class.return_value = mock_model
 
+        # Create valid base64 image data
+        from PIL import Image
+        import io
+        import base64
+        img = Image.new("RGB", (10, 10), color="blue")
+        buffer = io.BytesIO()
+        img.save(buffer, format="PNG")
+        img_data = buffer.getvalue()
+        valid_base64 = base64.b64encode(img_data).decode("utf-8")
+
         analyzer = GeminiAnalyzer()
-        result = await analyzer.analyze_image("fake_base64")
+        result = await analyzer.analyze_image(valid_base64)
 
         assert result["success"] is False
         assert "Gemini API timeout" in result["error_message"]
@@ -282,7 +302,8 @@ class TestGlobalFunctions:
     async def test_analyze_with_gemini(self, mock_get_analyzer):
         """Test analyze_with_gemini function."""
         mock_analyzer = Mock()
-        mock_analyzer.analyze_image.return_value = {"success": True, "detected": "YES"}
+        # Make the analyze_image return an async mock
+        mock_analyzer.analyze_image = AsyncMock(return_value={"success": True, "detected": "YES"})
         mock_get_analyzer.return_value = mock_analyzer
 
         result = await analyze_with_gemini("test_base64", "test prompt")

@@ -7,10 +7,8 @@ This file focuses on file-specific edge cases and validation.
 
 from io import BytesIO
 
-import httpx
 import pytest
 from fastapi.testclient import TestClient
-from pytest_httpx import HTTPXMock
 
 from main import app
 
@@ -175,6 +173,7 @@ class TestFileUploadSecurityAndEdgeCases:
     )
     def test_security_input_validation(self, security_scenario, test_data):
         """Test handling of potentially malicious or unusual inputs."""
+        # security_scenario is used implicitly by pytest parametrize for test identification
         with TestClient(app) as client:
             files_data = {
                 "file": (
