@@ -1,0 +1,12 @@
+# Nixpacks configuration for Railway deployment
+[phases.setup]
+nixPkgs = ["python310", "pip"]
+
+[phases.install]
+cmds = ["pip install -r requirements.txt"]
+
+[phases.build]
+cmds = ["echo 'Python FastAPI build complete'"]
+
+[start]
+cmd = "uvicorn main:app --host 0.0.0.0 --port $PORT"
