@@ -9,7 +9,7 @@ import pytest
 from fastapi.testclient import TestClient
 from httpx import AsyncClient
 
-from main import app
+# app import removed as not needed for current tests
 
 
 class TestLLaVAIntegration:
