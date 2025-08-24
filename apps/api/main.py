@@ -1,4 +1,5 @@
 import base64
+import os
 from datetime import datetime
 from typing import Optional
 
@@ -9,14 +10,21 @@ from pydantic import BaseModel, Field
 from gemini_analyzer import analyze_with_gemini
 from sse_manager import sse_manager
 
-app = FastAPI()
+app = FastAPI(
+    title="Motion Detector API",
+    description="AI-powered motion detection and analysis API",
+    version="1.0.0"
+)
+
+# Get allowed origins from environment variable for production security
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
 
 # Configure CORS for SSE support
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
+    allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
 
