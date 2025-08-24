@@ -104,7 +104,7 @@ export function useManualCapture({
         onAnalysisStart?.();
         
         // Send to AI for analysis
-        api.analyzeLLaVA({
+        api.analyzeImage({
           image_base64: base64,
           prompt: customPrompt
         }).catch(error => {
