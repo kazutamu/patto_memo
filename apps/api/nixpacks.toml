@@ -16,4 +16,4 @@ cmds = [
 cmds = ["echo 'Build complete - FastAPI ready'"]
 
 [start]
-cmd = "uvicorn main:app --host 0.0.0.0 --port $PORT"
+cmd = "uvicorn main:application --host 0.0.0.0 --port $PORT"

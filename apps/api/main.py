@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 from gemini_analyzer import analyze_with_gemini
 from sse_manager import sse_manager
 
-app = FastAPI(
+application = FastAPI(
     title="Motion Detector API",
     description="AI-powered motion detection and analysis API",
     version="1.0.0"
@@ -20,7 +20,7 @@ app = FastAPI(
 allowed_origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
 
 # Configure CORS for SSE support
-app.add_middleware(
+application.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
     allow_credentials=True,
@@ -51,12 +51,12 @@ class ImageAnalysisResponse(BaseModel):
     error_message: Optional[str] = None
 
 
-@app.get("/health")
+@application.get("/health")
 def health_check():
     return {"status": "ok", "sse_connections": sse_manager.connection_count}
 
 
-@app.get("/api/v1/ai/prompts")
+@application.get("/api/v1/ai/prompts")
 def get_available_prompts():
     """
     Get available analysis prompt types and their descriptions
@@ -74,7 +74,7 @@ def get_available_prompts():
     }
 
 
-@app.post("/api/v1/ai/analyze-image", response_model=ImageAnalysisResponse)
+@application.post("/api/v1/ai/analyze-image", response_model=ImageAnalysisResponse)
 async def analyze_image(request: ImageAnalysisRequest):
     """
     Analyze an image using AI workflow
@@ -141,7 +141,7 @@ async def analyze_image(request: ImageAnalysisRequest):
         )
 
 
-@app.post("/api/v1/ai/analyze-upload")
+@application.post("/api/v1/ai/analyze-upload")
 async def analyze_uploaded_image(
     file: UploadFile = File(...),
     prompt: Optional[str] = None,
@@ -175,7 +175,7 @@ async def analyze_uploaded_image(
 # All legacy LLaVA endpoints removed - no backward compatibility needed
 
 
-@app.get("/api/v1/events/stream")
+@application.get("/api/v1/events/stream")
 async def stream_events(request: Request):
     """
     Server-Sent Events endpoint for real-time updates
@@ -183,7 +183,7 @@ async def stream_events(request: Request):
     return await sse_manager.connect(request)
 
 
-@app.get("/api/v1/events/connections")
+@application.get("/api/v1/events/connections")
 def get_sse_connections():
     """
     Get information about active SSE connections
@@ -194,7 +194,7 @@ def get_sse_connections():
     }
 
 
-@app.get("/api/v1/queue/status")
+@application.get("/api/v1/queue/status")
 def get_queue_status():
     """
     Get current queue status and drop statistics
