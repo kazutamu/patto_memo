@@ -242,9 +242,10 @@ class TestGeminiAnalyzer:
         mock_model_class.return_value = mock_model
 
         # Create valid base64 image data
-        from PIL import Image
-        import io
         import base64
+        import io
+
+        from PIL import Image
 
         img = Image.new("RGB", (10, 10), color="red")
         buffer = io.BytesIO()
@@ -268,9 +269,10 @@ class TestGeminiAnalyzer:
         mock_model_class.return_value = mock_model
 
         # Create valid base64 image data
-        from PIL import Image
-        import io
         import base64
+        import io
+
+        from PIL import Image
 
         img = Image.new("RGB", (10, 10), color="blue")
         buffer = io.BytesIO()
