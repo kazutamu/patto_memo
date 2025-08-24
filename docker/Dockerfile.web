@@ -8,8 +8,8 @@ WORKDIR /app
 # Copy package files
 COPY apps/web/package*.json ./
 
-# Install dependencies
-RUN npm ci --prefer-offline
+# Install dependencies with platform-specific optional dependencies
+RUN npm ci --prefer-offline --no-optional && npm install --no-save
 
 # Copy application code
 COPY apps/web/ .
@@ -28,8 +28,8 @@ WORKDIR /app
 # Copy package files
 COPY apps/web/package*.json ./
 
-# Install dependencies
-RUN npm ci --prefer-offline
+# Install dependencies with platform-specific optional dependencies  
+RUN npm ci --prefer-offline --no-optional && npm install --no-save
 
 # Copy application code
 COPY apps/web/ .

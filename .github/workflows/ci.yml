@@ -234,6 +234,11 @@ jobs:
     - name: Install root dependencies
       run: npm ci
 
+    - name: Generate SSL certificates for CI
+      run: |
+        echo "🔑 Generating SSL certificates for CI environment..."
+        ./docker/generate-ssl-ci.sh
+
     - name: Start services with Docker Compose
       run: |
         echo "Starting Docker Compose services..."
