@@ -3,6 +3,7 @@ import json
 import re
 from datetime import datetime
 from typing import Optional
+
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -20,7 +21,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 
 # Pydantic models for request/response validation
@@ -48,12 +48,6 @@ class LLaVAAnalysisResponse(BaseModel):
 @app.get("/health")
 def health_check():
     return {"status": "ok", "sse_connections": sse_manager.connection_count}
-
-
-
-
-
-
 
 
 @app.get("/api/v1/llava/prompts")

@@ -21,10 +21,6 @@ def async_client():
     return AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test")
 
 
-
-
-
-
 @pytest.fixture(params=["small", "large"])
 def image_data(request):
     """Parameterized image data fixture for testing different sizes."""
@@ -63,12 +59,6 @@ def llava_request_data(image_data):
         "image_base64": image_data["base64"],
         "prompt": "Describe what you see in this image",
     }
-
-
-
-
-
-
 
 
 @pytest.fixture(

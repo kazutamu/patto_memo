@@ -66,12 +66,18 @@ def test_get_queue_status(client: TestClient):
     response = client.get("/api/v1/queue/status")
     assert response.status_code == 200
     data = response.json()
-    
+
     # Check expected fields exist
-    required_fields = ["queue_size", "max_size", "drop_count", "total_frames", "message"]
+    required_fields = [
+        "queue_size",
+        "max_size",
+        "drop_count",
+        "total_frames",
+        "message",
+    ]
     for field in required_fields:
         assert field in data
-    
+
     # Check data types
     assert isinstance(data["queue_size"], int)
     assert isinstance(data["max_size"], int)
@@ -85,7 +91,7 @@ def test_get_available_prompts(client: TestClient):
     response = client.get("/api/v1/llava/prompts")
     assert response.status_code == 200
     data = response.json()
-    
+
     # Should have info and example_prompts
     assert "info" in data
     assert "example_prompts" in data

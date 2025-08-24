@@ -76,12 +76,12 @@ class TestLLaVAModels:
     def test_llava_response_creation(self, response_data):
         """Test LLaVAAnalysisResponse creation with various valid data."""
         response = LLaVAAnalysisResponse(**response_data)
-        
+
         assert response.description == response_data["description"]
         assert response.processing_time == response_data["processing_time"]
         assert response.llm_model == response_data["llm_model"]
         assert response.success == response_data["success"]
-        
+
         # Optional fields
         if "detected" in response_data:
             assert response.detected == response_data["detected"]
@@ -125,7 +125,7 @@ class TestLLaVAModels:
         )
         request_json = original_request.model_dump_json()
         reconstructed_request = LLaVAAnalysisRequest.model_validate_json(request_json)
-        
+
         assert original_request.image_base64 == reconstructed_request.image_base64
         assert original_request.prompt == reconstructed_request.prompt
 
@@ -141,9 +141,11 @@ class TestLLaVAModels:
         reconstructed_response = LLaVAAnalysisResponse.model_validate_json(
             response_json
         )
-        
+
         assert original_response.description == reconstructed_response.description
         assert original_response.detected == reconstructed_response.detected
-        assert original_response.processing_time == reconstructed_response.processing_time
+        assert (
+            original_response.processing_time == reconstructed_response.processing_time
+        )
         assert original_response.llm_model == reconstructed_response.llm_model
         assert original_response.success == reconstructed_response.success

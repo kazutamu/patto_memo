@@ -40,10 +40,10 @@ class TestLLaVAIntegration:
                 "/api/v1/llava/analyze", json=base64_request
             )
 
-            # Test file upload analysis  
+            # Test file upload analysis
             files = {"file": ("test.jpg", image_data["file"], "image/jpeg")}
             data = {"prompt": "Describe this image"}
-            
+
             upload_response = await async_client.post(
                 "/api/v1/llava/analyze-upload", files=files, data=data
             )
@@ -79,7 +79,12 @@ class TestLLaVAIntegration:
         assert prompts_response.status_code == 200
 
         # All endpoints should be responding
-        responses = [health_response, queue_response, connections_response, prompts_response]
+        responses = [
+            health_response,
+            queue_response,
+            connections_response,
+            prompts_response,
+        ]
         assert all(r.status_code == 200 for r in responses)
 
 
@@ -88,7 +93,7 @@ class TestSystemBehaviorUnderLoad:
 
     async def test_mixed_endpoint_concurrent_access(self, async_client: AsyncClient):
         """Test concurrent access to different endpoints doesn't cause issues."""
-        
+
         async def call_health():
             return await async_client.get("/health")
 
@@ -104,7 +109,7 @@ class TestSystemBehaviorUnderLoad:
         # Run all calls concurrently
         tasks = [
             call_health(),
-            call_queue_status(), 
+            call_queue_status(),
             call_prompts(),
             call_connections(),
             call_health(),  # Duplicate some calls
@@ -144,12 +149,12 @@ class TestSystemLimitsAndBoundaries:
         large_base64 = "x" * (5 * 1024 * 1024)  # 5MB base64 string
         large_request = {
             "image_base64": large_base64,
-            "prompt": "Analyze this large image"
+            "prompt": "Analyze this large image",
         }
 
         # This should fail gracefully, not crash the system
         response = client.post("/api/v1/llava/analyze", json=large_request)
-        
+
         # Should handle gracefully (either 422 for validation or 413 for too large)
         assert response.status_code in [400, 413, 422]
 
