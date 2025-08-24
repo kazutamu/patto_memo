@@ -7,10 +7,8 @@ This file focuses on file-specific edge cases and validation.
 
 from io import BytesIO
 
-import httpx
 import pytest
 from fastapi.testclient import TestClient
-from pytest_httpx import HTTPXMock
 
 from main import app
 
@@ -23,7 +21,7 @@ class TestFileUploadValidation:
         with TestClient(app) as client:
             if file_upload_data["scenario"] == "empty_file":
                 response = client.post(
-                    "/api/v1/llava/analyze-upload",
+                    "/api/v1/ai/analyze-upload",
                     files={
                         "file": (
                             file_upload_data["filename"],
@@ -38,7 +36,7 @@ class TestFileUploadValidation:
 
             elif file_upload_data["scenario"] in ["valid_jpeg", "valid_png"]:
                 response = client.post(
-                    "/api/v1/llava/analyze-upload",
+                    "/api/v1/ai/analyze-upload",
                     files={
                         "file": (
                             file_upload_data["filename"],
@@ -52,7 +50,7 @@ class TestFileUploadValidation:
 
             elif file_upload_data["scenario"] == "invalid_type":
                 response = client.post(
-                    "/api/v1/llava/analyze-upload",
+                    "/api/v1/ai/analyze-upload",
                     files={
                         "file": (
                             file_upload_data["filename"],
@@ -87,7 +85,7 @@ class TestFileUploadValidation:
                     # Use a smaller size to avoid memory issues in tests
                     test_data = b"x" * (10 * 1024 * 1024)  # 10MB instead of 50MB
                     response = client.post(
-                        "/api/v1/llava/analyze-upload",
+                        "/api/v1/ai/analyze-upload",
                         files={"file": ("large.jpg", BytesIO(test_data), "image/jpeg")},
                     )
                     assert response.status_code in [200, 413, 422, 503]
@@ -99,7 +97,7 @@ class TestFileUploadValidation:
             file_data = b"x" * file_size
             with TestClient(app) as client:
                 response = client.post(
-                    "/api/v1/llava/analyze-upload",
+                    "/api/v1/ai/analyze-upload",
                     files={"file": ("test.jpg", BytesIO(file_data), "image/jpeg")},
                 )
 
@@ -108,53 +106,28 @@ class TestFileUploadValidation:
                 else:  # large_file
                     assert response.status_code in [200, 413, 422, 503]
 
-    @pytest.mark.asyncio
-    async def test_file_upload_error_scenarios(self, httpx_mock: HTTPXMock):
+    def test_file_upload_error_scenarios(self):
         """Test file upload error handling scenarios."""
-        test_scenarios = [
-            ("connection_error", None),  # No mock = connection error
-            ("timeout", httpx.TimeoutException("Request timed out")),
-            (
-                "server_error",
-                {"status_code": 503, "text": "Service unavailable"},
-            ),  # Changed to 503 to match expectation
-        ]
+        # Since we switched to Gemini, we test that API key errors are handled correctly
+        # without needing to mock external HTTP calls
 
-        for scenario_name, mock_setup in test_scenarios:
-            if mock_setup is None:
-                # No mock setup = connection error
-                pass
-            elif isinstance(mock_setup, Exception):
-                httpx_mock.add_exception(
-                    mock_setup, method="POST", url="http://localhost:11434/api/generate"
-                )
-            else:
-                httpx_mock.add_response(
-                    method="POST",
-                    url="http://localhost:11434/api/generate",
-                    **mock_setup,
-                )
+        with TestClient(app) as client:
+            response = client.post(
+                "/api/v1/ai/analyze-upload",
+                files={"file": ("test.jpg", BytesIO(b"test_data"), "image/jpeg")},
+                data={"prompt": "Test error handling"},
+            )
 
-            with TestClient(app) as client:
-                response = client.post(
-                    "/api/v1/llava/analyze-upload",
-                    files={"file": ("test.jpg", BytesIO(b"test_data"), "image/jpeg")},
-                    data={"prompt": f"Test {scenario_name}"},
-                )
-
-                if scenario_name == "server_error":
-                    assert response.status_code == 503
-                else:
-                    assert response.status_code == 200
-                    data = response.json()
-                    assert data["success"] is False
-                    assert (
-                        "error" in data["error_message"].lower()
-                        or "connection" in data["error_message"].lower()
-                    )
-
-            # Clear mock for next iteration
-            httpx_mock.reset()
+            # Should return 200 with error details when GEMINI_API_KEY is not set
+            assert response.status_code == 200
+            data = response.json()
+            assert data["success"] is False
+            assert (
+                "error" in data["error_message"].lower()
+                or "connection" in data["error_message"].lower()
+                or "api key" in data["error_message"].lower()
+                or "gemini_api_key" in data["error_message"].lower()
+            )
 
 
 class TestFileUploadSecurityAndEdgeCases:
@@ -200,6 +173,7 @@ class TestFileUploadSecurityAndEdgeCases:
     )
     def test_security_input_validation(self, security_scenario, test_data):
         """Test handling of potentially malicious or unusual inputs."""
+        # security_scenario is used implicitly by pytest parametrize for test identification
         with TestClient(app) as client:
             files_data = {
                 "file": (
@@ -214,7 +188,7 @@ class TestFileUploadSecurityAndEdgeCases:
                 form_data["prompt"] = test_data["prompt"]
 
             response = client.post(
-                "/api/v1/llava/analyze-upload", files=files_data, data=form_data
+                "/api/v1/ai/analyze-upload", files=files_data, data=form_data
             )
 
         # Should handle all security scenarios safely
@@ -232,7 +206,7 @@ class TestFileUploadSecurityAndEdgeCases:
             data = f"concurrent_test_{file_id}".encode()
             with TestClient(app) as client:
                 return client.post(
-                    "/api/v1/llava/analyze-upload",
+                    "/api/v1/ai/analyze-upload",
                     files={
                         "file": (f"test_{file_id}.jpg", BytesIO(data), "image/jpeg")
                     },
@@ -278,14 +252,14 @@ class TestFileUploadSecurityAndEdgeCases:
         with TestClient(app) as client:
             # Upload file
             upload_response = client.post(
-                "/api/v1/llava/analyze-upload",
+                "/api/v1/ai/analyze-upload",
                 files={"file": ("test.jpg", BytesIO(test_data), "image/jpeg")},
                 data={"prompt": "consistency test"},
             )
 
             # Test base64 endpoint for comparison
             base64_response = client.post(
-                "/api/v1/llava/analyze",
+                "/api/v1/ai/analyze-image",
                 json={"image_base64": expected_base64, "prompt": "consistency test"},
             )
 
@@ -313,7 +287,7 @@ class TestFileUploadEdgeCases:
 
         with TestClient(app) as client:
             response = client.post(
-                "/api/v1/llava/analyze-upload",
+                "/api/v1/ai/analyze-upload",
                 files={"file": ("random.jpg", BytesIO(random_data), "image/jpeg")},
             )
 
@@ -327,7 +301,7 @@ class TestFileUploadEdgeCases:
         """Test uploading with incorrect field names."""
         with TestClient(app) as client:
             response = client.post(
-                "/api/v1/llava/analyze-upload",
+                "/api/v1/ai/analyze-upload",
                 files={field_name: ("test.jpg", BytesIO(b"test_data"), "image/jpeg")},
             )
 
@@ -340,7 +314,7 @@ class TestFileUploadEdgeCases:
         """Test behavior when multiple files are uploaded."""
         with TestClient(app) as client:
             response = client.post(
-                "/api/v1/llava/analyze-upload",
+                "/api/v1/ai/analyze-upload",
                 files=[
                     ("file", ("test1.jpg", BytesIO(b"data1"), "image/jpeg")),
                     ("file", ("test2.jpg", BytesIO(b"data2"), "image/jpeg")),

@@ -5,8 +5,12 @@ uvicorn[standard]
 # File upload support
 python-multipart
 
-# HTTP client for Ollama API
+# Google Gemini API
+google-generativeai
+
+# HTTP client and image processing
 httpx
+pillow
 
 # Server-Sent Events support
 sse-starlette
@@ -21,6 +25,4 @@ pytest-cov
 # Development/formatting tools
 black
 isort
-
-# Minimal LangGraph for agent workflows
-langgraph
+# Updated for Gemini API integration Sun Aug 24 17:40:28 JST 2025

@@ -6,7 +6,6 @@ Provides convenient commands to run different types of tests.
 
 import subprocess
 import sys
-from pathlib import Path
 
 
 def run_command(cmd, description):
@@ -31,7 +30,6 @@ Commands:
   all           - Run all tests with coverage
   unit          - Run only unit tests
   integration   - Run only integration tests
-  llava         - Run only LLaVA endpoint tests
   models        - Run only model validation tests
   uploads       - Run only file upload tests
   fast          - Run fast tests only (no slow tests)
@@ -42,7 +40,7 @@ Commands:
 Examples:
   python run_tests.py all
   python run_tests.py unit
-  python run_tests.py llava
+  python run_tests.py models
         """
         )
         return
@@ -64,9 +62,6 @@ Examples:
     elif command == "integration":
         cmd = base_cmd + ["-m", "integration"]
         run_command(cmd, "Integration tests only")
-    elif command == "llava":
-        cmd = base_cmd + ["tests/test_llava_endpoints.py", "-v"]
-        run_command(cmd, "LLaVA endpoint tests")
     elif command == "models":
         cmd = base_cmd + ["tests/test_models.py", "-v"]
         run_command(cmd, "Model validation tests")

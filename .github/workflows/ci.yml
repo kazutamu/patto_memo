@@ -290,10 +290,10 @@ jobs:
 
     - name: Test API endpoints
       run: |
-        # Test LLaVA prompts endpoint
-        echo "Testing LLaVA prompts endpoint..."
-        curl -f http://localhost:8000/api/v1/llava/prompts || (echo "❌ LLaVA prompts endpoint failed" && exit 1)
-        echo "✅ LLaVA prompts endpoint passed"
+        # Test AI prompts endpoint
+        echo "Testing AI prompts endpoint..."
+        curl -f http://localhost:8000/api/v1/ai/prompts || (echo "❌ AI prompts endpoint failed" && exit 1)
+        echo "✅ AI prompts endpoint passed"
         
         # Test queue status endpoint  
         echo "Testing queue status endpoint..."
@@ -393,8 +393,8 @@ jobs:
         # Basic API health check
         curl -f http://localhost:8000/health
         
-        # Test API endpoints (LLaVA analysis endpoints)
-        curl -f http://localhost:8000/api/v1/llava/prompts
+        # Test API endpoints (AI analysis endpoints)
+        curl -f http://localhost:8000/api/v1/ai/prompts
 
     - name: Stop services
       if: always()

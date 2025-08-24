@@ -12,8 +12,8 @@ from httpx import AsyncClient
 # app import removed as not needed for current tests
 
 
-class TestLLaVAIntegration:
-    """Test LLaVA analysis integration and workflows."""
+class TestAIIntegration:
+    """Test AI analysis integration and workflows."""
 
     @pytest.mark.asyncio
     async def test_file_upload_vs_base64_consistency_integration(
@@ -29,7 +29,7 @@ class TestLLaVAIntegration:
         mock_ollama_response = {
             "response": '{"detected": "YES", "description": "Test image analysis"}',
             "done": True,
-            "model": "llava:latest",
+            "model": "gemini-1.5-flash",
         }
 
         with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
@@ -38,7 +38,7 @@ class TestLLaVAIntegration:
 
             # Test base64 analysis
             base64_response = await async_client.post(
-                "/api/v1/llava/analyze", json=base64_request
+                "/api/v1/ai/analyze-image", json=base64_request
             )
 
             # Test file upload analysis
@@ -46,7 +46,7 @@ class TestLLaVAIntegration:
             data = {"prompt": "Describe this image"}
 
             upload_response = await async_client.post(
-                "/api/v1/llava/analyze-upload", files=files, data=data
+                "/api/v1/ai/analyze-image-upload", files=files, data=data
             )
 
             # Both should succeed
@@ -83,7 +83,7 @@ class TestLLaVAIntegration:
         assert connections_response.status_code == 200
 
         # Test available prompts
-        prompts_response = client.get("/api/v1/llava/prompts")
+        prompts_response = client.get("/api/v1/ai/prompts")
         assert prompts_response.status_code == 200
 
         # All endpoints should be responding
@@ -110,7 +110,7 @@ class TestSystemBehaviorUnderLoad:
             return await async_client.get("/api/v1/queue/status")
 
         async def call_prompts():
-            return await async_client.get("/api/v1/llava/prompts")
+            return await async_client.get("/api/v1/ai/prompts")
 
         async def call_connections():
             return await async_client.get("/api/v1/events/connections")
@@ -136,7 +136,7 @@ class TestSystemBehaviorUnderLoad:
         """Test that errors in one endpoint don't affect others."""
         # Make some invalid requests
         client.get("/api/v1/nonexistent")
-        client.post("/api/v1/llava/analyze", json={})  # Invalid data
+        client.post("/api/v1/ai/analyze-image", json={})  # Invalid data
 
         # Valid endpoints should still work
         health_response = client.get("/health")
@@ -162,7 +162,7 @@ class TestSystemLimitsAndBoundaries:
         }
 
         # This should either process or fail gracefully, not crash the system
-        response = client.post("/api/v1/llava/analyze", json=large_request)
+        response = client.post("/api/v1/ai/analyze-image", json=large_request)
 
         # Should handle gracefully - either success (200) or validation error (422)
         # The main goal is ensuring the system doesn't crash
