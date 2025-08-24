@@ -1,8 +1,7 @@
 # Nixpacks configuration for Railway deployment
-# This file forces Railway to detect this as a Python project
 
-[providers]
-python = "3.11"
+[phases.setup]
+nixPkgs = ["python311", "pip"]
 
 [phases.install]
 cmds = ["pip install -r requirements.txt"]
