@@ -78,12 +78,12 @@ async def analyze_image(request: ImageAnalysisRequest):
     try:
         # Use Gemini API
         gemini_result = await analyze_with_gemini(request.image_base64, request.prompt)
-        
+
         # Handle Gemini response
         if not gemini_result["success"]:
             if "quota" in gemini_result["error_message"].lower():
                 raise HTTPException(status_code=503, detail="Service unavailable")
-            
+
             # Return error response
             return ImageAnalysisResponse(
                 description="",
