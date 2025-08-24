@@ -112,7 +112,7 @@ class TestFileUploadValidation:
         """Test file upload error handling scenarios."""
         # Since we switched to Gemini, we test that API key errors are handled correctly
         # without needing to mock external HTTP calls
-        
+
         with TestClient(app) as client:
             response = client.post(
                 "/api/v1/ai/analyze-upload",
@@ -126,7 +126,7 @@ class TestFileUploadValidation:
             assert data["success"] is False
             assert (
                 "error" in data["error_message"].lower()
-                or "connection" in data["error_message"].lower() 
+                or "connection" in data["error_message"].lower()
                 or "api key" in data["error_message"].lower()
                 or "gemini_api_key" in data["error_message"].lower()
             )
