@@ -18,6 +18,8 @@ services:
       context: ..
       dockerfile: docker/Dockerfile.web
       target: development
+    ports:
+      - "3000:3000"
     volumes:
       - ../apps/web:/app
       - /app/node_modules
