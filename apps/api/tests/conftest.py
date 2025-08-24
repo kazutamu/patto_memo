@@ -44,21 +44,15 @@ def mock_ollama_responses():
         "success": {
             "response": "This image shows a person walking through a doorway.",
             "done": True,
-            "model": "llava:latest",
+            "model": "gemini-1.5-flash",
         },
         "error": {"error": "Model not found"},
         "malformed": {},  # Missing expected fields
-        "empty_response": {"response": "", "done": True, "model": "llava:latest"},
+        "empty_response": {"response": "", "done": True, "model": "gemini-1.5-flash"},
     }
 
 
-@pytest.fixture
-def llava_request_data(image_data):
-    """LLaVA analysis request data using parameterized image data."""
-    return {
-        "image_base64": image_data["base64"],
-        "prompt": "Describe what you see in this image",
-    }
+# LLaVA-specific fixtures removed - no backward compatibility needed
 
 
 @pytest.fixture(

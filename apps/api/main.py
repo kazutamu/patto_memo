@@ -166,32 +166,7 @@ async def analyze_uploaded_image(
         )
 
 
-# Backward compatibility aliases for legacy LLaVA endpoints
-@app.post("/api/v1/llava/analyze", response_model=ImageAnalysisResponse)
-async def analyze_image_with_llava(request: ImageAnalysisRequest):
-    """
-    Legacy endpoint for backward compatibility - redirects to /api/v1/ai/analyze-image
-    """
-    return await analyze_image(request)
-
-
-@app.post("/api/v1/llava/analyze-upload")
-async def analyze_uploaded_image_legacy(
-    file: UploadFile = File(...),
-    prompt: Optional[str] = None,
-):
-    """
-    Legacy endpoint for backward compatibility - redirects to /api/v1/ai/analyze-upload
-    """
-    return await analyze_uploaded_image(file, prompt)
-
-
-@app.get("/api/v1/llava/prompts")
-def get_available_prompts_legacy():
-    """
-    Legacy endpoint for backward compatibility - redirects to /api/v1/ai/prompts
-    """
-    return get_available_prompts()
+# All legacy LLaVA endpoints removed - no backward compatibility needed
 
 
 @app.get("/api/v1/events/stream")
