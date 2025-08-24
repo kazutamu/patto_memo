@@ -8,8 +8,9 @@ WORKDIR /app
 # Copy package files
 COPY apps/web/package*.json ./
 
-# Install dependencies with platform-specific optional dependencies
-RUN npm ci --prefer-offline --no-optional && npm install --no-save
+# Install dependencies (fix rollup musl issue)
+RUN rm -rf node_modules package-lock.json || true && \
+    npm install --no-package-lock
 
 # Copy application code
 COPY apps/web/ .
@@ -28,8 +29,9 @@ WORKDIR /app
 # Copy package files
 COPY apps/web/package*.json ./
 
-# Install dependencies with platform-specific optional dependencies  
-RUN npm ci --prefer-offline --no-optional && npm install --no-save
+# Install dependencies (fix rollup musl issue)
+RUN rm -rf node_modules package-lock.json || true && \
+    npm install --no-package-lock
 
 # Copy application code
 COPY apps/web/ .
