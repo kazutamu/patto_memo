@@ -2,19 +2,20 @@
 Tests for Gemini analyzer module.
 """
 
+import base64
+import io
 import json
 import os
 from unittest.mock import Mock, patch
+
 import pytest
 from PIL import Image
-import io
-import base64
 
 from gemini_analyzer import (
-    GeminiConfig,
     GeminiAnalyzer,
-    get_analyzer,
+    GeminiConfig,
     analyze_with_gemini,
+    get_analyzer,
 )
 
 
