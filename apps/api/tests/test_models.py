@@ -28,7 +28,7 @@ class TestImageAnalysisModels:
         request = ImageAnalysisRequest(image_base64=image_data["base64"])
         assert request.image_base64 == image_data["base64"]
         # Should have optional prompt
-        assert hasattr(request, 'prompt')
+        assert hasattr(request, "prompt")
 
     @pytest.mark.parametrize(
         "invalid_data,expected_error",
@@ -38,7 +38,9 @@ class TestImageAnalysisModels:
             ({"image_base64": None}, "Input should be a valid string"),  # Null image
         ],
     )
-    def test_image_analysis_request_validation_errors(self, invalid_data, expected_error):
+    def test_image_analysis_request_validation_errors(
+        self, invalid_data, expected_error
+    ):
         """Test ImageAnalysisRequest validation with invalid data."""
         with pytest.raises(ValidationError) as exc_info:
             ImageAnalysisRequest(**invalid_data)
