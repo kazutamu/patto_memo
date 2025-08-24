@@ -297,13 +297,13 @@ jobs:
 
     - name: Test web application
       run: |
-        # Test web app availability
-        echo "Testing web application..."
+        # Test web app availability through nginx proxy
+        echo "Testing web application through nginx proxy..."
         max_attempts=5
         attempt=0
         while [ $attempt -lt $max_attempts ]; do
-          if curl -f http://localhost:3000; then
-            echo "✅ Web application is accessible"
+          if curl -f -k https://localhost/; then
+            echo "✅ Web application is accessible through HTTPS"
             break
           fi
           echo "Attempt $((attempt+1))/$max_attempts failed, retrying in 5s..."
@@ -312,7 +312,13 @@ jobs:
         done
         
         if [ $attempt -eq $max_attempts ]; then
-          echo "❌ Web application not accessible after $max_attempts attempts"
+          echo "❌ Web application not accessible through nginx after $max_attempts attempts"
+          echo ""
+          echo "=== Nginx Container Logs ==="
+          docker compose -f docker/docker-compose.yml logs nginx || true
+          echo ""
+          echo "=== Web Container Logs ==="
+          docker compose -f docker/docker-compose.yml logs web || true
           exit 1
         fi
 
