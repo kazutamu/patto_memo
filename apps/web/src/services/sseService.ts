@@ -1,12 +1,10 @@
-import { MotionEvent } from '../types';
 
 export interface SSEEvent {
-  type: 'motion_detected' | 'ai_analysis' | 'connected' | 'heartbeat';
+  type: 'ai_analysis' | 'connected' | 'heartbeat';
   data: any;
 }
 
 export interface SSEEventHandlers {
-  onMotionDetected?: (event: MotionEvent) => void;
   onAIAnalysis?: (analysis: { description: string; detected?: 'YES' | 'NO' | null; processing_time: number; timestamp: string }) => void;
   onConnected?: (data: { client_id: string; timestamp: string }) => void;
   onError?: (error: Event) => void;
@@ -61,11 +59,7 @@ export class SSEService {
         this.handlers.onConnected?.(data);
       });
 
-      this.eventSource.addEventListener('motion_detected', (event) => {
-        const motionData = JSON.parse(event.data);
-        console.log('Motion detected via SSE:', motionData);
-        this.handlers.onMotionDetected?.(motionData);
-      });
+      // Motion detection removed
 
       this.eventSource.addEventListener('ai_analysis', (event) => {
         const analysisData = JSON.parse(event.data);

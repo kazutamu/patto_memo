@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { SSEService, SSEEventHandlers } from '../services/sseService';
-import { MotionEvent } from '../types';
 
 export interface AIAnalysis {
   description: string;
@@ -11,14 +10,12 @@ export interface AIAnalysis {
 
 export interface UseSSEOptions {
   autoConnect?: boolean;
-  onMotionDetected?: (event: MotionEvent) => void;
   onAIAnalysis?: (analysis: AIAnalysis) => void;
 }
 
 export interface UseSSEReturn {
   isConnected: boolean;
   connectionState: 'connecting' | 'open' | 'closed';
-  lastMotionEvent: MotionEvent | null;
   lastAIAnalysis: AIAnalysis | null;
   connect: () => void;
   disconnect: () => void;
@@ -30,12 +27,10 @@ export interface UseSSEReturn {
  */
 export function useSSE({
   autoConnect = true,
-  onMotionDetected,
   onAIAnalysis
 }: UseSSEOptions = {}): UseSSEReturn {
   const [isConnected, setIsConnected] = useState(false);
   const [connectionState, setConnectionState] = useState<'connecting' | 'open' | 'closed'>('closed');
-  const [lastMotionEvent, setLastMotionEvent] = useState<MotionEvent | null>(null);
   const [lastAIAnalysis, setLastAIAnalysis] = useState<AIAnalysis | null>(null);
   const [error, setError] = useState<string | null>(null);
   
@@ -65,11 +60,6 @@ export function useSSE({
     if (!sseServiceRef.current) return;
 
     const handlers: SSEEventHandlers = {
-      onMotionDetected: (event: MotionEvent) => {
-        setLastMotionEvent(event);
-        setError(null);
-        onMotionDetected?.(event);
-      },
 
       onAIAnalysis: (analysis: AIAnalysis) => {
         setLastAIAnalysis(analysis);
@@ -97,7 +87,7 @@ export function useSSE({
     };
 
     sseServiceRef.current.connect(handlers);
-  }, [onMotionDetected, onAIAnalysis]);
+  }, [onAIAnalysis]);
 
   const disconnect = useCallback(() => {
     if (sseServiceRef.current) {
@@ -123,7 +113,6 @@ export function useSSE({
   return {
     isConnected,
     connectionState,
-    lastMotionEvent,
     lastAIAnalysis,
     connect,
     disconnect,
