@@ -8,7 +8,7 @@ from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from graph import analyze_with_graph
+from gemini_analyzer import analyze_with_gemini
 from sse_manager import sse_manager
 
 app = FastAPI()
@@ -26,7 +26,7 @@ app.add_middleware(
 # Pydantic models for request/response validation
 
 
-class LLaVAAnalysisRequest(BaseModel):
+class ImageAnalysisRequest(BaseModel):
     image_base64: str = Field(..., description="Base64 encoded image")
     prompt: Optional[str] = Field(
         default="Analyze this image and describe specifically what the person is doing. Focus on their actions, posture, and activities. If multiple people are present, describe each person's activity. Be specific about movements, gestures, or tasks being performed.",
@@ -34,7 +34,7 @@ class LLaVAAnalysisRequest(BaseModel):
     )
 
 
-class LLaVAAnalysisResponse(BaseModel):
+class ImageAnalysisResponse(BaseModel):
     description: str
     detected: Optional[str] = None  # "YES" or "NO" for detection status
     processing_time: float
@@ -50,7 +50,7 @@ def health_check():
     return {"status": "ok", "sse_connections": sse_manager.connection_count}
 
 
-@app.get("/api/v1/llava/prompts")
+@app.get("/api/v1/ai/prompts")
 def get_available_prompts():
     """
     Get available analysis prompt types and their descriptions
@@ -68,102 +68,36 @@ def get_available_prompts():
     }
 
 
-@app.post("/api/v1/llava/analyze", response_model=LLaVAAnalysisResponse)
-async def analyze_image_with_llava(request: LLaVAAnalysisRequest):
+@app.post("/api/v1/ai/analyze-image", response_model=ImageAnalysisResponse)
+async def analyze_image(request: ImageAnalysisRequest):
     """
-    Analyze an image using LangGraph workflow with LLaVA model
+    Analyze an image using AI workflow
     """
     start_time = datetime.now()
 
     try:
-        # Create more strict JSON-formatted prompt
-        json_format = """You MUST respond with ONLY a valid JSON object. Do not include any text before or after the JSON.
-The JSON must have exactly this structure:
-{
-  "detected": "YES" or "NO",
-  "description": "your detailed answer here"
-}
-
-Important rules:
-1. Start your response with { and end with }
-2. Use double quotes for all strings
-3. The "detected" field must be exactly "YES" or "NO" (uppercase)
-4. The "description" field must contain your analysis
-5. No additional text, explanations, or formatting outside the JSON"""
-
-        if request.prompt:
-            # User provided a custom prompt
-            prompt = f'{json_format}\n\nSet detected to "YES" if the answer to this question is affirmative/positive, "NO" otherwise.\nQuestion: {request.prompt}'
-        else:
-            # Default prompt
-            prompt = f'{json_format}\n\nSet detected to "YES" if you see any motion/activity/person in the image, "NO" if the image appears static or empty.\nIn the description field, analyze what you see, focusing on any actions, posture, and activities.'
-
-        # Use LangGraph
-        graph_result = await analyze_with_graph(request.image_base64, prompt)
-        processing_time = (datetime.now() - start_time).total_seconds()
-
-        # Check if graph returned error information
-        if isinstance(graph_result, dict) and "error_type" in graph_result:
-            if graph_result["error_type"] == "service_unavailable":
+        # Use Gemini API
+        gemini_result = await analyze_with_gemini(request.image_base64, request.prompt)
+        
+        # Handle Gemini response
+        if not gemini_result["success"]:
+            if "quota" in gemini_result["error_message"].lower():
                 raise HTTPException(status_code=503, detail="Service unavailable")
-
-            # Return error response for other error types
-            return LLaVAAnalysisResponse(
+            
+            # Return error response
+            return ImageAnalysisResponse(
                 description="",
-                processing_time=processing_time,
-                llm_model="llava:latest",
+                processing_time=gemini_result["processing_time"],
+                llm_model=gemini_result["llm_model"],
                 success=False,
-                error_message=graph_result.get("error_message", "Unknown error"),
+                error_message=gemini_result["error_message"],
             )
 
-        # Handle successful response
-        result_text = (
-            graph_result
-            if isinstance(graph_result, str)
-            else graph_result.get("result", "")
-        )
-
-        # Try to parse JSON response to extract detection status
-        detected_status = None
-        description_text = result_text
-
-        # First, try to parse as direct JSON
-        try:
-            parsed_result = json.loads(result_text)
-            if isinstance(parsed_result, dict):
-                detected_status = parsed_result.get("detected", None)
-                description_text = parsed_result.get("description", result_text)
-        except (json.JSONDecodeError, AttributeError):
-            # If not valid JSON, try to extract JSON from the text
-            # Try to find JSON object in the response
-            json_match = re.search(
-                r'\{[^{}]*"detected"[^{}]*\}', result_text, re.DOTALL
-            )
-            if json_match:
-                try:
-                    parsed_result = json.loads(json_match.group())
-                    if isinstance(parsed_result, dict):
-                        detected_status = parsed_result.get("detected", None)
-                        description_text = parsed_result.get("description", result_text)
-                except json.JSONDecodeError:
-                    # Even the extracted JSON is invalid
-                    pass
-
-            # As a last resort, look for YES/NO pattern in the text
-            if detected_status is None:
-                if re.search(r"\b(YES|yes|Yes)\b", result_text):
-                    detected_status = "YES"
-                elif re.search(r"\b(NO|no|No)\b", result_text):
-                    detected_status = "NO"
-
-                # Clean up the description by removing any JSON-like formatting
-                description_text = re.sub(r'[{}"]', "", result_text).strip()
-
-        response = LLaVAAnalysisResponse(
-            description=description_text,
-            detected=detected_status,
-            processing_time=processing_time,
-            llm_model="llava:latest",
+        response = ImageAnalysisResponse(
+            description=gemini_result["description"],
+            detected=gemini_result["detected"],
+            processing_time=gemini_result["processing_time"],
+            llm_model=gemini_result["llm_model"],
             success=True,
         )
 
@@ -192,22 +126,22 @@ Important rules:
         elif "timeout" in error_message.lower():
             error_message = f"Analysis failed: {str(e)}"
 
-        return LLaVAAnalysisResponse(
+        return ImageAnalysisResponse(
             description="",
             processing_time=processing_time,
-            llm_model="llava:latest",
+            llm_model="gemini-1.5-flash",
             success=False,
             error_message=error_message,
         )
 
 
-@app.post("/api/v1/llava/analyze-upload")
+@app.post("/api/v1/ai/analyze-upload")
 async def analyze_uploaded_image(
     file: UploadFile = File(...),
     prompt: Optional[str] = None,
 ):
     """
-    Analyze an uploaded image file using LangGraph workflow
+    Analyze an uploaded image file using AI workflow
     """
     try:
         # Read and encode the uploaded file
@@ -215,21 +149,49 @@ async def analyze_uploaded_image(
         image_base64 = base64.b64encode(image_data).decode("utf-8")
 
         # Use the existing analysis endpoint
-        request = LLaVAAnalysisRequest(image_base64=image_base64, prompt=prompt)
+        request = ImageAnalysisRequest(image_base64=image_base64, prompt=prompt)
 
-        return await analyze_image_with_llava(request)
+        return await analyze_image(request)
 
     except HTTPException:
         # Re-raise HTTPException to let FastAPI handle it properly
         raise
     except Exception as e:
-        return LLaVAAnalysisResponse(
+        return ImageAnalysisResponse(
             description="",
             processing_time=0.0,
-            llm_model="llava:latest",
+            llm_model="gemini-1.5-flash",
             success=False,
             error_message=f"File processing failed: {str(e)}",
         )
+
+
+# Backward compatibility aliases for legacy LLaVA endpoints
+@app.post("/api/v1/llava/analyze", response_model=ImageAnalysisResponse)
+async def analyze_image_with_llava(request: ImageAnalysisRequest):
+    """
+    Legacy endpoint for backward compatibility - redirects to /api/v1/ai/analyze-image
+    """
+    return await analyze_image(request)
+
+
+@app.post("/api/v1/llava/analyze-upload")
+async def analyze_uploaded_image_legacy(
+    file: UploadFile = File(...),
+    prompt: Optional[str] = None,
+):
+    """
+    Legacy endpoint for backward compatibility - redirects to /api/v1/ai/analyze-upload
+    """
+    return await analyze_uploaded_image(file, prompt)
+
+
+@app.get("/api/v1/llava/prompts")
+def get_available_prompts_legacy():
+    """
+    Legacy endpoint for backward compatibility - redirects to /api/v1/ai/prompts
+    """
+    return get_available_prompts()
 
 
 @app.get("/api/v1/events/stream")
