@@ -1,11 +1,9 @@
-import asyncio
 import base64
 import json
 import re
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Optional
 
-import httpx
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -24,53 +22,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Dummy data store for motion events
-dummy_motion_events = [
-    {
-        "id": 1,
-        "timestamp": "2025-08-10T10:30:00Z",
-        "confidence": 0.85,
-        "duration": 2.3,
-        "description": "Person detected at front entrance",
-    },
-    {
-        "id": 2,
-        "timestamp": "2025-08-10T11:15:30Z",
-        "confidence": 0.72,
-        "duration": 1.8,
-        "description": "Animal movement in garden area",
-    },
-    {
-        "id": 3,
-        "timestamp": "2025-08-10T12:45:15Z",
-        "confidence": 0.91,
-        "duration": 3.1,
-        "description": "Vehicle movement detected",
-    },
-]
-
 
 # Pydantic models for request/response validation
-class MotionEventCreate(BaseModel):
-    confidence: float
-    duration: float
-    description: str = ""
-
-
-class MotionEvent(BaseModel):
-    id: int
-    timestamp: str
-    confidence: float
-    duration: float
-    description: str
-
-
-class MotionSettings(BaseModel):
-    detection_enabled: bool
-    sensitivity: float
-    min_confidence: float
-    recording_enabled: bool
-    alert_notifications: bool
 
 
 class LLaVAAnalysisRequest(BaseModel):
@@ -95,75 +48,6 @@ class LLaVAAnalysisResponse(BaseModel):
 @app.get("/health")
 def health_check():
     return {"status": "ok", "sse_connections": sse_manager.connection_count}
-
-
-@app.get("/api/v1/motion/events", response_model=List[MotionEvent])
-def get_motion_events(limit: int = 10):
-    """
-    Get recent motion detection events
-    """
-    # Validate limit parameter
-    if limit < 0:
-        raise HTTPException(status_code=422, detail="Limit must be non-negative")
-
-    events = dummy_motion_events.copy()
-
-    # Handle zero limit
-    if limit == 0:
-        return []
-
-    # Apply limit
-    events = events[-limit:]
-
-    return events
-
-
-@app.post("/api/v1/motion/events", response_model=MotionEvent)
-async def create_motion_event(event: MotionEventCreate):
-    """
-    Report a new motion detection event
-    """
-    # Create new event with auto-generated ID and timestamp
-    new_event = {
-        "id": len(dummy_motion_events) + 1,
-        "timestamp": datetime.now().isoformat() + "Z",
-        "confidence": event.confidence,
-        "duration": event.duration,
-        "description": event.description,
-    }
-
-    # Add to dummy data store
-    dummy_motion_events.append(new_event)
-
-    # Broadcast motion event to SSE clients
-    asyncio.create_task(
-        sse_manager.broadcast(
-            "motion_detected",
-            {
-                "id": new_event["id"],
-                "confidence": new_event["confidence"],
-                "duration": new_event["duration"],
-                "description": new_event["description"],
-                "timestamp": new_event["timestamp"],
-            },
-        )
-    )
-
-    return new_event
-
-
-@app.get("/api/v1/motion/settings", response_model=MotionSettings)
-def get_motion_settings():
-    """
-    Get current motion detection settings and configuration
-    """
-    return {
-        "detection_enabled": True,
-        "sensitivity": 0.7,
-        "min_confidence": 0.6,
-        "recording_enabled": True,
-        "alert_notifications": True,
-    }
 
 
 @app.get("/api/v1/llava/prompts")

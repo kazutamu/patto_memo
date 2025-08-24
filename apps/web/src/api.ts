@@ -1,4 +1,3 @@
-import { MotionEvent, MotionEventCreate, MotionSettings } from './types';
 
 const API_BASE_URL = '/api/v1';
 
@@ -49,25 +48,6 @@ export interface LLaVAAnalysisResponse {
 }
 
 export const api = {
-  // Get motion events
-  getMotionEvents: async (limit?: number): Promise<MotionEvent[]> => {
-    const params = limit ? `?limit=${limit}` : '';
-    return request<MotionEvent[]>(`/motion/events${params}`);
-  },
-
-  // Create a new motion event
-  createMotionEvent: async (event: MotionEventCreate): Promise<MotionEvent> => {
-    return request<MotionEvent>('/motion/events', {
-      method: 'POST',
-      body: JSON.stringify(event),
-    });
-  },
-
-  // Get motion detection settings
-  getMotionSettings: async (): Promise<MotionSettings> => {
-    return request<MotionSettings>('/motion/settings');
-  },
-
   // Analyze image with LLaVA
   analyzeLLaVA: async (analysisRequest: LLaVAAnalysisRequest): Promise<LLaVAAnalysisResponse> => {
     return request<LLaVAAnalysisResponse>('/llava/analyze', {

@@ -1,7 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { VideoFeed } from './components';
 import { ConnectionHelper } from './components/ConnectionHelper';
-import { MotionEvent } from './types';
 import { useSSE, AIAnalysis } from './hooks/useSSE';
 import styles from './App.module.css';
 
@@ -28,10 +27,6 @@ function App() {
     error: sseError
   } = useSSE({
     autoConnect: true,
-    onMotionDetected: useCallback((event: MotionEvent) => {
-      // Motion events are still processed but not displayed
-      console.log('Motion detected:', event);
-    }, []),
     onAIAnalysis: useCallback((analysis: AIAnalysis) => {
       // AI analysis is still processed but not displayed
       console.log('AI analysis:', analysis);
