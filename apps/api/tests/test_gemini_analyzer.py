@@ -188,6 +188,7 @@ class TestGeminiAnalyzer:
 
         assert result["detected"] == "NO"
 
+    @pytest.mark.asyncio
     @patch.dict(os.environ, {"GEMINI_API_KEY": "test_api_key"})
     @patch("gemini_analyzer.genai.GenerativeModel")
     async def test_analyze_image_success(self, mock_model_class):
@@ -216,6 +217,7 @@ class TestGeminiAnalyzer:
         assert result["processing_time"] > 0
         assert result["error_message"] is None
 
+    @pytest.mark.asyncio
     @patch.dict(os.environ, {}, clear=True)
     async def test_analyze_image_no_api_key(self):
         """Test image analysis without API key."""
@@ -227,6 +229,7 @@ class TestGeminiAnalyzer:
         assert "Invalid or missing Gemini API key" in result["error_message"]
         assert result["processing_time"] > 0
 
+    @pytest.mark.asyncio
     @patch.dict(os.environ, {"GEMINI_API_KEY": "test_api_key"})
     @patch("gemini_analyzer.genai.GenerativeModel")
     async def test_analyze_image_quota_error(self, mock_model_class):
@@ -241,6 +244,7 @@ class TestGeminiAnalyzer:
         assert result["success"] is False
         assert "Gemini API quota exceeded" in result["error_message"]
 
+    @pytest.mark.asyncio
     @patch.dict(os.environ, {"GEMINI_API_KEY": "test_api_key"})
     @patch("gemini_analyzer.genai.GenerativeModel")
     async def test_analyze_image_timeout_error(self, mock_model_class):
@@ -272,6 +276,7 @@ class TestGlobalFunctions:
 
         assert analyzer1 is analyzer2
 
+    @pytest.mark.asyncio
     @patch("gemini_analyzer.get_analyzer")
     async def test_analyze_with_gemini(self, mock_get_analyzer):
         """Test analyze_with_gemini function."""

@@ -6,7 +6,6 @@ Provides convenient commands to run different types of tests.
 
 import subprocess
 import sys
-from pathlib import Path
 
 
 def run_command(cmd, description):

@@ -152,6 +152,7 @@ class TestFileUploadValidation:
                         "error" in data["error_message"].lower()
                         or "connection" in data["error_message"].lower()
                         or "api key" in data["error_message"].lower()
+                        or "gemini_api_key" in data["error_message"].lower()
                     )
 
             # Clear mock for next iteration
