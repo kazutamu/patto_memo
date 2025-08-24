@@ -1,0 +1,2 @@
+# Force Nixpacks detection - this file tells Railway to use Nixpacks
+# This overrides any Docker detection
