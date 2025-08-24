@@ -8,8 +8,8 @@ WORKDIR /app
 # Copy package files
 COPY apps/web/package*.json ./
 
-# Install dependencies
-RUN npm ci
+# Install dependencies with clean cache
+RUN npm cache clean --force && npm ci
 
 # Copy application code
 COPY apps/web/ .
@@ -28,8 +28,8 @@ WORKDIR /app
 # Copy package files
 COPY apps/web/package*.json ./
 
-# Install dependencies
-RUN npm ci
+# Install dependencies with clean cache
+RUN npm cache clean --force && npm ci
 
 # Copy application code
 COPY apps/web/ .
