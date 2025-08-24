@@ -1,6 +1,7 @@
 # Minimal FastAPI Setup
 fastapi
 uvicorn[standard]
+gunicorn
 
 # File upload support
 python-multipart
