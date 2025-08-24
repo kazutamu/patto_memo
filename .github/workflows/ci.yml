@@ -290,15 +290,15 @@ jobs:
 
     - name: Test API endpoints
       run: |
-        # Test motion events endpoint
-        echo "Testing motion events endpoint..."
-        curl -f http://localhost:8000/api/v1/motion/events || (echo "❌ Motion events endpoint failed" && exit 1)
-        echo "✅ Motion events endpoint passed"
+        # Test LLaVA prompts endpoint
+        echo "Testing LLaVA prompts endpoint..."
+        curl -f http://localhost:8000/api/v1/llava/prompts || (echo "❌ LLaVA prompts endpoint failed" && exit 1)
+        echo "✅ LLaVA prompts endpoint passed"
         
-        # Test motion settings endpoint  
-        echo "Testing motion settings endpoint..."
-        curl -f http://localhost:8000/api/v1/motion/settings || (echo "❌ Motion settings endpoint failed" && exit 1)
-        echo "✅ Motion settings endpoint passed"
+        # Test queue status endpoint  
+        echo "Testing queue status endpoint..."
+        curl -f http://localhost:8000/api/v1/queue/status || (echo "❌ Queue status endpoint failed" && exit 1)
+        echo "✅ Queue status endpoint passed"
 
     - name: Test web application
       run: |
@@ -393,9 +393,8 @@ jobs:
         # Basic API health check
         curl -f http://localhost:8000/health
         
-        # Test API endpoints
-        curl -f http://localhost:8000/api/v1/motion/events
-        curl -f http://localhost:8000/api/v1/motion/settings
+        # Test API endpoints (LLaVA analysis endpoints)
+        curl -f http://localhost:8000/api/v1/llava/prompts
 
     - name: Stop services
       if: always()
