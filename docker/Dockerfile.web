@@ -1,14 +1,18 @@
-FROM node:20-alpine
+# Multi-stage Dockerfile for web application
+
+# Development stage
+FROM node:20-alpine AS development
 
 WORKDIR /app
 
 # Copy package files
 COPY apps/web/package*.json ./
 
-# Install dependencies
-RUN npm install
+# Install dependencies (fix rollup musl issue)
+RUN rm -rf node_modules package-lock.json || true && \
+    npm install --no-package-lock
 
-# Copy source code
+# Copy application code
 COPY apps/web/ .
 
 # Expose port
@@ -16,3 +20,36 @@ EXPOSE 3000
 
 # Start development server
 CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+
+# Build stage
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copy package files
+COPY apps/web/package*.json ./
+
+# Install dependencies (fix rollup musl issue)
+RUN rm -rf node_modules package-lock.json || true && \
+    npm install --no-package-lock
+
+# Copy application code
+COPY apps/web/ .
+
+# Build the application
+RUN npm run build
+
+# Production stage
+FROM nginx:alpine AS production
+
+# Copy built assets from builder stage
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Copy nginx configuration if needed
+# COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Expose port
+EXPOSE 80
+
+# Start nginx
+CMD ["nginx", "-g", "daemon off;"]
