@@ -227,7 +227,9 @@ class TestGeminiAnalyzer:
         result = await analyzer.analyze_image("fake_base64")
 
         assert result["success"] is False
-        assert "GEMINI_API_KEY environment variable is required" in result["error_message"]
+        assert (
+            "GEMINI_API_KEY environment variable is required" in result["error_message"]
+        )
         assert result["processing_time"] > 0
 
     @pytest.mark.asyncio
@@ -243,6 +245,7 @@ class TestGeminiAnalyzer:
         from PIL import Image
         import io
         import base64
+
         img = Image.new("RGB", (10, 10), color="red")
         buffer = io.BytesIO()
         img.save(buffer, format="PNG")
@@ -268,6 +271,7 @@ class TestGeminiAnalyzer:
         from PIL import Image
         import io
         import base64
+
         img = Image.new("RGB", (10, 10), color="blue")
         buffer = io.BytesIO()
         img.save(buffer, format="PNG")
@@ -303,7 +307,9 @@ class TestGlobalFunctions:
         """Test analyze_with_gemini function."""
         mock_analyzer = Mock()
         # Make the analyze_image return an async mock
-        mock_analyzer.analyze_image = AsyncMock(return_value={"success": True, "detected": "YES"})
+        mock_analyzer.analyze_image = AsyncMock(
+            return_value={"success": True, "detected": "YES"}
+        )
         mock_get_analyzer.return_value = mock_analyzer
 
         result = await analyze_with_gemini("test_base64", "test prompt")
