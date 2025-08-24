@@ -5,8 +5,7 @@ Streamlined tests for main API endpoints.
 import pytest
 from fastapi.testclient import TestClient
 
-from main import app
-from sse_manager import sse_manager
+# Import removed as not needed for current tests
 
 
 def test_health_check(client: TestClient):
@@ -51,17 +50,6 @@ class TestSSEEndpoints:
         assert "connected_clients" in data
         assert isinstance(data["connection_count"], int)
         assert isinstance(data["connected_clients"], list)
-
-    def test_sse_stream_endpoint_exists(self, client: TestClient):
-        """Test that SSE stream endpoint exists (basic connectivity test)."""
-        # Skip this test as SSE endpoints are difficult to test with TestClient
-        # The endpoint starts streaming and doesn't return immediately
-        # SSE functionality is tested in the separate test_sse_manager.py file
-        import pytest
-
-        pytest.skip(
-            "SSE streaming endpoints cannot be tested with synchronous TestClient"
-        )
 
 
 def test_get_queue_status(client: TestClient):
