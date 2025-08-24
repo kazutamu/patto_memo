@@ -45,7 +45,7 @@ class TestGeminiConfig:
         """Test ensure_configured with valid API key."""
         config = GeminiConfig()
         config.ensure_configured()
-        
+
         assert config._configured
         mock_configure.assert_called_once_with(api_key="test_api_key")
 
@@ -53,8 +53,10 @@ class TestGeminiConfig:
     def test_ensure_configured_without_api_key_raises_error(self):
         """Test ensure_configured without API key raises ValueError."""
         config = GeminiConfig()
-        
-        with pytest.raises(ValueError, match="GEMINI_API_KEY environment variable is required"):
+
+        with pytest.raises(
+            ValueError, match="GEMINI_API_KEY environment variable is required"
+        ):
             config.ensure_configured()
 
     @patch.dict(os.environ, {"GEMINI_API_KEY": "test_api_key"})
@@ -64,7 +66,7 @@ class TestGeminiConfig:
         config = GeminiConfig()
         config.ensure_configured()
         config.ensure_configured()  # Call twice
-        
+
         # Should only configure once
         mock_configure.assert_called_once_with(api_key="test_api_key")
 
@@ -90,39 +92,39 @@ class TestGeminiAnalyzer:
     def test_decode_base64_image_valid(self):
         """Test decoding valid base64 image."""
         # Create a simple test image
-        img = Image.new('RGB', (10, 10), color='red')
+        img = Image.new("RGB", (10, 10), color="red")
         buffer = io.BytesIO()
-        img.save(buffer, format='PNG')
+        img.save(buffer, format="PNG")
         img_data = buffer.getvalue()
-        img_base64 = base64.b64encode(img_data).decode('utf-8')
-        
+        img_base64 = base64.b64encode(img_data).decode("utf-8")
+
         analyzer = GeminiAnalyzer()
         decoded_img = analyzer._decode_base64_image(img_base64)
-        
+
         assert isinstance(decoded_img, Image.Image)
-        assert decoded_img.mode == 'RGB'
+        assert decoded_img.mode == "RGB"
         assert decoded_img.size == (10, 10)
 
     def test_decode_base64_image_with_data_url_prefix(self):
         """Test decoding base64 image with data URL prefix."""
         # Create a simple test image
-        img = Image.new('RGB', (10, 10), color='blue')
+        img = Image.new("RGB", (10, 10), color="blue")
         buffer = io.BytesIO()
-        img.save(buffer, format='PNG')
+        img.save(buffer, format="PNG")
         img_data = buffer.getvalue()
-        img_base64 = base64.b64encode(img_data).decode('utf-8')
+        img_base64 = base64.b64encode(img_data).decode("utf-8")
         img_data_url = f"data:image/png;base64,{img_base64}"
-        
+
         analyzer = GeminiAnalyzer()
         decoded_img = analyzer._decode_base64_image(img_data_url)
-        
+
         assert isinstance(decoded_img, Image.Image)
-        assert decoded_img.mode == 'RGB'
+        assert decoded_img.mode == "RGB"
 
     def test_decode_base64_image_invalid(self):
         """Test decoding invalid base64 image."""
         analyzer = GeminiAnalyzer()
-        
+
         with pytest.raises(ValueError, match="Failed to decode image"):
             analyzer._decode_base64_image("invalid_base64")
 
@@ -130,7 +132,7 @@ class TestGeminiAnalyzer:
         """Test creating default analysis prompt."""
         analyzer = GeminiAnalyzer()
         prompt = analyzer._create_analysis_prompt()
-        
+
         assert "JSON" in prompt
         assert "detected" in prompt
         assert "YES" in prompt
@@ -142,7 +144,7 @@ class TestGeminiAnalyzer:
         analyzer = GeminiAnalyzer()
         custom_prompt = "Is there a dog in this image?"
         prompt = analyzer._create_analysis_prompt(custom_prompt)
-        
+
         assert "JSON" in prompt
         assert "detected" in prompt
         assert custom_prompt in prompt
@@ -151,9 +153,9 @@ class TestGeminiAnalyzer:
         """Test parsing valid JSON response."""
         analyzer = GeminiAnalyzer()
         response = '{"detected": "YES", "description": "A person is walking"}'
-        
+
         result = analyzer._parse_response(response)
-        
+
         assert result["detected"] == "YES"
         assert result["description"] == "A person is walking"
 
@@ -161,9 +163,9 @@ class TestGeminiAnalyzer:
         """Test parsing response with embedded JSON."""
         analyzer = GeminiAnalyzer()
         response = 'Here is my analysis: {"detected": "NO", "description": "Empty room"} - that\'s what I see'
-        
+
         result = analyzer._parse_response(response)
-        
+
         assert result["detected"] == "NO"
         assert result["description"] == "Empty room"
 
@@ -171,9 +173,9 @@ class TestGeminiAnalyzer:
         """Test parsing invalid JSON but with YES/NO pattern."""
         analyzer = GeminiAnalyzer()
         response = "I can see a person walking, so YES there is motion"
-        
+
         result = analyzer._parse_response(response)
-        
+
         assert result["detected"] == "YES"
         assert "person walking" in result["description"]
 
@@ -181,9 +183,9 @@ class TestGeminiAnalyzer:
         """Test parsing response with NO pattern."""
         analyzer = GeminiAnalyzer()
         response = "No motion detected in this image"
-        
+
         result = analyzer._parse_response(response)
-        
+
         assert result["detected"] == "NO"
 
     @patch.dict(os.environ, {"GEMINI_API_KEY": "test_api_key"})
@@ -196,17 +198,17 @@ class TestGeminiAnalyzer:
         mock_response.text = '{"detected": "YES", "description": "A person walking"}'
         mock_model.generate_content.return_value = mock_response
         mock_model_class.return_value = mock_model
-        
+
         # Create test image
-        img = Image.new('RGB', (10, 10), color='red')
+        img = Image.new("RGB", (10, 10), color="red")
         buffer = io.BytesIO()
-        img.save(buffer, format='PNG')
+        img.save(buffer, format="PNG")
         img_data = buffer.getvalue()
-        img_base64 = base64.b64encode(img_data).decode('utf-8')
-        
+        img_base64 = base64.b64encode(img_data).decode("utf-8")
+
         analyzer = GeminiAnalyzer()
         result = await analyzer.analyze_image(img_base64)
-        
+
         assert result["success"] is True
         assert result["detected"] == "YES"
         assert result["description"] == "A person walking"
@@ -218,9 +220,9 @@ class TestGeminiAnalyzer:
     async def test_analyze_image_no_api_key(self):
         """Test image analysis without API key."""
         analyzer = GeminiAnalyzer()
-        
+
         result = await analyzer.analyze_image("fake_base64")
-        
+
         assert result["success"] is False
         assert "Invalid or missing Gemini API key" in result["error_message"]
         assert result["processing_time"] > 0
@@ -232,10 +234,10 @@ class TestGeminiAnalyzer:
         mock_model = Mock()
         mock_model.generate_content.side_effect = Exception("quota exceeded")
         mock_model_class.return_value = mock_model
-        
+
         analyzer = GeminiAnalyzer()
         result = await analyzer.analyze_image("fake_base64")
-        
+
         assert result["success"] is False
         assert "Gemini API quota exceeded" in result["error_message"]
 
@@ -246,10 +248,10 @@ class TestGeminiAnalyzer:
         mock_model = Mock()
         mock_model.generate_content.side_effect = Exception("timeout occurred")
         mock_model_class.return_value = mock_model
-        
+
         analyzer = GeminiAnalyzer()
         result = await analyzer.analyze_image("fake_base64")
-        
+
         assert result["success"] is False
         assert "Gemini API timeout" in result["error_message"]
 
@@ -262,11 +264,12 @@ class TestGlobalFunctions:
         """Test that get_analyzer returns singleton."""
         # Clear the global analyzer first
         import gemini_analyzer
+
         gemini_analyzer._analyzer = None
-        
+
         analyzer1 = get_analyzer()
         analyzer2 = get_analyzer()
-        
+
         assert analyzer1 is analyzer2
 
     @patch("gemini_analyzer.get_analyzer")
@@ -275,9 +278,11 @@ class TestGlobalFunctions:
         mock_analyzer = Mock()
         mock_analyzer.analyze_image.return_value = {"success": True, "detected": "YES"}
         mock_get_analyzer.return_value = mock_analyzer
-        
+
         result = await analyze_with_gemini("test_base64", "test prompt")
-        
+
         assert result["success"] is True
         assert result["detected"] == "YES"
-        mock_analyzer.analyze_image.assert_called_once_with("test_base64", "test prompt")
+        mock_analyzer.analyze_image.assert_called_once_with(
+            "test_base64", "test prompt"
+        )
