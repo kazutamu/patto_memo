@@ -83,7 +83,7 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
       const cameras = devices.filter(device => device.kind === 'videoinput');
       setVideoState(prev => ({ ...prev, hasMultipleCameras: cameras.length > 1 }));
     } catch (error) {
-      console.warn('Could not enumerate devices:', error);
+      // Could not enumerate devices
     }
   }, []);
 
@@ -155,11 +155,11 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
       setVideoState(prev => ({ ...prev, hasPermission: true }));
       onStreamReady(stream);
     } catch (error) {
-      console.error('Error accessing camera:', error);
+      // Error accessing camera
       
       // Don't show error for AbortError - this happens when component unmounts
       if (error instanceof Error && error.name === 'AbortError') {
-        console.log('Camera initialization was aborted (this is normal during cleanup)');
+        // Camera initialization was aborted (normal during cleanup)
         return;
       }
       
@@ -330,11 +330,11 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
             setPromptSubmitted(false);
             setValidationStatus('idle');
           }, 2000);
-          console.log('Custom prompt validated and updated:', customPrompt);
+          // Custom prompt validated and updated
         } else {
           setValidationStatus('invalid');
           setShowValidationPopup(true);
-          console.log('Validation failed:', validation.reason);
+          // Validation failed
           // Auto-dismiss toast after 2.5 seconds
           setTimeout(() => {
             handleDismissPopup();

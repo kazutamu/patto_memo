@@ -35,7 +35,7 @@ export class SSEService {
    */
   public connect(handlers: SSEEventHandlers): void {
     if (this.isConnected && this.eventSource) {
-      console.warn('SSE already connected');
+      // SSE already connected
       return;
     }
 
@@ -52,7 +52,7 @@ export class SSEService {
       this.eventSource = new EventSource(url);
 
       this.eventSource.onopen = () => {
-        console.log('SSE connection established');
+        // SSE connection established
         this.isConnected = true;
         this.reconnectAttempts = 0;
       };
@@ -60,7 +60,7 @@ export class SSEService {
       // Handle specific event types
       this.eventSource.addEventListener('connected', (event) => {
         const data = JSON.parse(event.data);
-        console.log('SSE connected:', data);
+        // SSE connected
         this.handlers.onConnected?.(data);
       });
 
@@ -71,27 +71,26 @@ export class SSEService {
         this.handlers.onAIAnalysis?.(analysisData);
       });
 
-      this.eventSource.addEventListener('heartbeat', (event) => {
-        const heartbeatData = JSON.parse(event.data);
-        console.debug('SSE heartbeat:', heartbeatData);
-        // Keep connection alive, no additional action needed
+      this.eventSource.addEventListener('heartbeat', () => {
+        // Heartbeat received - keeping connection alive
+        // No additional action needed
       });
 
       this.eventSource.onerror = (error) => {
-        console.error('SSE connection error:', error);
+        // SSE connection error
         this.isConnected = false;
         
         // Don't attempt to reconnect if the backend is completely unreachable
         // This prevents endless reconnection attempts when backend is down
         if (this.eventSource?.readyState === EventSource.CLOSED) {
-          console.log('SSE connection closed');
+          // SSE connection closed
           
           // Only attempt reconnection if we haven't exceeded max attempts
           if (this.reconnectAttempts < this.maxReconnectAttempts) {
-            console.log('Attempting to reconnect...');
+            // Attempting to reconnect...
             this.handleReconnection();
           } else {
-            console.log('Backend appears to be down. Please check if the API server is running.');
+            // Backend appears to be down
             this.handlers.onClose?.();
           }
         }
@@ -100,7 +99,7 @@ export class SSEService {
       };
 
     } catch (error) {
-      console.error('Failed to create SSE connection:', error);
+      // Failed to create SSE connection
       this.handleReconnection();
     }
   }
@@ -110,7 +109,7 @@ export class SSEService {
    */
   private handleReconnection(): void {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.error('Max reconnection attempts reached');
+      // Max reconnection attempts reached
       this.handlers.onClose?.();
       return;
     }
@@ -118,7 +117,7 @@ export class SSEService {
     this.reconnectAttempts++;
     const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
     
-    console.log(`Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+    // Reconnecting with exponential backoff
     
     setTimeout(() => {
       this.disconnect();
@@ -131,7 +130,7 @@ export class SSEService {
    */
   public disconnect(): void {
     if (this.eventSource) {
-      console.log('Disconnecting SSE');
+      // Disconnecting SSE
       this.eventSource.close();
       this.eventSource = null;
     }

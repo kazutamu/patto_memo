@@ -29,9 +29,8 @@ function App() {
     error: sseError
   } = useSSE({
     autoConnect: true,
-    onAIAnalysis: useCallback((analysis: AIAnalysis) => {
+    onAIAnalysis: useCallback((_analysis: AIAnalysis) => {
       // AI analysis is still processed but not displayed
-      console.log('AI analysis:', analysis);
     }, [])
   });
 

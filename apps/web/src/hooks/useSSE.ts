@@ -67,20 +67,20 @@ export function useSSE({
         onAIAnalysis?.(analysis);
       },
 
-      onConnected: (data) => {
-        console.log('SSE connected with client ID:', data.client_id);
+      onConnected: (_data) => {
+        // SSE connected with client ID
         setIsConnected(true);
         setError(null);
       },
 
-      onError: (event) => {
-        console.error('SSE connection error:', event);
+      onError: (_event) => {
+        // SSE connection error
         setError('Connection error occurred');
         setIsConnected(false);
       },
 
       onClose: () => {
-        console.log('SSE connection closed');
+        // SSE connection closed
         setIsConnected(false);
         setError('Connection closed after max retry attempts');
       }

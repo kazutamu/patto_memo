@@ -54,7 +54,7 @@ export function useManualCapture({
       const ctx = canvas.getContext('2d');
       
       if (!ctx) {
-        console.error('Could not get canvas context');
+        // Could not get canvas context
         return;
       }
       
@@ -107,12 +107,12 @@ export function useManualCapture({
         api.analyzeImage({
           image_base64: base64,
           prompt: customPrompt
-        }).catch(error => {
-          console.error('AI analysis error:', error);
+        }).catch(() => {
+          // AI analysis error
         });
       }
     } catch (error) {
-      console.error('Error capturing frame:', error);
+      // Error capturing frame
     }
   }, [videoElement, customPrompt, onAnalysisStart]);
   
