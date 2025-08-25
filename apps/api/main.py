@@ -16,29 +16,80 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# Dynamic CORS configuration
+def is_allowed_origin(origin: str) -> bool:
+    """Check if origin is allowed using pattern matching"""
+    if not origin:
+        return False
+    
+    allowed_patterns = [
+        # Cloudflare Pages - any branch or main deployment
+        r"https://.*\.motion-detector\.pages\.dev",
+        # Main production domain
+        r"https://motion-detector\.pages\.dev",
+        # Local development
+        r"http://localhost:\d+",
+        r"http://127\.0\.0\.1:\d+"
+    ]
+    
+    import re
+    for pattern in allowed_patterns:
+        if re.match(pattern, origin):
+            return True
+    return False
+
 # Get allowed origins from environment variable for production security
 allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "")
 if allowed_origins_env:
     # If ALLOWED_ORIGINS is set, use it (split by comma)
     allowed_origins = [origin.strip() for origin in allowed_origins_env.split(",")]
 else:
-    # Default to allowing common origins
-    allowed_origins = [
-        "https://feature-render-deployment.motion-detector.pages.dev",
-        "https://motion-detector.pages.dev",
-        "http://localhost:5173",
-        "http://localhost:3000",
-        "*"  # Fallback for development
-    ]
+    # Use dynamic pattern matching
+    allowed_origins = ["*"]  # Will be filtered by custom middleware
 
 # Configure CORS for SSE support
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["*"],
-)
+if allowed_origins_env:
+    # Use explicit origins from environment
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=allowed_origins,
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_headers=["*"],
+    )
+else:
+    # Use dynamic origin checking
+    from fastapi.middleware.cors import CORSMiddleware
+    from starlette.middleware.base import BaseHTTPMiddleware
+    from starlette.requests import Request
+    from starlette.responses import Response
+    
+    class DynamicCORSMiddleware(BaseHTTPMiddleware):
+        async def dispatch(self, request: Request, call_next):
+            origin = request.headers.get("origin")
+            
+            # Handle preflight requests
+            if request.method == "OPTIONS":
+                if origin and is_allowed_origin(origin):
+                    response = Response()
+                    response.headers["Access-Control-Allow-Origin"] = origin
+                    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+                    response.headers["Access-Control-Allow-Headers"] = "*"
+                    response.headers["Access-Control-Allow-Credentials"] = "true"
+                    return response
+                else:
+                    return Response(status_code=403)
+            
+            # Handle actual requests
+            response = await call_next(request)
+            
+            if origin and is_allowed_origin(origin):
+                response.headers["Access-Control-Allow-Origin"] = origin
+                response.headers["Access-Control-Allow-Credentials"] = "true"
+            
+            return response
+    
+    app.add_middleware(DynamicCORSMiddleware)
 
 
 # Pydantic models for request/response validation

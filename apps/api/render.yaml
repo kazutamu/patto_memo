@@ -10,7 +10,9 @@ services:
     envVars:
       - key: GEMINI_API_KEY
         sync: false
-      - key: ALLOWED_ORIGINS
-        value: "https://feature-render-deployment.motion-detector.pages.dev,https://motion-detector.pages.dev,http://localhost:5173"
+      # ALLOWED_ORIGINS not set - will use dynamic pattern matching
+      # Uncomment and set if you want to override with specific origins:
+      # - key: ALLOWED_ORIGINS
+      #   value: "https://motion-detector.pages.dev,http://localhost:5173"
       - key: ENVIRONMENT
         value: production
