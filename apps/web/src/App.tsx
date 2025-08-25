@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { VideoFeed } from './components';
 import { ConnectionHelper } from './components/ConnectionHelper';
+import { ConnectionStatus } from './components/ConnectionStatus';
 import { useSSE, AIAnalysis } from './hooks/useSSE';
 import styles from './App.module.css';
 
@@ -24,6 +25,7 @@ function App() {
 
   // SSE integration for real-time updates
   const {
+    connectionState,
     error: sseError
   } = useSSE({
     autoConnect: true,
@@ -145,6 +147,11 @@ function App() {
         currentUrl={window.location.href}
         isVisible={uiState.showConnectionHelper}
         onClose={() => setUiState(prev => ({ ...prev, showConnectionHelper: false }))}
+      />
+
+      <ConnectionStatus 
+        sseConnectionState={connectionState}
+        sseError={sseError}
       />
     </div>
   );
