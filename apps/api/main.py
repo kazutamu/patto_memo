@@ -17,7 +17,19 @@ app = FastAPI(
 )
 
 # Get allowed origins from environment variable for production security
-allowed_origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "")
+if allowed_origins_env:
+    # If ALLOWED_ORIGINS is set, use it (split by comma)
+    allowed_origins = [origin.strip() for origin in allowed_origins_env.split(",")]
+else:
+    # Default to allowing common origins
+    allowed_origins = [
+        "https://feature-render-deployment.motion-detector.pages.dev",
+        "https://motion-detector.pages.dev",
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "*"  # Fallback for development
+    ]
 
 # Configure CORS for SSE support
 app.add_middleware(
