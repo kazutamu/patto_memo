@@ -118,6 +118,11 @@ class ImageAnalysisResponse(BaseModel):
 def health_check():
     return {"status": "ok", "sse_connections": sse_manager.connection_count}
 
+@app.get("/api/v1/health")
+def health_check_v1():
+    """Health check endpoint for API v1 compatibility"""
+    return {"status": "ok", "sse_connections": sse_manager.connection_count}
+
 
 @app.get("/api/v1/ai/prompts")
 def get_available_prompts():
