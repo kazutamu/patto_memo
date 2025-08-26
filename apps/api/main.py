@@ -13,15 +13,16 @@ from sse_manager import sse_manager
 app = FastAPI(
     title="Motion Detector API",
     description="AI-powered motion detection and analysis API",
-    version="1.0.0"
+    version="1.0.0",
 )
+
 
 # Dynamic CORS configuration
 def is_allowed_origin(origin: str) -> bool:
     """Check if origin is allowed using pattern matching"""
     if not origin:
         return False
-    
+
     allowed_patterns = [
         # Cloudflare Pages - any branch or main deployment
         r"https://.*\.motion-detector\.pages\.dev",
@@ -29,14 +30,16 @@ def is_allowed_origin(origin: str) -> bool:
         r"https://motion-detector\.pages\.dev",
         # Local development
         r"http://localhost:\d+",
-        r"http://127\.0\.0\.1:\d+"
+        r"http://127\.0\.0\.1:\d+",
     ]
-    
+
     import re
+
     for pattern in allowed_patterns:
         if re.match(pattern, origin):
             return True
     return False
+
 
 # Get allowed origins from environment variable for production security
 allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "")
@@ -63,32 +66,34 @@ else:
     from starlette.middleware.base import BaseHTTPMiddleware
     from starlette.requests import Request
     from starlette.responses import Response
-    
+
     class DynamicCORSMiddleware(BaseHTTPMiddleware):
         async def dispatch(self, request: Request, call_next):
             origin = request.headers.get("origin")
-            
+
             # Handle preflight requests
             if request.method == "OPTIONS":
                 if origin and is_allowed_origin(origin):
                     response = Response()
                     response.headers["Access-Control-Allow-Origin"] = origin
-                    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+                    response.headers["Access-Control-Allow-Methods"] = (
+                        "GET, POST, OPTIONS"
+                    )
                     response.headers["Access-Control-Allow-Headers"] = "*"
                     response.headers["Access-Control-Allow-Credentials"] = "true"
                     return response
                 else:
                     return Response(status_code=403)
-            
+
             # Handle actual requests
             response = await call_next(request)
-            
+
             if origin and is_allowed_origin(origin):
                 response.headers["Access-Control-Allow-Origin"] = origin
                 response.headers["Access-Control-Allow-Credentials"] = "true"
-            
+
             return response
-    
+
     app.add_middleware(DynamicCORSMiddleware)
 
 
@@ -117,6 +122,7 @@ class ImageAnalysisResponse(BaseModel):
 @app.get("/health")
 def health_check():
     return {"status": "ok", "sse_connections": sse_manager.connection_count}
+
 
 @app.get("/api/v1/health")
 def health_check_v1():
