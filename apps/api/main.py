@@ -25,9 +25,9 @@ def is_allowed_origin(origin: str) -> bool:
 
     allowed_patterns = [
         # Cloudflare Pages - any branch or main deployment
-        r"https://.*\.motion-detector\.pages\.dev",
+        r"https://.*\.patto-memo\.pages\.dev",
         # Main production domain
-        r"https://motion-detector\.pages\.dev",
+        r"https://patto-memo\.pages\.dev",
         # Local development
         r"http://localhost:\d+",
         r"http://127\.0\.0\.1:\d+",
