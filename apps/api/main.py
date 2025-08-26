@@ -28,9 +28,6 @@ def is_allowed_origin(origin: str) -> bool:
         r"https://.*\.patto-memo\.pages\.dev",
         # Main production domain
         r"https://patto-memo\.pages\.dev",
-        # Old domain for backward compatibility
-        r"https://.*\.motion-detector\.pages\.dev",
-        r"https://motion-detector\.pages\.dev",
         # Local development
         r"http://localhost:\d+",
         r"http://127\.0\.0\.1:\d+",
