@@ -23,7 +23,12 @@ export class SSEService {
   private reconnectDelay: number = 1000;
   private handlers: SSEEventHandlers = {};
 
-  constructor(private baseUrl: string = '/api/v1') {}
+  constructor(private baseUrl?: string) {
+    // Use the same API URL from environment variables
+    if (!baseUrl) {
+      this.baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+    }
+  }
 
   /**
    * Connect to the SSE stream
@@ -66,9 +71,8 @@ export class SSEService {
         this.handlers.onAIAnalysis?.(analysisData);
       });
 
-      this.eventSource.addEventListener('heartbeat', (event) => {
-        const heartbeatData = JSON.parse(event.data);
-        console.debug('SSE heartbeat:', heartbeatData);
+      this.eventSource.addEventListener('heartbeat', () => {
+        console.debug('SSE heartbeat received');
         // Keep connection alive, no additional action needed
       });
 
@@ -76,9 +80,19 @@ export class SSEService {
         console.error('SSE connection error:', error);
         this.isConnected = false;
         
+        // Don't attempt to reconnect if the backend is completely unreachable
+        // This prevents endless reconnection attempts when backend is down
         if (this.eventSource?.readyState === EventSource.CLOSED) {
-          console.log('SSE connection closed, attempting to reconnect...');
-          this.handleReconnection();
+          console.log('SSE connection closed');
+          
+          // Only attempt reconnection if we haven't exceeded max attempts
+          if (this.reconnectAttempts < this.maxReconnectAttempts) {
+            console.log('Attempting to reconnect...');
+            this.handleReconnection();
+          } else {
+            console.log('Backend appears to be down. Please check if the API server is running.');
+            this.handlers.onClose?.();
+          }
         }
         
         this.handlers.onError?.(error);

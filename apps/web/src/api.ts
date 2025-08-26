@@ -1,5 +1,5 @@
 
-const API_BASE_URL = '/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
 class ApiError extends Error {
   constructor(public status: number, message: string) {
@@ -33,12 +33,12 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
   }
 }
 
-export interface LLaVAAnalysisRequest {
+export interface ImageAnalysisRequest {
   image_base64: string;
   prompt?: string;
 }
 
-export interface LLaVAAnalysisResponse {
+export interface ImageAnalysisResponse {
   description: string;
   detected?: string | null;  // "YES" or "NO" detection status
   processing_time: number;
@@ -48,11 +48,21 @@ export interface LLaVAAnalysisResponse {
 }
 
 export const api = {
-  // Analyze image with LLaVA
-  analyzeLLaVA: async (analysisRequest: LLaVAAnalysisRequest): Promise<LLaVAAnalysisResponse> => {
-    return request<LLaVAAnalysisResponse>('/llava/analyze', {
+  // Analyze image with AI (Gemini)
+  analyzeImage: async (analysisRequest: ImageAnalysisRequest): Promise<ImageAnalysisResponse> => {
+    return request<ImageAnalysisResponse>('/ai/analyze-image', {
       method: 'POST',
       body: JSON.stringify(analysisRequest),
     });
+  },
+
+  // Get available prompts
+  getPrompts: async () => {
+    return request('/ai/prompts');
+  },
+
+  // Health check
+  health: async () => {
+    return request('/health');
   },
 };
