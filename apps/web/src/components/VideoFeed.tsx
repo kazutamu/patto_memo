@@ -11,6 +11,7 @@ interface VideoFeedProps {
   sensitivity: number;
   cameraFacing?: 'user' | 'environment';
   onCameraFacingChange?: (facing: 'user' | 'environment') => void;
+  onCameraSwitchVisibility?: (shouldShow: boolean) => void;
 }
 
 export const VideoFeed: React.FC<VideoFeedProps> = ({
@@ -20,6 +21,7 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
   sensitivity: _sensitivity, // Keep for interface compatibility but unused
   cameraFacing = 'user',
   onCameraFacingChange,
+  onCameraSwitchVisibility,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -204,6 +206,19 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
   useEffect(() => {
     getAvailableCameras();
   }, [getAvailableCameras]);
+
+  // Notify parent about camera switch button visibility
+  useEffect(() => {
+    const shouldShow = (videoState.hasMultipleCameras || videoState.isMobileDevice) && isActive && videoState.hasPermission;
+    console.log('📱 Camera switch button visibility:', {
+      hasMultipleCameras: videoState.hasMultipleCameras,
+      isMobileDevice: videoState.isMobileDevice,
+      isActive,
+      hasPermission: videoState.hasPermission,
+      shouldShow
+    });
+    onCameraSwitchVisibility?.(shouldShow);
+  }, [videoState.hasMultipleCameras, videoState.isMobileDevice, isActive, videoState.hasPermission, onCameraSwitchVisibility]);
 
   useEffect(() => {
     let mounted = true;
@@ -413,42 +428,6 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
           </div>
         )}
 
-        {/* Camera Switch Button - Show on mobile devices when camera is active */}
-        {(() => {
-          // Show button if multiple cameras detected OR if it's a mobile device (most mobile devices have multiple cameras)
-          const showButton = (videoState.hasMultipleCameras || videoState.isMobileDevice) && isActive && videoState.hasPermission;
-          console.log('📱 Camera switch button visibility:', {
-            hasMultipleCameras: videoState.hasMultipleCameras,
-            isMobileDevice: videoState.isMobileDevice,
-            isActive,
-            hasPermission: videoState.hasPermission,
-            shouldShow: showButton
-          });
-          return showButton;
-        })() && (
-          <button 
-            className={styles.cameraSwitchButton}
-            onClick={handleCameraSwitch}
-            aria-label={`Switch to ${cameraFacing === 'user' ? 'back' : 'front'} camera`}
-            title={`Switch to ${cameraFacing === 'user' ? 'back' : 'front'} camera`}
-          >
-            <svg 
-              viewBox="0 0 24 24" 
-              fill="none" 
-              stroke="currentColor" 
-              strokeWidth="2"
-              width="28" 
-              height="28"
-            >
-              {/* Camera switch icon - circular arrows with camera */}
-              <path d="M11 19H6.931c-.364 0-.706-.146-.961-.41A1.388 1.388 0 0 1 5.5 17.5V8.5c0-.364.166-.706.47-1.09.255-.264.597-.41.961-.41H11l1.5-2h3l1.5 2h4.069c.364 0 .706.146.961.41.304.384.47.726.47 1.09v6" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M16 16l2-2-2-2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M20 14h-6" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M20 20l-2 2 2 2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M14 22h6" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
-        )}
 
         {/* AI Analysis Overlay - Persistent */}
         <AIAnalysisOverlay

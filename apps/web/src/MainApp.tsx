@@ -22,7 +22,8 @@ export function MainApp() {
 
   // UI state
   const [uiState, setUiState] = useState({
-    showConnectionHelper: false
+    showConnectionHelper: false,
+    showCameraSwitchButton: false
   });
 
   // SSE integration for real-time updates
@@ -74,6 +75,13 @@ export function MainApp() {
       ...prev,
       facing,
       error: null // Clear any previous errors when switching cameras
+    }));
+  }, []);
+
+  const handleCameraSwitchVisibility = useCallback((shouldShow: boolean) => {
+    setUiState(prev => ({
+      ...prev,
+      showCameraSwitchButton: shouldShow
     }));
   }, []);
 
@@ -140,6 +148,7 @@ export function MainApp() {
               sensitivity={sensitivity}
               cameraFacing={cameraState.facing}
               onCameraFacingChange={handleCameraFacingChange}
+              onCameraSwitchVisibility={handleCameraSwitchVisibility}
             />
             
             {/* Camera toggle button overlay */}
@@ -160,6 +169,23 @@ export function MainApp() {
                 </svg>
               )}
             </button>
+
+            {/* Camera switch button - positioned below main toggle */}
+            {uiState.showCameraSwitchButton && (
+              <button
+                className={styles.cameraSwitchToggle}
+                onClick={() => handleCameraFacingChange(cameraState.facing === 'user' ? 'environment' : 'user')}
+                aria-label={`Switch to ${cameraState.facing === 'user' ? 'back' : 'front'} camera`}
+                title={`Switch to ${cameraState.facing === 'user' ? 'back' : 'front'} camera`}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="3"/>
+                  <path d="M12 1v6m0 6v6"/>
+                  <path d="m21 9l-6 3 6 3"/>
+                  <path d="m3 9l6 3-6 3"/>
+                </svg>
+              </button>
+            )}
           </div>
         </main>
       </div>
