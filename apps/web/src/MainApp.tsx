@@ -13,7 +13,7 @@ export function MainApp() {
   const [cameraState, setCameraState] = useState({
     isActive: false,
     stream: null as MediaStream | null,
-    facing: 'user' as 'user' | 'environment',
+    facing: 'environment' as 'user' | 'environment', // Default to back camera
     error: null as string | null
   });
 
@@ -178,22 +178,12 @@ export function MainApp() {
                 aria-label={`Switch to ${cameraState.facing === 'user' ? 'back' : 'front'} camera`}
                 title={`Switch to ${cameraState.facing === 'user' ? 'back' : 'front'} camera`}
               >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                  {/* Left camera (front) */}
-                  <rect x="1" y="7" width="8" height="6" rx="1" />
-                  <circle cx="5" cy="10" r="1.5"/>
-                  <path d="M3 7L4 5h2L7 7" strokeLinecap="round"/>
-                  
-                  {/* Right camera (back) */}
-                  <rect x="15" y="7" width="8" height="6" rx="1" />
-                  <circle cx="19" cy="10" r="1.5"/>
-                  <path d="M17 7L18 5h2L21 7" strokeLinecap="round"/>
-                  
-                  {/* Double arrow between cameras */}
-                  <path d="M10 9L13 9" strokeLinecap="round"/>
-                  <path d="M10 11L13 11" strokeLinecap="round"/>
-                  <path d="M11.5 8L13 9.5L11.5 11" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M11.5 8L10 9.5L11.5 11" strokeLinecap="round" strokeLinejoin="round"/>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  {/* Simple circular arrows around center point */}
+                  <path d="M21 12c0 2-1 3-3 3L16 13" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M3 12c0-2 1-3 3-3L8 11" strokeLinecap="round" strokeLinejoin="round"/>
+                  {/* Center dot representing camera */}
+                  <circle cx="12" cy="12" r="2" fill="currentColor"/>
                 </svg>
               </button>
             )}

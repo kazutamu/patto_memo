@@ -19,7 +19,7 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
   onError,
   onStreamReady,
   sensitivity: _sensitivity, // Keep for interface compatibility but unused
-  cameraFacing = 'user',
+  cameraFacing = 'environment',
   onCameraFacingChange: _onCameraFacingChange, // Keep for interface compatibility but unused
   onCameraSwitchVisibility,
 }) => {
