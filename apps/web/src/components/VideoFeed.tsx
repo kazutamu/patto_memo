@@ -28,7 +28,8 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
   const [videoState, setVideoState] = useState({
     isLoading: false,
     hasPermission: null as boolean | null,
-    hasMultipleCameras: false
+    hasMultipleCameras: false,
+    isMobileDevice: /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
   });
   
   const [analysisState, setAnalysisState] = useState({
@@ -81,6 +82,14 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
       const cameras = devices.filter(device => device.kind === 'videoinput');
+      console.log('🔍 Camera detection debug:', {
+        totalDevices: devices.length,
+        videoDevices: cameras.length,
+        hasMultipleCameras: cameras.length > 1,
+        cameras: cameras.map(cam => ({ id: cam.deviceId, label: cam.label })),
+        isMobile: /iPhone|iPad|iPod|Android/i.test(navigator.userAgent),
+        isIOS: /iPhone|iPad|iPod/i.test(navigator.userAgent)
+      });
       setVideoState(prev => ({ ...prev, hasMultipleCameras: cameras.length > 1 }));
     } catch (error) {
       console.warn('Could not enumerate devices:', error);
@@ -154,6 +163,9 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
       
       setVideoState(prev => ({ ...prev, hasPermission: true }));
       onStreamReady(stream);
+      
+      // Re-enumerate cameras now that we have permission
+      getAvailableCameras();
     } catch (error) {
       console.error('Error accessing camera:', error);
       
@@ -401,8 +413,19 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
           </div>
         )}
 
-        {/* Camera Switch Button - Show when multiple cameras are available */}
-        {videoState.hasMultipleCameras && isActive && videoState.hasPermission && (
+        {/* Camera Switch Button - Show on mobile devices when camera is active */}
+        {(() => {
+          // Show button if multiple cameras detected OR if it's a mobile device (most mobile devices have multiple cameras)
+          const showButton = (videoState.hasMultipleCameras || videoState.isMobileDevice) && isActive && videoState.hasPermission;
+          console.log('📱 Camera switch button visibility:', {
+            hasMultipleCameras: videoState.hasMultipleCameras,
+            isMobileDevice: videoState.isMobileDevice,
+            isActive,
+            hasPermission: videoState.hasPermission,
+            shouldShow: showButton
+          });
+          return showButton;
+        })() && (
           <button 
             className={styles.cameraSwitchButton}
             onClick={handleCameraSwitch}
