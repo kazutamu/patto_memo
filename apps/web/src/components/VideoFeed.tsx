@@ -11,6 +11,7 @@ interface VideoFeedProps {
   sensitivity: number;
   cameraFacing?: 'user' | 'environment';
   onCameraFacingChange?: (facing: 'user' | 'environment') => void;
+  onCameraSwitchVisibility?: (shouldShow: boolean) => void;
 }
 
 export const VideoFeed: React.FC<VideoFeedProps> = ({
@@ -18,8 +19,9 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
   onError,
   onStreamReady,
   sensitivity: _sensitivity, // Keep for interface compatibility but unused
-  cameraFacing = 'user',
-  onCameraFacingChange,
+  cameraFacing = 'environment',
+  onCameraFacingChange: _onCameraFacingChange, // Keep for interface compatibility but unused
+  onCameraSwitchVisibility,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -28,7 +30,8 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
   const [videoState, setVideoState] = useState({
     isLoading: false,
     hasPermission: null as boolean | null,
-    hasMultipleCameras: false
+    hasMultipleCameras: false,
+    isMobileDevice: /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
   });
   
   const [analysisState, setAnalysisState] = useState({
@@ -81,6 +84,14 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
       const cameras = devices.filter(device => device.kind === 'videoinput');
+      console.log('🔍 Camera detection debug:', {
+        totalDevices: devices.length,
+        videoDevices: cameras.length,
+        hasMultipleCameras: cameras.length > 1,
+        cameras: cameras.map(cam => ({ id: cam.deviceId, label: cam.label })),
+        isMobile: /iPhone|iPad|iPod|Android/i.test(navigator.userAgent),
+        isIOS: /iPhone|iPad|iPod/i.test(navigator.userAgent)
+      });
       setVideoState(prev => ({ ...prev, hasMultipleCameras: cameras.length > 1 }));
     } catch (error) {
       console.warn('Could not enumerate devices:', error);
@@ -154,6 +165,9 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
       
       setVideoState(prev => ({ ...prev, hasPermission: true }));
       onStreamReady(stream);
+      
+      // Re-enumerate cameras now that we have permission
+      getAvailableCameras();
     } catch (error) {
       console.error('Error accessing camera:', error);
       
@@ -193,6 +207,19 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
     getAvailableCameras();
   }, [getAvailableCameras]);
 
+  // Notify parent about camera switch button visibility
+  useEffect(() => {
+    const shouldShow = (videoState.hasMultipleCameras || videoState.isMobileDevice) && isActive && videoState.hasPermission === true;
+    console.log('📱 Camera switch button visibility:', {
+      hasMultipleCameras: videoState.hasMultipleCameras,
+      isMobileDevice: videoState.isMobileDevice,
+      isActive,
+      hasPermission: videoState.hasPermission,
+      shouldShow
+    });
+    onCameraSwitchVisibility?.(shouldShow);
+  }, [videoState.hasMultipleCameras, videoState.isMobileDevice, isActive, videoState.hasPermission, onCameraSwitchVisibility]);
+
   useEffect(() => {
     let mounted = true;
     
@@ -211,15 +238,8 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
       mounted = false;
       stopStream();
     };
-  }, [isActive]); // Remove startStream and stopStream from deps to avoid loops
+  }, [isActive, cameraFacing]); // Add cameraFacing to deps to restart stream when camera switches
 
-  // Handle camera switch
-  const handleCameraSwitch = useCallback(() => {
-    if (onCameraFacingChange) {
-      const newFacing = cameraFacing === 'user' ? 'environment' : 'user';
-      onCameraFacingChange(newFacing);
-    }
-  }, [cameraFacing, onCameraFacingChange]);
 
 
   const handleRetry = () => {
@@ -401,32 +421,6 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
           </div>
         )}
 
-        {/* Camera Switch Button - Show when multiple cameras are available */}
-        {videoState.hasMultipleCameras && isActive && videoState.hasPermission && (
-          <button 
-            className={styles.cameraSwitchButton}
-            onClick={handleCameraSwitch}
-            aria-label={`Switch to ${cameraFacing === 'user' ? 'back' : 'front'} camera`}
-            title={`Switch to ${cameraFacing === 'user' ? 'back' : 'front'} camera`}
-          >
-            <svg 
-              viewBox="0 0 24 24" 
-              fill="none" 
-              stroke="currentColor" 
-              strokeWidth="2"
-              width="24" 
-              height="24"
-            >
-              <path d="M9 12l2 2 4-4"/>
-              <path d="M21 12c-1 0-3-1-3-3s2-3 3-3 3 1 3 3-2 3-3 3"/>
-              <path d="M3 12c1 0 3-1 3-3s-2-3-3-3-3 1-3 3 2 3 3 3"/>
-              <path d="M12 3v3M12 18v3"/>
-            </svg>
-            <span className={styles.cameraSwitchText}>
-              {cameraFacing === 'user' ? '📷' : '📱'}
-            </span>
-          </button>
-        )}
 
         {/* AI Analysis Overlay - Persistent */}
         <AIAnalysisOverlay

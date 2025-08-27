@@ -13,7 +13,7 @@ export function MainApp() {
   const [cameraState, setCameraState] = useState({
     isActive: false,
     stream: null as MediaStream | null,
-    facing: 'user' as 'user' | 'environment',
+    facing: 'environment' as 'user' | 'environment', // Default to back camera
     error: null as string | null
   });
 
@@ -22,7 +22,8 @@ export function MainApp() {
 
   // UI state
   const [uiState, setUiState] = useState({
-    showConnectionHelper: false
+    showConnectionHelper: false,
+    showCameraSwitchButton: false
   });
 
   // SSE integration for real-time updates
@@ -74,6 +75,13 @@ export function MainApp() {
       ...prev,
       facing,
       error: null // Clear any previous errors when switching cameras
+    }));
+  }, []);
+
+  const handleCameraSwitchVisibility = useCallback((shouldShow: boolean) => {
+    setUiState(prev => ({
+      ...prev,
+      showCameraSwitchButton: shouldShow
     }));
   }, []);
 
@@ -140,6 +148,7 @@ export function MainApp() {
               sensitivity={sensitivity}
               cameraFacing={cameraState.facing}
               onCameraFacingChange={handleCameraFacingChange}
+              onCameraSwitchVisibility={handleCameraSwitchVisibility}
             />
             
             {/* Camera toggle button overlay */}
@@ -160,6 +169,24 @@ export function MainApp() {
                 </svg>
               )}
             </button>
+
+            {/* Camera switch button - positioned below main toggle */}
+            {uiState.showCameraSwitchButton && (
+              <button
+                className={styles.cameraSwitchToggle}
+                onClick={() => handleCameraFacingChange(cameraState.facing === 'user' ? 'environment' : 'user')}
+                aria-label={`Switch to ${cameraState.facing === 'user' ? 'back' : 'front'} camera`}
+                title={`Switch to ${cameraState.facing === 'user' ? 'back' : 'front'} camera`}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  {/* Complete circular refresh arrows with proper arrowheads */}
+                  <path d="M21 2v6h-6" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M3 12a9 9 0 0 1 15-6.7L21 8" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M3 22v-6h6" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M21 12a9 9 0 0 1-15 6.7L3 16" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+            )}
           </div>
         </main>
       </div>

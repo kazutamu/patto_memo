@@ -185,6 +185,44 @@
   height: 18px;
 }
 
+/* Camera Switch Toggle Button */
+.cameraSwitchToggle {
+  position: absolute;
+  top: 60px; /* Position below main camera toggle (36px height + 16px gap + 8px spacing) */
+  right: 16px;
+  z-index: 10;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(74, 158, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(74, 158, 255, 0.2);
+  border-radius: 8px;
+  color: rgba(74, 158, 255, 0.8);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cameraSwitchToggle:hover {
+  background: rgba(74, 158, 255, 0.2);
+  border-color: rgba(74, 158, 255, 0.4);
+  color: rgba(74, 158, 255, 1);
+  transform: scale(1.05);
+}
+
+.cameraSwitchToggle:active {
+  transform: scale(0.95);
+  background: rgba(74, 158, 255, 0.3);
+}
+
+.cameraSwitchToggle svg {
+  width: 18px;
+  height: 18px;
+}
+
 .settingsToggle {
   position: absolute;
   top: 24px;
@@ -551,6 +589,20 @@
     padding: 12px 14px;
     font-size: 14px;
     border-radius: 10px;
+  }
+  
+  .cameraToggle {
+    top: 12px;
+    right: 12px;
+    width: 44px;
+    height: 44px;
+  }
+
+  .cameraSwitchToggle {
+    top: 64px; /* 44px height + 8px gap + 12px spacing */
+    right: 12px;
+    width: 44px;
+    height: 44px;
   }
   
   .settingsToggle {
