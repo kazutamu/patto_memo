@@ -238,7 +238,7 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
       mounted = false;
       stopStream();
     };
-  }, [isActive]); // Remove startStream and stopStream from deps to avoid loops
+  }, [isActive, cameraFacing]); // Add cameraFacing to deps to restart stream when camera switches
 
 
 
