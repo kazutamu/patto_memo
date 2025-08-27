@@ -1,26 +1,17 @@
 /// <reference types="vitest" />
-import { defineConfig, loadEnv } from 'vite'
+import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), '')
-  
-  return {
-    plugins: [react()],
-    server: {
-      host: '0.0.0.0', // Bind to all interfaces
-      port: 3000,
-      // Simple HTTP server - nginx handles SSL in Docker
-      // For local development without Docker, you can still use HTTPS if needed
-      https: false,
-      proxy: {
-        '/api': {
-          target: env.VITE_API_URL || 'http://localhost:8000',
-          changeOrigin: true,
-        },
-      },
-    },
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    host: '0.0.0.0', // Bind to all interfaces
+    port: 3000,
+    // Simple HTTP server for development
+    // Cloudflare handles SSL and routing in production
+    https: false,
+  },
   test: {
     globals: true,
     environment: 'jsdom',
@@ -35,5 +26,4 @@ export default defineConfig(({ mode }) => {
       ],
     },
   },
-  }
 })
