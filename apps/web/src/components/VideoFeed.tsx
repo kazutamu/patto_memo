@@ -414,17 +414,16 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
               fill="none" 
               stroke="currentColor" 
               strokeWidth="2"
-              width="24" 
-              height="24"
+              width="28" 
+              height="28"
             >
-              <path d="M9 12l2 2 4-4"/>
-              <path d="M21 12c-1 0-3-1-3-3s2-3 3-3 3 1 3 3-2 3-3 3"/>
-              <path d="M3 12c1 0 3-1 3-3s-2-3-3-3-3 1-3 3 2 3 3 3"/>
-              <path d="M12 3v3M12 18v3"/>
+              {/* Camera switch icon - circular arrows with camera */}
+              <path d="M11 19H6.931c-.364 0-.706-.146-.961-.41A1.388 1.388 0 0 1 5.5 17.5V8.5c0-.364.166-.706.47-1.09.255-.264.597-.41.961-.41H11l1.5-2h3l1.5 2h4.069c.364 0 .706.146.961.41.304.384.47.726.47 1.09v6" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M16 16l2-2-2-2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M20 14h-6" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M20 20l-2 2 2 2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M14 22h6" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-            <span className={styles.cameraSwitchText}>
-              {cameraFacing === 'user' ? '📷' : '📱'}
-            </span>
           </button>
         )}
 
