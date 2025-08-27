@@ -19,8 +19,12 @@
   position: absolute;
   top: 24px;
   left: 24px;
+  right: 24px;
   z-index: 20;
   margin-bottom: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .title {
@@ -39,6 +43,37 @@
   color: #a0a0a0;
   margin: 0;
   font-weight: 500;
+}
+
+.userInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.username {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.logoutButton {
+  padding: 6px 14px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.logoutButton:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
 }
 
 .content {
@@ -325,6 +360,15 @@
   .header {
     top: 16px;
     left: 16px;
+    right: 16px;
+  }
+  
+  .userInfo {
+    gap: 8px;
+  }
+  
+  .username {
+    display: none; /* Hide username on mobile to save space */
   }
   
   .title {
@@ -481,6 +525,12 @@
   .header {
     top: 12px;
     left: 12px;
+    right: 12px;
+  }
+  
+  .logoutButton {
+    padding: 4px 10px;
+    font-size: 12px;
   }
   
   .title {
