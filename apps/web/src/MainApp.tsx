@@ -179,11 +179,11 @@ export function MainApp() {
                 title={`Switch to ${cameraState.facing === 'user' ? 'back' : 'front'} camera`}
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  {/* Simple circular arrows around center point */}
-                  <path d="M21 12c0 2-1 3-3 3L16 13" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M3 12c0-2 1-3 3-3L8 11" strokeLinecap="round" strokeLinejoin="round"/>
-                  {/* Center dot representing camera */}
-                  <circle cx="12" cy="12" r="2" fill="currentColor"/>
+                  {/* Clean refresh/rotate arrows like 🔄 emoji */}
+                  <path d="M23 4v6l-6-6" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M1 20v-6l6 6" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M3.51 15a9 9 0 0 0 14.85 3.36L23 14" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </button>
             )}
