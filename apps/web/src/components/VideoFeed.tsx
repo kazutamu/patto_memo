@@ -20,7 +20,7 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
   onStreamReady,
   sensitivity: _sensitivity, // Keep for interface compatibility but unused
   cameraFacing = 'user',
-  onCameraFacingChange,
+  onCameraFacingChange: _onCameraFacingChange, // Keep for interface compatibility but unused
   onCameraSwitchVisibility,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -209,7 +209,7 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
 
   // Notify parent about camera switch button visibility
   useEffect(() => {
-    const shouldShow = (videoState.hasMultipleCameras || videoState.isMobileDevice) && isActive && videoState.hasPermission;
+    const shouldShow = (videoState.hasMultipleCameras || videoState.isMobileDevice) && isActive && videoState.hasPermission === true;
     console.log('📱 Camera switch button visibility:', {
       hasMultipleCameras: videoState.hasMultipleCameras,
       isMobileDevice: videoState.isMobileDevice,
@@ -240,13 +240,6 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
     };
   }, [isActive]); // Remove startStream and stopStream from deps to avoid loops
 
-  // Handle camera switch
-  const handleCameraSwitch = useCallback(() => {
-    if (onCameraFacingChange) {
-      const newFacing = cameraFacing === 'user' ? 'environment' : 'user';
-      onCameraFacingChange(newFacing);
-    }
-  }, [cameraFacing, onCameraFacingChange]);
 
 
   const handleRetry = () => {
