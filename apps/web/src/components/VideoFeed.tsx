@@ -40,9 +40,9 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
     startTime: null as number | null
   });
 
-  // Captured frame overlay state
-  const [capturedFrameUrl, setCapturedFrameUrl] = useState<string | null>(null);
-  const [frameOverlayVisible, setFrameOverlayVisible] = useState<boolean>(false);
+  // Frame stack state - up to 3 frames
+  const [frameStack, setFrameStack] = useState<Array<{ id: string; url: string; timestamp: number }>>([]);
+  const maxFrames = 3;
 
   // SSE hook to receive AI analysis updates
   useSSE({
@@ -93,9 +93,9 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
     onAnalysisStart: handleAnalysisStart
   });
 
-  // Handle frame capture with overlay
+  // Handle frame capture with stacking
   const handleCaptureFrame = useCallback(async () => {
-    if (!videoRef.current) return;
+    if (!videoRef.current || frameStack.length >= maxFrames) return;
     
     try {
       // Create canvas to capture current frame
@@ -110,9 +110,15 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
         
         // Convert to data URL for display
         const frameDataUrl = canvas.toDataURL('image/jpeg', 0.8);
-        setCapturedFrameUrl(frameDataUrl);
-        setFrameOverlayVisible(true);
-        // No auto-hide - stays until user closes it
+        
+        // Add to stack with unique ID and timestamp
+        const newFrame = {
+          id: Date.now().toString(),
+          url: frameDataUrl,
+          timestamp: Date.now()
+        };
+        
+        setFrameStack(prev => [...prev, newFrame]);
       }
       
       // Trigger the actual analysis capture
@@ -120,7 +126,12 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
     } catch (error) {
       console.error('Error capturing frame:', error);
     }
-  }, [captureFrame]);
+  }, [captureFrame, frameStack.length, maxFrames]);
+  
+  // Remove frame from stack
+  const removeFrame = useCallback((frameId: string) => {
+    setFrameStack(prev => prev.filter(frame => frame.id !== frameId));
+  }, []);
 
   const stopStream = useCallback(() => {
     if (streamRef.current) {
@@ -311,10 +322,10 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
         {isActive && videoState.hasPermission && (
           <div className={styles.simpleCaptureOverlay}>
             <button
-              className={`${styles.simpleCaptureButton} ${analysisState.isAnalyzing ? styles.analyzing : ''}`}
+              className={`${styles.simpleCaptureButton} ${analysisState.isAnalyzing ? styles.analyzing : ''} ${frameStack.length >= maxFrames ? styles.stackFull : ''}`}
               onClick={handleCaptureFrame}
-              disabled={analysisState.isAnalyzing}
-              title="Capture current frame for analysis"
+              disabled={analysisState.isAnalyzing || frameStack.length >= maxFrames}
+              title={frameStack.length >= maxFrames ? `Maximum ${maxFrames} frames captured` : "Capture current frame for analysis"}
               aria-label="Capture frame"
             >
               {analysisState.isAnalyzing ? (
@@ -335,23 +346,30 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
           </div>
         )}
 
-        {/* Captured Frame Overlay */}
-        {capturedFrameUrl && frameOverlayVisible && (
-          <div className={`${styles.frameOverlay} ${!frameOverlayVisible ? styles.hiding : ''}`}>
-            <img 
-              src={capturedFrameUrl} 
-              alt="Captured frame" 
-              className={styles.overlayImage}
-            />
-            <button 
-              className={styles.closeOverlay}
-              onClick={() => setFrameOverlayVisible(false)}
-              title="Close overlay"
+        {/* Stacked Frame Overlays */}
+        <div className={styles.frameStackContainer}>
+          {frameStack.map((frame, index) => (
+            <div 
+              key={frame.id}
+              className={`${styles.frameOverlay} ${styles[`stackPosition${index}`]}`}
+              style={{ zIndex: 25 + index }}
             >
-              ×
-            </button>
-          </div>
-        )}
+              <img 
+                src={frame.url} 
+                alt={`Captured frame ${index + 1}`} 
+                className={styles.overlayImage}
+              />
+              <div className={styles.frameNumber}>{index + 1}</div>
+              <button 
+                className={styles.closeOverlay}
+                onClick={() => removeFrame(frame.id)}
+                title={`Remove frame ${index + 1}`}
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
 
       </div>
     </div>
