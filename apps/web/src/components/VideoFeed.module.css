@@ -464,96 +464,162 @@
 }
 
 .simpleCaptureButton {
-  background: linear-gradient(135deg, #4a9eff 0%, #0066cc 100%);
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  border-radius: 50px;
-  padding: 16px 28px;
-  color: rgba(255, 255, 255, 0.95);
-  font-size: 16px;
-  font-weight: 600;
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, #ff4757 0%, #c44569 100%);
+  border: 4px solid rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  color: white;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  backdrop-filter: blur(10px);
   position: relative;
-  overflow: hidden;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
-  box-shadow: 0 4px 20px rgba(74, 158, 255, 0.4);
-  animation: pulseGlow 2s ease-in-out infinite;
+  overflow: visible;
+  box-shadow: 
+    0 8px 32px rgba(255, 71, 87, 0.4),
+    0 0 0 6px rgba(255, 71, 87, 0.1),
+    inset 0 2px 4px rgba(0, 0, 0, 0.2);
+  animation: breathe 3s ease-in-out infinite;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.simpleCaptureButton::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
+.captureButtonInner {
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, 
-    transparent 0%, 
-    rgba(255, 255, 255, 0.3) 50%, 
-    transparent 100%);
-  animation: shimmer 3s ease-in-out infinite;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.cameraIcon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.cameraIcon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.captureRing {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  animation: ringPulse 2s ease-in-out infinite;
 }
 
 .simpleCaptureButton:hover {
-  background: linear-gradient(135deg, #5aa5ff 0%, #0070dd 100%);
-  border-color: rgba(255, 255, 255, 0.3);
-  transform: scale(1.05) translateY(-2px);
-  box-shadow: 0 6px 25px rgba(74, 158, 255, 0.6);
+  transform: scale(1.1);
+  box-shadow: 
+    0 12px 40px rgba(255, 71, 87, 0.6),
+    0 0 0 8px rgba(255, 71, 87, 0.15),
+    inset 0 2px 4px rgba(0, 0, 0, 0.3);
+  background: linear-gradient(135deg, #ff6b7a 0%, #d85275 100%);
+  border-color: white;
   animation: none;
 }
 
-.simpleCaptureButton:hover::before {
+.simpleCaptureButton:hover .captureRing {
   animation: none;
+  transform: translate(-50%, -50%) scale(1.2);
+  border-color: rgba(255, 255, 255, 0.6);
 }
+
 
 .simpleCaptureButton:active {
-  transform: scale(0.98);
-  background: linear-gradient(135deg, #3d8bfe 0%, #0056b3 100%);
+  transform: scale(0.95);
+  box-shadow: 
+    0 4px 20px rgba(255, 71, 87, 0.4),
+    0 0 0 4px rgba(255, 71, 87, 0.2),
+    inset 0 3px 6px rgba(0, 0, 0, 0.4);
 }
 
 .simpleCaptureButton:disabled {
-  opacity: 0.4;
+  opacity: 0.5;
   cursor: not-allowed;
-  background: rgba(120, 120, 120, 0.2);
-  border-color: rgba(120, 120, 120, 0.3);
-  color: rgba(255, 255, 255, 0.4);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  animation: none;
 }
 
 .simpleCaptureButton:disabled:hover {
   transform: none;
-  background: rgba(120, 120, 120, 0.2);
-  border-color: rgba(120, 120, 120, 0.3);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
-.simpleCaptureButton:disabled:hover::before {
-  transform: translateX(-100%);
-}
 
 .simpleCaptureButton.analyzing {
-  background: linear-gradient(135deg, #ffa726 0%, #ff9800 100%);
-  border: 2px solid rgba(255, 214, 10, 0.6);
-  color: rgba(255, 255, 255, 0.95);
-  animation: subtleGlow 2s ease-in-out infinite;
+  background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+  border: 4px solid rgba(255, 255, 255, 0.8);
+  animation: analyzing 1.5s ease-in-out infinite;
 }
 
-.captureButtonContent {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  position: relative;
-  z-index: 1;
+@keyframes breathe {
+  0%, 100% {
+    box-shadow: 
+      0 8px 32px rgba(255, 71, 87, 0.4),
+      0 0 0 6px rgba(255, 71, 87, 0.1),
+      inset 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+  50% {
+    box-shadow: 
+      0 12px 40px rgba(255, 71, 87, 0.5),
+      0 0 0 10px rgba(255, 71, 87, 0.15),
+      inset 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
 }
+
+@keyframes ringPulse {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.3);
+    opacity: 0;
+  }
+}
+
+@keyframes analyzing {
+  0%, 100% {
+    transform: rotate(0deg);
+    box-shadow: 
+      0 8px 32px rgba(243, 156, 18, 0.4),
+      0 0 0 6px rgba(243, 156, 18, 0.1),
+      inset 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+  50% {
+    transform: rotate(5deg);
+    box-shadow: 
+      0 12px 40px rgba(243, 156, 18, 0.6),
+      0 0 0 10px rgba(243, 156, 18, 0.2),
+      inset 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+}
+
 
 .simpleCaptureButton .spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top: 2px solid rgba(255, 255, 255, 0.95);
+  width: 28px;
+  height: 28px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top: 3px solid white;
   border-radius: 50%;
-  animation: spin 1s linear infinite;
+  animation: spin 0.8s linear infinite;
 }
 
 @keyframes subtleGlow {
@@ -576,20 +642,12 @@
   }
 }
 
-@keyframes shimmer {
-  0% {
-    left: -100%;
-  }
-  50%, 100% {
-    left: 200%;
-  }
-}
 
 /* Frame Overlay */
 .frameOverlay {
   position: absolute;
   top: 16px;
-  right: 16px;
+  left: 16px;
   width: 120px;
   height: 90px;
   background: rgba(0, 0, 0, 0.8);
@@ -655,7 +713,7 @@
 @keyframes overlaySlideIn {
   0% {
     opacity: 0;
-    transform: translateX(100%) scale(0.8);
+    transform: translateX(-100%) scale(0.8);
   }
   100% {
     opacity: 1;
@@ -670,7 +728,7 @@
   }
   100% {
     opacity: 0;
-    transform: translateX(100%) scale(0.8);
+    transform: translateX(-100%) scale(0.8);
   }
 }
 
@@ -681,13 +739,18 @@
   }
   
   .simpleCaptureButton {
-    padding: 14px 24px;
-    font-size: 15px;
+    width: 70px;
+    height: 70px;
+  }
+  
+  .cameraIcon {
+    width: 28px;
+    height: 28px;
   }
   
   .frameOverlay {
     top: 12px;
-    right: 12px;
+    left: 12px;
     width: 100px;
     height: 75px;
   }
@@ -712,18 +775,24 @@
   }
   
   .simpleCaptureButton {
-    padding: 12px 20px;
-    font-size: 14px;
+    width: 60px;
+    height: 60px;
+    border: 3px solid rgba(255, 255, 255, 0.9);
+  }
+  
+  .cameraIcon {
+    width: 24px;
+    height: 24px;
   }
   
   .simpleCaptureButton .spinner {
-    width: 14px;
-    height: 14px;
+    width: 24px;
+    height: 24px;
   }
   
   .frameOverlay {
     top: 8px;
-    right: 8px;
+    left: 8px;
     width: 80px;
     height: 60px;
   }

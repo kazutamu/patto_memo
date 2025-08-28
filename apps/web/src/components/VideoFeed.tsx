@@ -309,7 +309,7 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
           isAnalyzing={analysisState.isAnalyzing}
         />
 
-        {/* Simple Capture Button */}
+        {/* Stylish Capture Button */}
         {isActive && videoState.hasPermission && (
           <div className={styles.simpleCaptureOverlay}>
             <button
@@ -317,16 +317,22 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
               onClick={handleCaptureFrame}
               disabled={analysisState.isAnalyzing}
               title="Capture current frame for analysis"
+              aria-label="Capture frame"
             >
               {analysisState.isAnalyzing ? (
-                <span className={styles.captureButtonContent}>
+                <div className={styles.captureButtonInner}>
                   <div className={styles.spinner}></div>
-                  <span>Analyzing...</span>
-                </span>
+                </div>
               ) : (
-                <span className={styles.captureButtonContent}>
-                  📸 Capture
-                </span>
+                <div className={styles.captureButtonInner}>
+                  <div className={styles.cameraIcon}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10"/>
+                      <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                  </div>
+                  <div className={styles.captureRing}></div>
+                </div>
               )}
             </button>
           </div>
