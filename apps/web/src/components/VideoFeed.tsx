@@ -324,12 +324,11 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
               ) : (
                 <div className={styles.captureButtonInner}>
                   <div className={styles.cameraIcon}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="10"/>
-                      <circle cx="12" cy="12" r="3"/>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="8"/>
+                      <circle cx="12" cy="12" r="2"/>
                     </svg>
                   </div>
-                  <div className={styles.captureRing}></div>
                 </div>
               )}
             </button>
