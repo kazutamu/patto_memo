@@ -248,119 +248,6 @@
   margin-left: 8px;
 }
 
-.textBoxOverlay {
-  position: absolute;
-  bottom: 28px;
-  left: 20px;
-  right: 20px;
-  z-index: 15;
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.textInput {
-  flex: 1;
-  background: rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 25px;
-  padding: 14px 20px;
-  font-size: 16px;
-  font-weight: 400;
-  color: #ffffff;
-  outline: none;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
-}
-
-.textInput::placeholder {
-  color: rgba(255, 255, 255, 0.7);
-  font-weight: 400;
-}
-
-.textInput:focus {
-  border-color: rgba(74, 158, 255, 0.8);
-  background: rgba(0, 0, 0, 0.6);
-  box-shadow: 0 0 15px rgba(74, 158, 255, 0.4);
-}
-
-.textInput:hover:not(:focus) {
-  border-color: rgba(255, 255, 255, 0.4);
-  background: rgba(0, 0, 0, 0.55);
-}
-
-.submitButton {
-  padding: 14px 20px;
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 25px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  backdrop-filter: blur(10px);
-  white-space: nowrap;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  position: relative;
-  overflow: hidden;
-}
-
-.submitButton::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(135deg, 
-    rgba(74, 158, 255, 0) 0%, 
-    rgba(74, 158, 255, 0.15) 50%, 
-    rgba(74, 158, 255, 0) 100%);
-  transform: translateX(-100%);
-  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.submitButton:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(74, 158, 255, 0.4);
-  color: #ffffff;
-  transform: translateY(-1px);
-}
-
-.submitButton:hover::before {
-  transform: translateX(100%);
-}
-
-.submitButton:active {
-  transform: translateY(0);
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.submitButton:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-  background: rgba(255, 255, 255, 0.03);
-  border-color: rgba(255, 255, 255, 0.08);
-}
-
-.submitButton:disabled:hover {
-  transform: none;
-  background: rgba(255, 255, 255, 0.03);
-  border-color: rgba(255, 255, 255, 0.08);
-}
-
-.submitButton:disabled:hover::before {
-  transform: translateX(-100%);
-}
-
-.submitButton.submitted {
-  background: rgba(76, 175, 80, 0.15);
-  border-color: rgba(76, 175, 80, 0.3);
-  color: rgba(129, 199, 132, 0.95);
-}
-
 .videoInfo {
   display: flex;
   align-items: center;
@@ -488,23 +375,6 @@
     /* Larger touch target for mobile */
   }
   
-  .textBoxOverlay {
-    bottom: 24px;
-    left: 16px;
-    right: 16px;
-  }
-  
-  .textInput {
-    padding: 12px 18px;
-    font-size: 15px;
-    border-radius: 22px;
-  }
-  
-  .submitButton {
-    padding: 12px 18px;
-    font-size: 12px;
-    letter-spacing: 0.3px;
-  }
 }
 
 /* Extra small screens (phones in portrait) */
@@ -554,130 +424,8 @@
     padding: 4px 8px;
   }
   
-  .textBoxOverlay {
-    bottom: 20px;
-    left: 12px;
-    right: 12px;
-  }
-  
-  .textInput {
-    padding: 10px 16px;
-    font-size: 14px;
-    border-radius: 20px;
-  }
-  
-  .submitButton {
-    padding: 10px 14px;
-    font-size: 11px;
-    letter-spacing: 0.2px;
-  }
 }
 
-/* Validation states */
-.textInput.validating {
-  border-color: rgba(255, 193, 7, 0.8);
-  background: rgba(255, 193, 7, 0.1);
-  animation: validationPulse 1s ease-in-out infinite;
-}
-
-.textInput.valid {
-  border-color: rgba(76, 175, 80, 0.8);
-  background: rgba(76, 175, 80, 0.1);
-  box-shadow: 0 0 15px rgba(76, 175, 80, 0.4);
-}
-
-.textInput.invalid {
-  border-color: rgba(244, 67, 54, 0.8);
-  background: rgba(244, 67, 54, 0.1);
-  box-shadow: 0 0 15px rgba(244, 67, 54, 0.4);
-  animation: shake 0.6s ease-in-out;
-}
-
-.textInput.invalid::placeholder {
-  color: rgba(244, 67, 54, 0.9) !important;
-  font-weight: 500;
-}
-
-.submitButton.validating {
-  border-color: rgba(255, 193, 7, 0.8);
-  background: rgba(255, 193, 7, 0.1);
-  color: rgba(255, 193, 7, 0.9);
-  animation: validationPulse 1s ease-in-out infinite;
-}
-
-.submitButton.valid {
-  border-color: rgba(76, 175, 80, 0.8);
-  background: rgba(76, 175, 80, 0.15);
-  color: rgba(129, 199, 132, 0.95);
-}
-
-.submitButton.invalid {
-  border-color: rgba(244, 67, 54, 0.8);
-  background: rgba(244, 67, 54, 0.1);
-  color: rgba(244, 67, 54, 0.9);
-  animation: shake 0.5s ease-in-out;
-}
-
-@keyframes validationPulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
-}
-
-@keyframes shake {
-  0%, 100% { transform: translateX(0) scale(1); }
-  10%, 30%, 50%, 70%, 90% { transform: translateX(-8px) scale(1.02); }
-  20%, 40%, 60%, 80% { transform: translateX(8px) scale(1.02); }
-}
-
-/* Validation Toast */
-.validationToast {
-  position: absolute;
-  top: 16px;
-  left: 16px;
-  background: rgba(244, 67, 54, 0.8);
-  border: 1px solid rgba(255, 107, 122, 0.6);
-  border-radius: 12px;
-  padding: 10px 16px;
-  display: flex;
-  align-items: center;
-  z-index: 21; /* Higher than capture button to appear on top */
-  backdrop-filter: blur(10px);
-  animation: toastSlideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.validationToast.hiding {
-  animation: toastSlideOut 0.3s ease-out;
-}
-
-.toastMessage {
-  color: rgba(255, 255, 255, 0.95);
-  font-size: 14px;
-  font-weight: 500;
-  white-space: nowrap;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
-}
-
-@keyframes toastSlideIn {
-  0% {
-    opacity: 0;
-    transform: translateX(-100%);
-  }
-  100% {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes toastSlideOut {
-  0% {
-    opacity: 1;
-    transform: translateX(0) scale(1);
-  }
-  100% {
-    opacity: 0;
-    transform: translateX(0) scale(0.9);
-  }
-}
 
 @keyframes rotate {
   0% {
@@ -705,73 +453,35 @@
   }
 }
 
-/* Success Toast */
-.successToast {
+
+/* Simple Capture Button Overlay */
+.simpleCaptureOverlay {
   position: absolute;
-  top: 16px; /* Same margin as camera switch button */
-  left: 16px;
-  background: rgba(76, 175, 80, 0.8);
-  border: 1px solid rgba(129, 199, 132, 0.6);
-  border-radius: 12px;
-  padding: 10px 16px;
-  display: flex;
-  align-items: center;
-  z-index: 20;
-  backdrop-filter: blur(10px);
-  animation: toastSlideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.successToast.hiding {
-  animation: toastSlideOut 0.3s ease-out;
-}
-
-/* Mobile responsiveness for toast */
-@media (max-width: 768px) {
-  .validationToast {
-    top: 12px;
-    left: 12px;
-    padding: 8px 12px;
-  }
-  
-  .successToast {
-    top: 12px;
-    left: 12px;
-    padding: 8px 12px;
-  }
-  
-  .toastMessage {
-    font-size: 13px;
-  }
-}
-
-/* Capture Button Overlay */
-.captureButtonOverlay {
-  position: absolute;
-  top: 16px;
-  left: 16px;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 20;
 }
 
-.captureButton {
-  background: rgba(76, 175, 80, 0.8);
-  border: 1px solid rgba(129, 199, 132, 0.6);
-  border-radius: 12px;
-  padding: 10px 16px;
+.simpleCaptureButton {
+  background: linear-gradient(135deg, #4a9eff 0%, #0066cc 100%);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50px;
+  padding: 16px 28px;
   color: rgba(255, 255, 255, 0.95);
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 16px;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   backdrop-filter: blur(10px);
   position: relative;
   overflow: hidden;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
-  min-width: fit-content;
-  max-width: 300px;
-  animation: toastSlideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), pulseGlow 2s ease-in-out infinite;
+  box-shadow: 0 4px 20px rgba(74, 158, 255, 0.4);
+  animation: pulseGlow 2s ease-in-out infinite;
 }
 
-.captureButton::before {
+.simpleCaptureButton::before {
   content: '';
   position: absolute;
   top: 0;
@@ -780,50 +490,51 @@
   height: 100%;
   background: linear-gradient(90deg, 
     transparent 0%, 
-    rgba(255, 255, 255, 0.2) 50%, 
+    rgba(255, 255, 255, 0.3) 50%, 
     transparent 100%);
   animation: shimmer 3s ease-in-out infinite;
 }
 
-.captureButton:hover {
-  background: rgba(76, 175, 80, 0.9);
-  border-color: rgba(129, 199, 132, 0.7);
-  transform: scale(1.05);
-  animation: toastSlideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); /* Stop pulse on hover */
-  box-shadow: 0 6px 25px rgba(76, 175, 80, 0.7);
+.simpleCaptureButton:hover {
+  background: linear-gradient(135deg, #5aa5ff 0%, #0070dd 100%);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05) translateY(-2px);
+  box-shadow: 0 6px 25px rgba(74, 158, 255, 0.6);
+  animation: none;
 }
 
-.captureButton:hover::before {
-  animation: none; /* Stop shimmer on hover */
+.simpleCaptureButton:hover::before {
+  animation: none;
 }
 
-.captureButton:active {
+.simpleCaptureButton:active {
   transform: scale(0.98);
-  background: rgba(76, 175, 80, 0.7);
+  background: linear-gradient(135deg, #3d8bfe 0%, #0056b3 100%);
 }
 
-.captureButton:disabled {
+.simpleCaptureButton:disabled {
   opacity: 0.4;
   cursor: not-allowed;
-  background: rgba(120, 120, 120, 0.1);
-  border-color: rgba(120, 120, 120, 0.2);
+  background: rgba(120, 120, 120, 0.2);
+  border-color: rgba(120, 120, 120, 0.3);
   color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
-.captureButton:disabled:hover {
-  transform: translateY(0);
-  background: rgba(120, 120, 120, 0.1);
-  border-color: rgba(120, 120, 120, 0.2);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+.simpleCaptureButton:disabled:hover {
+  transform: none;
+  background: rgba(120, 120, 120, 0.2);
+  border-color: rgba(120, 120, 120, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
-.captureButton:disabled:hover::before {
+.simpleCaptureButton:disabled:hover::before {
   transform: translateX(-100%);
 }
 
-.captureButton.analyzing {
-  background: rgba(255, 193, 7, 0.8);
-  border: 1px solid rgba(255, 214, 10, 0.6);
+.simpleCaptureButton.analyzing {
+  background: linear-gradient(135deg, #ffa726 0%, #ff9800 100%);
+  border: 2px solid rgba(255, 214, 10, 0.6);
   color: rgba(255, 255, 255, 0.95);
   animation: subtleGlow 2s ease-in-out infinite;
 }
@@ -836,30 +547,9 @@
   z-index: 1;
 }
 
-.capturePrompt {
-  font-size: 14px;
-  font-weight: 500;
-  white-space: nowrap;
-  max-width: 250px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.captureIcon {
-  font-size: 16px;
-  display: flex;
-  align-items: center;
-}
-
-.captureButtonText {
-  font-size: 14px;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.captureButton .spinner {
-  width: 14px;
-  height: 14px;
+.simpleCaptureButton .spinner {
+  width: 16px;
+  height: 16px;
   border: 2px solid rgba(255, 255, 255, 0.3);
   border-top: 2px solid rgba(255, 255, 255, 0.95);
   border-radius: 50%;
@@ -895,63 +585,160 @@
   }
 }
 
+/* Frame Overlay */
+.frameOverlay {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 120px;
+  height: 90px;
+  background: rgba(0, 0, 0, 0.8);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  backdrop-filter: blur(10px);
+  z-index: 25;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  animation: overlaySlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.frameOverlay.hiding {
+  animation: overlaySlideOut 0.3s ease-out;
+}
+
+.overlayImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.overlayLabel {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.7);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 10px;
+  font-weight: 500;
+  text-align: center;
+  padding: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.closeOverlay {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: rgba(0, 0, 0, 0.6);
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.closeOverlay:hover {
+  background: rgba(244, 67, 54, 0.8);
+  color: white;
+}
+
+@keyframes overlaySlideIn {
+  0% {
+    opacity: 0;
+    transform: translateX(100%) scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes overlaySlideOut {
+  0% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(100%) scale(0.8);
+  }
+}
+
 /* Mobile responsiveness for capture button */
 @media (max-width: 768px) {
-  .captureButtonOverlay {
-    top: 12px;
-    left: 12px;
+  .simpleCaptureOverlay {
+    bottom: 16px;
   }
   
-  .captureButton {
-    padding: 8px 12px;
-    font-size: 13px;
-    border-radius: 12px;
-    max-width: 250px;
-  }
-  
-  .capturePrompt {
-    font-size: 13px;
-    max-width: 180px;
-  }
-  
-  .captureIcon {
+  .simpleCaptureButton {
+    padding: 14px 24px;
     font-size: 15px;
   }
   
-  .captureButtonText {
-    font-size: 13px;
+  .frameOverlay {
+    top: 12px;
+    right: 12px;
+    width: 100px;
+    height: 75px;
+  }
+  
+  .overlayLabel {
+    font-size: 9px;
+    padding: 3px;
+  }
+  
+  .closeOverlay {
+    width: 18px;
+    height: 18px;
+    font-size: 12px;
+    top: 3px;
+    right: 3px;
   }
 }
 
 @media (max-width: 480px) {
-  .captureButtonOverlay {
-    top: 8px;
-    left: 8px;
+  .simpleCaptureOverlay {
+    bottom: 12px;
   }
   
-  .captureButton {
-    padding: 6px 10px;
-    font-size: 12px;
-    border-radius: 10px;
-    max-width: 200px;
-  }
-  
-  .capturePrompt {
-    font-size: 12px;
-    max-width: 150px;
-  }
-  
-  .captureIcon {
+  .simpleCaptureButton {
+    padding: 12px 20px;
     font-size: 14px;
   }
   
-  .captureButtonText {
-    font-size: 12px;
+  .simpleCaptureButton .spinner {
+    width: 14px;
+    height: 14px;
   }
   
-  .captureButton .spinner {
-    width: 12px;
-    height: 12px;
+  .frameOverlay {
+    top: 8px;
+    right: 8px;
+    width: 80px;
+    height: 60px;
+  }
+  
+  .overlayLabel {
+    font-size: 8px;
+    padding: 2px;
+  }
+  
+  .closeOverlay {
+    width: 16px;
+    height: 16px;
+    font-size: 11px;
+    top: 2px;
+    right: 2px;
   }
 }
 
