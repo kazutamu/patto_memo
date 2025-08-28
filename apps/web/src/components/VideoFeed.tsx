@@ -112,11 +112,7 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
         const frameDataUrl = canvas.toDataURL('image/jpeg', 0.8);
         setCapturedFrameUrl(frameDataUrl);
         setFrameOverlayVisible(true);
-        
-        // Hide overlay after 3 seconds
-        setTimeout(() => {
-          setFrameOverlayVisible(false);
-        }, 3000);
+        // No auto-hide - stays until user closes it
       }
       
       // Trigger the actual analysis capture
@@ -302,12 +298,14 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
         )}
 
 
-        {/* AI Analysis Overlay - Persistent */}
-        <AIAnalysisOverlay
-          analysis={analysisState.current}
-          isPersistent={true}
-          isAnalyzing={analysisState.isAnalyzing}
-        />
+        {/* AI Analysis Overlay - Only show when there's analysis */}
+        {analysisState.current && (
+          <AIAnalysisOverlay
+            analysis={analysisState.current}
+            isPersistent={false}
+            isAnalyzing={false}
+          />
+        )}
 
         {/* Stylish Capture Button */}
         {isActive && videoState.hasPermission && (
@@ -346,7 +344,6 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
               alt="Captured frame" 
               className={styles.overlayImage}
             />
-            <div className={styles.overlayLabel}>Captured Frame</div>
             <button 
               className={styles.closeOverlay}
               onClick={() => setFrameOverlayVisible(false)}
