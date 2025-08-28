@@ -141,7 +141,7 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
     setFrameStack(prev => prev.filter(frame => frame.id !== frameId));
   }, []);
   
-  // Generate todos from current frame stack
+  // Generate item list from current frame stack
   const generateTodos = useCallback(async () => {
     if (frameStack.length === 0 || isGeneratingTodos) return;
     
@@ -156,21 +156,21 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
       
       const response = await api.generateTodos({
         images_base64: imagesBase64,
-        context: 'Generate todo items based on what the user captured to remember'
+        context: 'List all visible items, objects, text, and elements in these images'
       });
       
       if (response.success) {
         setTodos(response.todos);
         setTodoSummary(response.summary);
       } else {
-        console.error('Failed to generate todos:', response.error_message);
+        console.error('Failed to list items:', response.error_message);
         setTodos([]);
-        setTodoSummary('Failed to generate todos from captured frames');
+        setTodoSummary('Failed to analyze captured frames');
       }
     } catch (error) {
-      console.error('Error generating todos:', error);
+      console.error('Error listing items:', error);
       setTodos([]);
-      setTodoSummary('Error occurred while generating todos');
+      setTodoSummary('Error occurred while analyzing frames');
     } finally {
       setIsGeneratingTodos(false);
     }
@@ -401,8 +401,8 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
               className={`${styles.todoButton} ${isGeneratingTodos ? styles.generating : ''}`}
               onClick={generateTodos}
               disabled={isGeneratingTodos}
-              title={`Generate todos from ${frameStack.length} captured frame${frameStack.length > 1 ? 's' : ''}`}
-              aria-label="Generate todo list"
+              title={`List items from ${frameStack.length} captured frame${frameStack.length > 1 ? 's' : ''}`}
+              aria-label="List visible items"
             >
               {isGeneratingTodos ? (
                 <div className={styles.todoButtonContent}>
@@ -412,7 +412,7 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
               ) : (
                 <div className={styles.todoButtonContent}>
                   <span>🤖</span>
-                  <span>Generate Todos ({frameStack.length})</span>
+                  <span>List Items ({frameStack.length})</span>
                 </div>
               )}
             </button>

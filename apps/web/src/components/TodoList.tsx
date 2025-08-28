@@ -42,11 +42,15 @@ export const TodoList: React.FC<TodoListProps> = ({
 
   const getCategoryIcon = (category?: string) => {
     switch (category) {
-      case 'work': return '💼';
-      case 'personal': return '🏠';
-      case 'shopping': return '🛒';
-      case 'general': return '📝';
-      default: return '📋';
+      case 'food': return '🍽️';
+      case 'text': return '📝';
+      case 'people': return '👤';
+      case 'furniture': return '🪑';
+      case 'electronics': return '📱';
+      case 'nature': return '🌿';
+      case 'tools': return '🔧';
+      case 'observed': return '👁️';
+      default: return '🔍';
     }
   };
 
@@ -98,7 +102,7 @@ export const TodoList: React.FC<TodoListProps> = ({
                       <button
                         className={styles.todoCheckbox}
                         onClick={() => toggleTodoComplete(todo.id)}
-                        aria-label={completedTodos.has(todo.id) ? 'Mark as incomplete' : 'Mark as complete'}
+                        aria-label={completedTodos.has(todo.id) ? 'Mark as not seen' : 'Mark as seen'}
                       >
                         {completedTodos.has(todo.id) ? '✓' : ''}
                       </button>

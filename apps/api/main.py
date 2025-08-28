@@ -289,27 +289,27 @@ async def generate_todos_from_images(request: TodoGenerationRequest):
                 error_message="At least one image is required",
             )
 
-        # Create a comprehensive prompt for todo generation
+        # Create a comprehensive prompt for item listing
         todo_prompt = f"""
-        Analyze these {len(request.images_base64)} images and generate a todo list based on what the user might want to remember or accomplish.
+        Analyze these {len(request.images_base64)} images and create a detailed list of ALL visible items, objects, text, and elements you can see.
 
-        Look for:
-        - Objects, documents, or items that need attention
-        - Tasks that appear to be in progress or need completion
-        - Important information, notes, or reminders visible in the images
-        - Items that suggest specific actions (shopping lists, documents to review, etc.)
-        - Any urgent or time-sensitive items
+        List EVERYTHING visible in the images:
+        - Physical objects (furniture, tools, food items, documents, etc.)
+        - Text content (labels, signs, writing, numbers, etc.)
+        - People and their clothing/accessories
+        - Background elements and scenery
+        - Any readable information or details
+        - Electronic devices, screens, displays
+        - Natural elements (plants, animals, weather, etc.)
 
-        For each todo item, provide:
-        1. A clear, actionable task description
-        2. Priority level (high/medium/low)
-        3. Estimated time to complete (if applicable)
-        4. Category (work, personal, shopping, etc.)
+        For each item, provide:
+        1. A clear description of what you see
+        2. Location/context within the image if relevant
+        3. Category the item belongs to
 
-        Return the response as a JSON object with:
-        - A brief summary of what you observed
-        - A list of specific todo items with priorities
-        - Keep it practical and actionable
+        Be thorough and comprehensive - don't make assumptions about what the user wants to remember, just list everything you can observe in detail.
+
+        Format your response as a detailed inventory of visible items.
 
         Context: {request.context}
         """
@@ -331,7 +331,7 @@ async def generate_todos_from_images(request: TodoGenerationRequest):
         # For now, we'll create a simple parser - in production you might want more sophisticated parsing
         ai_response = gemini_result["description"]
         
-        # Simple todo parsing - split by lines and look for task-like patterns
+        # Parse items from the AI response - look for any listed items
         import re
         import uuid
         
@@ -340,49 +340,56 @@ async def generate_todos_from_images(request: TodoGenerationRequest):
         
         for line in lines:
             line = line.strip()
+            # Look for any line that appears to be listing an item
             if line and (line.startswith('-') or line.startswith('•') or line.startswith('*') or 
-                        re.match(r'^\d+\.', line) or 'todo' in line.lower() or 'task' in line.lower()):
+                        re.match(r'^\d+\.', line) or ':' in line):
                 # Clean up the line
                 cleaned_line = re.sub(r'^[-•*\d\.]\s*', '', line)
-                if len(cleaned_line) > 5:  # Ensure it's substantial enough
-                    # Determine priority based on keywords
+                if len(cleaned_line) > 3:  # Ensure it's substantial enough
+                    # All items are treated as observations, no priority needed
                     priority = "medium"
-                    if any(word in cleaned_line.lower() for word in ['urgent', 'important', 'asap', 'critical']):
-                        priority = "high"
-                    elif any(word in cleaned_line.lower() for word in ['later', 'eventually', 'when possible']):
-                        priority = "low"
                     
-                    # Determine category
-                    category = "general"
-                    if any(word in cleaned_line.lower() for word in ['buy', 'shop', 'purchase']):
-                        category = "shopping"
-                    elif any(word in cleaned_line.lower() for word in ['work', 'office', 'meeting', 'email']):
-                        category = "work"
-                    elif any(word in cleaned_line.lower() for word in ['home', 'house', 'clean', 'fix']):
-                        category = "personal"
+                    # Determine category based on content
+                    category = "observed"
+                    if any(word in cleaned_line.lower() for word in ['food', 'drink', 'eat', 'meal', 'kitchen', 'cooking']):
+                        category = "food"
+                    elif any(word in cleaned_line.lower() for word in ['book', 'paper', 'document', 'text', 'writing', 'sign']):
+                        category = "text"
+                    elif any(word in cleaned_line.lower() for word in ['person', 'man', 'woman', 'people', 'clothing', 'shirt', 'hat']):
+                        category = "people"
+                    elif any(word in cleaned_line.lower() for word in ['furniture', 'table', 'chair', 'desk', 'shelf', 'cabinet']):
+                        category = "furniture"
+                    elif any(word in cleaned_line.lower() for word in ['device', 'phone', 'computer', 'screen', 'electronic', 'gadget']):
+                        category = "electronics"
+                    elif any(word in cleaned_line.lower() for word in ['plant', 'tree', 'flower', 'nature', 'outdoor', 'sky']):
+                        category = "nature"
+                    elif any(word in cleaned_line.lower() for word in ['tool', 'equipment', 'machine', 'instrument']):
+                        category = "tools"
                     
                     todo_items.append(TodoItem(
                         id=str(uuid.uuid4())[:8],
                         task=cleaned_line,
                         priority=priority,
                         category=category,
-                        estimated_time=None  # Could be enhanced to parse time estimates
+                        estimated_time=None
                     ))
 
-        # If no structured todos found, create a general one from the AI response
+        # If no structured items found, split response into sentences and create items
         if not todo_items and ai_response:
-            todo_items.append(TodoItem(
-                id=str(uuid.uuid4())[:8],
-                task=f"Review and act on: {ai_response[:100]}...",
-                priority="medium",
-                category="general"
-            ))
+            sentences = [s.strip() for s in ai_response.replace('.', '\n').split('\n') if s.strip() and len(s.strip()) > 10]
+            for i, sentence in enumerate(sentences[:10]):  # Limit to 10 items
+                todo_items.append(TodoItem(
+                    id=str(uuid.uuid4())[:8],
+                    task=sentence,
+                    priority="medium",
+                    category="observed"
+                ))
 
         processing_time = (datetime.now() - start_time).total_seconds()
 
         return TodoGenerationResponse(
             todos=todo_items,
-            summary=f"Generated {len(todo_items)} todo items from {len(request.images_base64)} images",
+            summary=f"Found {len(todo_items)} visible items in {len(request.images_base64)} image{'s' if len(request.images_base64) > 1 else ''}",
             processing_time=processing_time,
             llm_model=gemini_result["llm_model"],
             success=True,
