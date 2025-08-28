@@ -289,28 +289,25 @@ async def generate_todos_from_images(request: TodoGenerationRequest):
                 error_message="At least one image is required",
             )
 
-        # Create a comprehensive prompt for item listing
+        # Create a simple prompt for item listing
         todo_prompt = f"""
-        Analyze these {len(request.images_base64)} images and create a detailed list of ALL visible items, objects, text, and elements you can see.
+        Look at the CENTER of these {len(request.images_base64)} images and list ONLY the main items that are in focus or prominently displayed in the middle.
 
-        List EVERYTHING visible in the images:
-        - Physical objects (furniture, tools, food items, documents, etc.)
-        - Text content (labels, signs, writing, numbers, etc.)
-        - People and their clothing/accessories
-        - Background elements and scenery
-        - Any readable information or details
-        - Electronic devices, screens, displays
-        - Natural elements (plants, animals, weather, etc.)
-
-        For each item, provide:
-        1. A clear description of what you see
-        2. Location/context within the image if relevant
-        3. Category the item belongs to
-
-        Be thorough and comprehensive - don't make assumptions about what the user wants to remember, just list everything you can observe in detail.
-
-        Format your response as a detailed inventory of visible items.
-
+        IMPORTANT:
+        - Only list items that are in the CENTER/MIDDLE of the image
+        - Ignore items in the background or edges
+        - Return just the item name itself (like "ball", "phone", "cup")
+        - Do NOT include type words like "type of", "kind of", "model"
+        - Do NOT include location words like "on table", "in hand", "near window"
+        - Maximum 1-2 words per item
+        - One item per line with a dash
+        
+        Example of correct output:
+        - ball
+        - phone
+        - cup
+        - book
+        
         Context: {request.context}
         """
 
@@ -331,7 +328,7 @@ async def generate_todos_from_images(request: TodoGenerationRequest):
         # For now, we'll create a simple parser - in production you might want more sophisticated parsing
         ai_response = gemini_result["description"]
         
-        # Parse items from the AI response - look for any listed items
+        # Parse simple item names from the AI response
         import re
         import uuid
         
@@ -342,48 +339,75 @@ async def generate_todos_from_images(request: TodoGenerationRequest):
             line = line.strip()
             # Look for any line that appears to be listing an item
             if line and (line.startswith('-') or line.startswith('•') or line.startswith('*') or 
-                        re.match(r'^\d+\.', line) or ':' in line):
-                # Clean up the line
-                cleaned_line = re.sub(r'^[-•*\d\.]\s*', '', line)
-                if len(cleaned_line) > 3:  # Ensure it's substantial enough
-                    # All items are treated as observations, no priority needed
-                    priority = "medium"
-                    
-                    # Determine category based on content
+                        re.match(r'^\d+\.', line)):
+                # Clean up the line - remove list markers
+                cleaned_line = re.sub(r'^[-•*\d\.]\s*', '', line).strip()
+                # Also remove any trailing punctuation
+                cleaned_line = cleaned_line.rstrip('.,;:')
+                
+                # Filter out lines with location/type words
+                skip_words = ['type', 'kind', 'model', 'on', 'in', 'near', 'beside', 'next to', 'above', 'below', 'with']
+                if any(word in cleaned_line.lower() for word in skip_words):
+                    continue
+                
+                # Only keep if it's a simple item name (1-2 words preferred)
+                if cleaned_line and len(cleaned_line.split()) <= 2 and len(cleaned_line) <= 20:
+                    # Determine category based on the item name
                     category = "observed"
-                    if any(word in cleaned_line.lower() for word in ['food', 'drink', 'eat', 'meal', 'kitchen', 'cooking']):
+                    item_lower = cleaned_line.lower()
+                    
+                    if any(word in item_lower for word in ['food', 'drink', 'meal', 'kitchen', 'fruit', 'vegetable']):
                         category = "food"
-                    elif any(word in cleaned_line.lower() for word in ['book', 'paper', 'document', 'text', 'writing', 'sign']):
+                    elif any(word in item_lower for word in ['book', 'paper', 'document', 'text', 'sign', 'letter']):
                         category = "text"
-                    elif any(word in cleaned_line.lower() for word in ['person', 'man', 'woman', 'people', 'clothing', 'shirt', 'hat']):
+                    elif any(word in item_lower for word in ['person', 'man', 'woman', 'people', 'shirt', 'hat']):
                         category = "people"
-                    elif any(word in cleaned_line.lower() for word in ['furniture', 'table', 'chair', 'desk', 'shelf', 'cabinet']):
+                    elif any(word in item_lower for word in ['table', 'chair', 'desk', 'shelf', 'cabinet', 'sofa', 'bed']):
                         category = "furniture"
-                    elif any(word in cleaned_line.lower() for word in ['device', 'phone', 'computer', 'screen', 'electronic', 'gadget']):
+                    elif any(word in item_lower for word in ['phone', 'computer', 'screen', 'laptop', 'monitor', 'tv']):
                         category = "electronics"
-                    elif any(word in cleaned_line.lower() for word in ['plant', 'tree', 'flower', 'nature', 'outdoor', 'sky']):
+                    elif any(word in item_lower for word in ['plant', 'tree', 'flower', 'grass', 'leaf']):
                         category = "nature"
-                    elif any(word in cleaned_line.lower() for word in ['tool', 'equipment', 'machine', 'instrument']):
+                    elif any(word in item_lower for word in ['tool', 'hammer', 'screwdriver', 'wrench']):
                         category = "tools"
                     
                     todo_items.append(TodoItem(
                         id=str(uuid.uuid4())[:8],
                         task=cleaned_line,
-                        priority=priority,
+                        priority="medium",
                         category=category,
                         estimated_time=None
                     ))
 
-        # If no structured items found, split response into sentences and create items
+        # If no structured items found, try parsing as simple words
         if not todo_items and ai_response:
-            sentences = [s.strip() for s in ai_response.replace('.', '\n').split('\n') if s.strip() and len(s.strip()) > 10]
-            for i, sentence in enumerate(sentences[:10]):  # Limit to 10 items
-                todo_items.append(TodoItem(
-                    id=str(uuid.uuid4())[:8],
-                    task=sentence,
-                    priority="medium",
-                    category="observed"
-                ))
+            # Split by common delimiters and extract simple item names
+            words = re.split(r'[,\n;]', ai_response)
+            for word in words[:20]:  # Limit to 20 items
+                word = word.strip().rstrip('.,;:')
+                # Skip if contains location/type words
+                skip_words = ['type', 'kind', 'model', 'on', 'in', 'near', 'beside', 'next to', 'above', 'below', 'with']
+                if any(sw in word.lower() for sw in skip_words):
+                    continue
+                    
+                if word and len(word.split()) <= 2 and len(word) <= 20:
+                    # Determine category
+                    category = "observed"
+                    item_lower = word.lower()
+                    
+                    if any(kw in item_lower for kw in ['food', 'drink', 'fruit']):
+                        category = "food"
+                    elif any(kw in item_lower for kw in ['table', 'chair', 'desk']):
+                        category = "furniture"
+                    elif any(kw in item_lower for kw in ['phone', 'computer', 'laptop']):
+                        category = "electronics"
+                    
+                    todo_items.append(TodoItem(
+                        id=str(uuid.uuid4())[:8],
+                        task=word,
+                        priority="medium",
+                        category=category
+                    ))
 
         processing_time = (datetime.now() - start_time).total_seconds()
 
