@@ -550,6 +550,75 @@
   cursor: not-allowed;
 }
 
+/* Todo Button */
+.todoButtonOverlay {
+  position: absolute;
+  bottom: 90px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+}
+
+.todoButton {
+  background: linear-gradient(135deg, #9c27b0 0%, #673ab7 100%);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(156, 39, 176, 0.4);
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  backdrop-filter: blur(10px);
+}
+
+.todoButton:hover {
+  background: linear-gradient(135deg, #ab47bc 0%, #7e57c2 100%);
+  transform: scale(1.05) translateY(-2px);
+  box-shadow: 0 6px 25px rgba(156, 39, 176, 0.6);
+}
+
+.todoButton:active {
+  transform: scale(0.98);
+}
+
+.todoButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.todoButton:disabled:hover {
+  transform: none;
+  box-shadow: 0 4px 20px rgba(156, 39, 176, 0.4);
+}
+
+.todoButton.generating {
+  background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+  animation: todoGenerating 2s ease-in-out infinite;
+}
+
+.todoButtonContent {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+@keyframes todoGenerating {
+  0%, 100% {
+    box-shadow: 0 4px 20px rgba(255, 152, 0, 0.4);
+  }
+  50% {
+    box-shadow: 0 6px 25px rgba(255, 152, 0, 0.6);
+  }
+}
+
 
 .simpleCaptureButton .spinner {
   width: 20px;
@@ -725,6 +794,15 @@
     height: 22px;
   }
   
+  .todoButtonOverlay {
+    bottom: 80px;
+  }
+  
+  .todoButton {
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+  
   .frameStackContainer {
     top: 12px;
     left: 12px;
@@ -792,6 +870,15 @@
   .simpleCaptureButton .spinner {
     width: 18px;
     height: 18px;
+  }
+  
+  .todoButtonOverlay {
+    bottom: 70px;
+  }
+  
+  .todoButton {
+    padding: 8px 14px;
+    font-size: 12px;
   }
   
   .frameStackContainer {

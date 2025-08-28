@@ -1,7 +1,7 @@
 import base64
 import os
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -115,6 +115,31 @@ class ImageAnalysisResponse(BaseModel):
     llm_model: (
         str  # Changed from model_used to avoid Pydantic's protected namespace "model_"
     )
+    success: bool
+    error_message: Optional[str] = None
+
+
+class TodoGenerationRequest(BaseModel):
+    images_base64: List[str] = Field(..., description="List of base64 encoded images")
+    context: Optional[str] = Field(
+        default="Generate todo items based on what the user wanted to remember from these images",
+        description="Context for todo generation",
+    )
+
+
+class TodoItem(BaseModel):
+    id: str
+    task: str
+    priority: str  # "high", "medium", "low"
+    category: Optional[str] = None
+    estimated_time: Optional[str] = None
+
+
+class TodoGenerationResponse(BaseModel):
+    todos: List[TodoItem]
+    summary: str
+    processing_time: float
+    llm_model: str
     success: bool
     error_message: Optional[str] = None
 
@@ -243,6 +268,137 @@ async def analyze_uploaded_image(
             llm_model="gemini-1.5-flash",
             success=False,
             error_message=f"File processing failed: {str(e)}",
+        )
+
+
+@app.post("/api/v1/ai/generate-todos", response_model=TodoGenerationResponse)
+async def generate_todos_from_images(request: TodoGenerationRequest):
+    """
+    Generate todo items from multiple images using AI analysis
+    """
+    start_time = datetime.now()
+
+    try:
+        if not request.images_base64:
+            return TodoGenerationResponse(
+                todos=[],
+                summary="No images provided",
+                processing_time=0.0,
+                llm_model="gemini-1.5-flash",
+                success=False,
+                error_message="At least one image is required",
+            )
+
+        # Create a comprehensive prompt for todo generation
+        todo_prompt = f"""
+        Analyze these {len(request.images_base64)} images and generate a todo list based on what the user might want to remember or accomplish.
+
+        Look for:
+        - Objects, documents, or items that need attention
+        - Tasks that appear to be in progress or need completion
+        - Important information, notes, or reminders visible in the images
+        - Items that suggest specific actions (shopping lists, documents to review, etc.)
+        - Any urgent or time-sensitive items
+
+        For each todo item, provide:
+        1. A clear, actionable task description
+        2. Priority level (high/medium/low)
+        3. Estimated time to complete (if applicable)
+        4. Category (work, personal, shopping, etc.)
+
+        Return the response as a JSON object with:
+        - A brief summary of what you observed
+        - A list of specific todo items with priorities
+        - Keep it practical and actionable
+
+        Context: {request.context}
+        """
+
+        # Use the first image for the main analysis, but mention multiple images in prompt
+        gemini_result = await analyze_with_gemini(request.images_base64[0], todo_prompt)
+
+        if not gemini_result["success"]:
+            return TodoGenerationResponse(
+                todos=[],
+                summary="Failed to analyze images",
+                processing_time=gemini_result["processing_time"],
+                llm_model=gemini_result["llm_model"],
+                success=False,
+                error_message=gemini_result["error_message"],
+            )
+
+        # Parse the AI response to extract todo items
+        # For now, we'll create a simple parser - in production you might want more sophisticated parsing
+        ai_response = gemini_result["description"]
+        
+        # Simple todo parsing - split by lines and look for task-like patterns
+        import re
+        import uuid
+        
+        todo_items = []
+        lines = ai_response.split('\n')
+        
+        for line in lines:
+            line = line.strip()
+            if line and (line.startswith('-') or line.startswith('•') or line.startswith('*') or 
+                        re.match(r'^\d+\.', line) or 'todo' in line.lower() or 'task' in line.lower()):
+                # Clean up the line
+                cleaned_line = re.sub(r'^[-•*\d\.]\s*', '', line)
+                if len(cleaned_line) > 5:  # Ensure it's substantial enough
+                    # Determine priority based on keywords
+                    priority = "medium"
+                    if any(word in cleaned_line.lower() for word in ['urgent', 'important', 'asap', 'critical']):
+                        priority = "high"
+                    elif any(word in cleaned_line.lower() for word in ['later', 'eventually', 'when possible']):
+                        priority = "low"
+                    
+                    # Determine category
+                    category = "general"
+                    if any(word in cleaned_line.lower() for word in ['buy', 'shop', 'purchase']):
+                        category = "shopping"
+                    elif any(word in cleaned_line.lower() for word in ['work', 'office', 'meeting', 'email']):
+                        category = "work"
+                    elif any(word in cleaned_line.lower() for word in ['home', 'house', 'clean', 'fix']):
+                        category = "personal"
+                    
+                    todo_items.append(TodoItem(
+                        id=str(uuid.uuid4())[:8],
+                        task=cleaned_line,
+                        priority=priority,
+                        category=category,
+                        estimated_time=None  # Could be enhanced to parse time estimates
+                    ))
+
+        # If no structured todos found, create a general one from the AI response
+        if not todo_items and ai_response:
+            todo_items.append(TodoItem(
+                id=str(uuid.uuid4())[:8],
+                task=f"Review and act on: {ai_response[:100]}...",
+                priority="medium",
+                category="general"
+            ))
+
+        processing_time = (datetime.now() - start_time).total_seconds()
+
+        return TodoGenerationResponse(
+            todos=todo_items,
+            summary=f"Generated {len(todo_items)} todo items from {len(request.images_base64)} images",
+            processing_time=processing_time,
+            llm_model=gemini_result["llm_model"],
+            success=True,
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        processing_time = (datetime.now() - start_time).total_seconds()
+        return TodoGenerationResponse(
+            todos=[],
+            summary="Error processing images",
+            processing_time=processing_time,
+            llm_model="gemini-1.5-flash",
+            success=False,
+            error_message=str(e),
         )
 
 

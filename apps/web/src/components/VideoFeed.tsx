@@ -2,6 +2,8 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { useManualCapture } from '../hooks/useManualCapture';
 import { useSSE, AIAnalysis } from '../hooks/useSSE';
 import { AIAnalysisOverlay } from './AIAnalysisOverlay';
+import { TodoList } from './TodoList';
+import { api, TodoItem } from '../api';
 import styles from './VideoFeed.module.css';
 
 interface VideoFeedProps {
@@ -43,6 +45,12 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
   // Frame stack state - up to 3 frames
   const [frameStack, setFrameStack] = useState<Array<{ id: string; url: string; timestamp: number }>>([]);
   const maxFrames = 3;
+  
+  // Todo generation state
+  const [todos, setTodos] = useState<TodoItem[]>([]);
+  const [todoSummary, setTodoSummary] = useState<string>('');
+  const [showTodoList, setShowTodoList] = useState<boolean>(false);
+  const [isGeneratingTodos, setIsGeneratingTodos] = useState<boolean>(false);
 
   // SSE hook to receive AI analysis updates
   useSSE({
@@ -131,6 +139,46 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
   // Remove frame from stack
   const removeFrame = useCallback((frameId: string) => {
     setFrameStack(prev => prev.filter(frame => frame.id !== frameId));
+  }, []);
+  
+  // Generate todos from current frame stack
+  const generateTodos = useCallback(async () => {
+    if (frameStack.length === 0 || isGeneratingTodos) return;
+    
+    setIsGeneratingTodos(true);
+    setShowTodoList(true);
+    
+    try {
+      // Extract base64 data from frame URLs (remove data:image/jpeg;base64, prefix)
+      const imagesBase64 = frameStack.map(frame => 
+        frame.url.replace(/^data:image\/[a-z]+;base64,/, '')
+      );
+      
+      const response = await api.generateTodos({
+        images_base64: imagesBase64,
+        context: 'Generate todo items based on what the user captured to remember'
+      });
+      
+      if (response.success) {
+        setTodos(response.todos);
+        setTodoSummary(response.summary);
+      } else {
+        console.error('Failed to generate todos:', response.error_message);
+        setTodos([]);
+        setTodoSummary('Failed to generate todos from captured frames');
+      }
+    } catch (error) {
+      console.error('Error generating todos:', error);
+      setTodos([]);
+      setTodoSummary('Error occurred while generating todos');
+    } finally {
+      setIsGeneratingTodos(false);
+    }
+  }, [frameStack, isGeneratingTodos]);
+  
+  // Close todo list
+  const closeTodoList = useCallback(() => {
+    setShowTodoList(false);
   }, []);
 
   const stopStream = useCallback(() => {
@@ -345,6 +393,31 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
             </button>
           </div>
         )}
+        
+        {/* Generate Todos Button - appears when frames are captured */}
+        {isActive && videoState.hasPermission && frameStack.length > 0 && (
+          <div className={styles.todoButtonOverlay}>
+            <button
+              className={`${styles.todoButton} ${isGeneratingTodos ? styles.generating : ''}`}
+              onClick={generateTodos}
+              disabled={isGeneratingTodos}
+              title={`Generate todos from ${frameStack.length} captured frame${frameStack.length > 1 ? 's' : ''}`}
+              aria-label="Generate todo list"
+            >
+              {isGeneratingTodos ? (
+                <div className={styles.todoButtonContent}>
+                  <div className={styles.spinner}></div>
+                  <span>Thinking...</span>
+                </div>
+              ) : (
+                <div className={styles.todoButtonContent}>
+                  <span>🤖</span>
+                  <span>Generate Todos ({frameStack.length})</span>
+                </div>
+              )}
+            </button>
+          </div>
+        )}
 
         {/* Stacked Frame Overlays */}
         <div className={styles.frameStackContainer}>
@@ -370,6 +443,15 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
             </div>
           ))}
         </div>
+        
+        {/* Todo List Modal */}
+        <TodoList
+          todos={todos}
+          summary={todoSummary}
+          isVisible={showTodoList}
+          onClose={closeTodoList}
+          isGenerating={isGeneratingTodos}
+        />
 
       </div>
     </div>

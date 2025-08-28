@@ -47,12 +47,42 @@ export interface ImageAnalysisResponse {
   error_message?: string;
 }
 
+export interface TodoGenerationRequest {
+  images_base64: string[];
+  context?: string;
+}
+
+export interface TodoItem {
+  id: string;
+  task: string;
+  priority: 'high' | 'medium' | 'low';
+  category?: string;
+  estimated_time?: string;
+}
+
+export interface TodoGenerationResponse {
+  todos: TodoItem[];
+  summary: string;
+  processing_time: number;
+  llm_model: string;
+  success: boolean;
+  error_message?: string;
+}
+
 export const api = {
   // Analyze image with AI (Gemini)
   analyzeImage: async (analysisRequest: ImageAnalysisRequest): Promise<ImageAnalysisResponse> => {
     return request<ImageAnalysisResponse>('/ai/analyze-image', {
       method: 'POST',
       body: JSON.stringify(analysisRequest),
+    });
+  },
+
+  // Generate todos from multiple images
+  generateTodos: async (todoRequest: TodoGenerationRequest): Promise<TodoGenerationResponse> => {
+    return request<TodoGenerationResponse>('/ai/generate-todos', {
+      method: 'POST',
+      body: JSON.stringify(todoRequest),
     });
   },
 
