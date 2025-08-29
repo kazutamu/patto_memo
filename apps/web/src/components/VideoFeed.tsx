@@ -41,14 +41,10 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
     startTime: null as number | null
   });
 
-  // Frame stack state - up to 3 frames
-  const [frameStack, setFrameStack] = useState<Array<{ id: string; url: string; timestamp: number }>>([]);
+  // Frame stack state - up to 3 frames with identified items
+  const [frameStack, setFrameStack] = useState<Array<{ id: string; url: string; timestamp: number; item?: string }>>([]);
   const maxFrames = 3;
   
-  // Item identification state
-  const [identifiedItem, setIdentifiedItem] = useState<string>('');
-  const [showItemOverlay, setShowItemOverlay] = useState<boolean>(false);
-  const [isIdentifyingItem, setIsIdentifyingItem] = useState<boolean>(false);
 
   // SSE hook to receive AI analysis updates
   useSSE({
@@ -99,7 +95,7 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
     onAnalysisStart: handleAnalysisStart
   });
 
-  // Handle frame capture with stacking
+  // Handle frame capture with stacking and automatic analysis
   const handleCaptureFrame = useCallback(async () => {
     if (!videoRef.current || frameStack.length >= maxFrames) return;
     
@@ -121,10 +117,46 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
         const newFrame = {
           id: Date.now().toString(),
           url: frameDataUrl,
-          timestamp: Date.now()
+          timestamp: Date.now(),
+          item: 'analyzing...'
         };
         
         setFrameStack(prev => [...prev, newFrame]);
+        
+        // Immediately analyze the captured frame
+        try {
+          const imageBase64 = frameDataUrl.replace(/^data:image\/[a-z]+;base64,/, '');
+          
+          const response = await api.generateTodos({
+            images_base64: [imageBase64],
+            context: 'Identify the main item in the center of this image'
+          });
+          
+          if (response.success && response.todos.length > 0) {
+            const identifiedItem = response.todos[0].task;
+            // Update the frame with the identified item
+            setFrameStack(prev => prev.map(frame => 
+              frame.id === newFrame.id 
+                ? { ...frame, item: identifiedItem }
+                : frame
+            ));
+          } else {
+            // Update with "unknown" if analysis failed
+            setFrameStack(prev => prev.map(frame => 
+              frame.id === newFrame.id 
+                ? { ...frame, item: 'unknown' }
+                : frame
+            ));
+          }
+        } catch (error) {
+          console.error('Error analyzing frame:', error);
+          // Update with "error" if analysis failed
+          setFrameStack(prev => prev.map(frame => 
+            frame.id === newFrame.id 
+              ? { ...frame, item: 'error' }
+              : frame
+          ));
+        }
       }
       
       // Trigger the actual analysis capture
@@ -139,43 +171,6 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
     setFrameStack(prev => prev.filter(frame => frame.id !== frameId));
   }, []);
   
-  // Identify single item from current frame stack
-  const identifyItem = useCallback(async () => {
-    if (frameStack.length === 0 || isIdentifyingItem) return;
-    
-    setIsIdentifyingItem(true);
-    setShowItemOverlay(true);
-    
-    try {
-      // Extract base64 data from frame URLs (remove data:image/jpeg;base64, prefix)
-      const imagesBase64 = frameStack.map(frame => 
-        frame.url.replace(/^data:image\/[a-z]+;base64,/, '')
-      );
-      
-      const response = await api.generateTodos({
-        images_base64: imagesBase64,
-        context: 'Identify the main item in the center of these images'
-      });
-      
-      if (response.success && response.todos.length > 0) {
-        setIdentifiedItem(response.todos[0].task);
-      } else {
-        console.error('Failed to identify item:', response.error_message);
-        setIdentifiedItem('unknown');
-      }
-    } catch (error) {
-      console.error('Error identifying item:', error);
-      setIdentifiedItem('error');
-    } finally {
-      setIsIdentifyingItem(false);
-    }
-  }, [frameStack, isIdentifyingItem]);
-  
-  // Close item overlay
-  const closeItemOverlay = useCallback(() => {
-    setShowItemOverlay(false);
-    setIdentifiedItem('');
-  }, []);
 
   const stopStream = useCallback(() => {
     if (streamRef.current) {
@@ -390,30 +385,6 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
           </div>
         )}
         
-        {/* Identify Item Button - appears when frames are captured */}
-        {isActive && videoState.hasPermission && frameStack.length > 0 && (
-          <div className={styles.todoButtonOverlay}>
-            <button
-              className={`${styles.todoButton} ${isIdentifyingItem ? styles.generating : ''}`}
-              onClick={identifyItem}
-              disabled={isIdentifyingItem}
-              title={`Identify item from ${frameStack.length} captured frame${frameStack.length > 1 ? 's' : ''}`}
-              aria-label="Identify item"
-            >
-              {isIdentifyingItem ? (
-                <div className={styles.todoButtonContent}>
-                  <div className={styles.spinner}></div>
-                  <span>Thinking...</span>
-                </div>
-              ) : (
-                <div className={styles.todoButtonContent}>
-                  <span>🤖</span>
-                  <span>What's this?</span>
-                </div>
-              )}
-            </button>
-          </div>
-        )}
 
         {/* Stacked Frame Overlays */}
         <div className={styles.frameStackContainer}>
@@ -428,6 +399,14 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
                 alt={`Captured frame ${index + 1}`} 
                 className={styles.overlayImage}
               />
+              {/* Item tag at top-left */}
+              {frame.item && (
+                <div className={styles.itemTag}>
+                  <span className={`${styles.itemTagText} ${frame.item === 'analyzing...' ? styles.analyzing : ''}`}>
+                    {frame.item}
+                  </span>
+                </div>
+              )}
               <div className={styles.frameNumber}>{index + 1}</div>
               <button 
                 className={styles.closeOverlay}
@@ -440,30 +419,6 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
           ))}
         </div>
         
-        {/* Item Identification Overlay */}
-        {showItemOverlay && (
-          <div className={styles.itemOverlay}>
-            <div className={styles.itemContent}>
-              {isIdentifyingItem ? (
-                <div className={styles.identifyingState}>
-                  <div className={styles.spinner}></div>
-                  <span>Identifying...</span>
-                </div>
-              ) : (
-                <div className={styles.identifiedItem}>
-                  <span className={styles.itemText}>{identifiedItem}</span>
-                  <button 
-                    className={styles.closeItemOverlay}
-                    onClick={closeItemOverlay}
-                    title="Close"
-                  >
-                    ×
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
 
       </div>
     </div>
