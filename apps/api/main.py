@@ -1,7 +1,7 @@
 import base64
 import os
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -115,6 +115,31 @@ class ImageAnalysisResponse(BaseModel):
     llm_model: (
         str  # Changed from model_used to avoid Pydantic's protected namespace "model_"
     )
+    success: bool
+    error_message: Optional[str] = None
+
+
+class TodoGenerationRequest(BaseModel):
+    images_base64: List[str] = Field(..., description="List of base64 encoded images")
+    context: Optional[str] = Field(
+        default="Generate todo items based on what the user wanted to remember from these images",
+        description="Context for todo generation",
+    )
+
+
+class TodoItem(BaseModel):
+    id: str
+    task: str
+    priority: str  # "high", "medium", "low"
+    category: Optional[str] = None
+    estimated_time: Optional[str] = None
+
+
+class TodoGenerationResponse(BaseModel):
+    todos: List[TodoItem]
+    summary: str
+    processing_time: float
+    llm_model: str
     success: bool
     error_message: Optional[str] = None
 
@@ -243,6 +268,169 @@ async def analyze_uploaded_image(
             llm_model="gemini-1.5-flash",
             success=False,
             error_message=f"File processing failed: {str(e)}",
+        )
+
+
+@app.post("/api/v1/ai/generate-todos", response_model=TodoGenerationResponse)
+async def generate_todos_from_images(request: TodoGenerationRequest):
+    """
+    Generate todo items from multiple images using AI analysis
+    """
+    start_time = datetime.now()
+
+    try:
+        if not request.images_base64:
+            return TodoGenerationResponse(
+                todos=[],
+                summary="No images provided",
+                processing_time=0.0,
+                llm_model="gemini-1.5-flash",
+                success=False,
+                error_message="At least one image is required",
+            )
+
+        # Create a simple prompt for item listing
+        todo_prompt = f"""
+        Look at the CENTER of these {len(request.images_base64)} images and identify the ONE main item that is most prominent in the middle.
+
+        IMPORTANT:
+        - Only return ONE item that is in the CENTER/MIDDLE of the image
+        - Ignore items in the background or edges
+        - Return just ONE WORD (like "ball", "phone", "cup")
+        - Do NOT include type words like "type of", "kind of", "model"
+        - Do NOT include location words like "on table", "in hand", "near window"
+        - Just one single word
+        
+        Example of correct output:
+        - ball
+        
+        Context: {request.context}
+        """
+
+        # Use the first image for the main analysis, but mention multiple images in prompt
+        gemini_result = await analyze_with_gemini(request.images_base64[0], todo_prompt)
+
+        if not gemini_result["success"]:
+            return TodoGenerationResponse(
+                todos=[],
+                summary="Failed to analyze images",
+                processing_time=gemini_result["processing_time"],
+                llm_model=gemini_result["llm_model"],
+                success=False,
+                error_message=gemini_result["error_message"],
+            )
+
+        # Parse the AI response to extract todo items
+        # For now, we'll create a simple parser - in production you might want more sophisticated parsing
+        ai_response = gemini_result["description"]
+        
+        # Parse simple item names from the AI response
+        import re
+        import uuid
+        
+        todo_items = []
+        lines = ai_response.split('\n')
+        
+        # Only look for the first valid item
+        for line in lines:
+            line = line.strip()
+            # Look for any line that appears to be listing an item
+            if line and (line.startswith('-') or line.startswith('•') or line.startswith('*') or 
+                        re.match(r'^\d+\.', line)):
+                # Clean up the line - remove list markers
+                cleaned_line = re.sub(r'^[-•*\d\.]\s*', '', line).strip()
+                # Also remove any trailing punctuation
+                cleaned_line = cleaned_line.rstrip('.,;:')
+                
+                # Filter out lines with location/type words
+                skip_words = ['type', 'kind', 'model', 'on', 'in', 'near', 'beside', 'next to', 'above', 'below', 'with']
+                if any(word in cleaned_line.lower() for word in skip_words):
+                    continue
+                
+                # Only keep if it's a single word
+                if cleaned_line and len(cleaned_line.split()) == 1 and len(cleaned_line) <= 15:
+                    # Determine category based on the item name
+                    category = "observed"
+                    item_lower = cleaned_line.lower()
+                    
+                    if any(word in item_lower for word in ['food', 'drink', 'meal', 'kitchen', 'fruit', 'vegetable']):
+                        category = "food"
+                    elif any(word in item_lower for word in ['book', 'paper', 'document', 'text', 'sign', 'letter']):
+                        category = "text"
+                    elif any(word in item_lower for word in ['person', 'man', 'woman', 'people', 'shirt', 'hat']):
+                        category = "people"
+                    elif any(word in item_lower for word in ['table', 'chair', 'desk', 'shelf', 'cabinet', 'sofa', 'bed']):
+                        category = "furniture"
+                    elif any(word in item_lower for word in ['phone', 'computer', 'screen', 'laptop', 'monitor', 'tv']):
+                        category = "electronics"
+                    elif any(word in item_lower for word in ['plant', 'tree', 'flower', 'grass', 'leaf']):
+                        category = "nature"
+                    elif any(word in item_lower for word in ['tool', 'hammer', 'screwdriver', 'wrench']):
+                        category = "tools"
+                    
+                    todo_items.append(TodoItem(
+                        id=str(uuid.uuid4())[:8],
+                        task=cleaned_line,
+                        priority="medium",
+                        category=category,
+                        estimated_time=None
+                    ))
+                    # Stop after finding the first valid item
+                    break
+
+        # If no structured items found, try parsing as simple words - but only take the first one
+        if not todo_items and ai_response:
+            # Split by common delimiters and extract simple item names
+            words = re.split(r'[,\n;]', ai_response)
+            for word in words:
+                word = word.strip().rstrip('.,;:')
+                # Skip if contains location/type words
+                skip_words = ['type', 'kind', 'model', 'on', 'in', 'near', 'beside', 'next to', 'above', 'below', 'with']
+                if any(sw in word.lower() for sw in skip_words):
+                    continue
+                    
+                if word and len(word.split()) == 1 and len(word) <= 15:
+                    # Determine category
+                    category = "observed"
+                    item_lower = word.lower()
+                    
+                    if any(kw in item_lower for kw in ['food', 'drink', 'fruit']):
+                        category = "food"
+                    elif any(kw in item_lower for kw in ['table', 'chair', 'desk']):
+                        category = "furniture"
+                    elif any(kw in item_lower for kw in ['phone', 'computer', 'laptop']):
+                        category = "electronics"
+                    
+                    todo_items.append(TodoItem(
+                        id=str(uuid.uuid4())[:8],
+                        task=word,
+                        priority="medium",
+                        category=category
+                    ))
+                    # Stop after finding the first valid item
+                    break
+
+        processing_time = (datetime.now() - start_time).total_seconds()
+
+        return TodoGenerationResponse(
+            todos=todo_items,
+            summary=f"Found {len(todo_items)} visible items in {len(request.images_base64)} image{'s' if len(request.images_base64) > 1 else ''}",
+            processing_time=processing_time,
+            llm_model=gemini_result["llm_model"],
+            success=True,
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        processing_time = (datetime.now() - start_time).total_seconds()
+        return TodoGenerationResponse(
+            todos=[],
+            summary="Error processing images",
+            processing_time=processing_time,
+            llm_model="gemini-1.5-flash",
+            success=False,
+            error_message=str(e),
         )
 
 

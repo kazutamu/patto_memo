@@ -1,7 +1,8 @@
-import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { useManualCapture } from '../hooks/useManualCapture';
 import { useSSE, AIAnalysis } from '../hooks/useSSE';
 import { AIAnalysisOverlay } from './AIAnalysisOverlay';
+import { api } from '../api';
 import styles from './VideoFeed.module.css';
 
 interface VideoFeedProps {
@@ -40,31 +41,10 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
     startTime: null as number | null
   });
 
-  // Custom prompt state
-  const [customPrompt, setCustomPrompt] = useState<string>('');
-  const [promptToUse, setPromptToUse] = useState<string>('');
-  const [promptSubmitted, setPromptSubmitted] = useState<boolean>(false);
-  const [validationStatus, setValidationStatus] = useState<'idle' | 'validating' | 'valid' | 'invalid'>('idle');
-  const [showValidationPopup, setShowValidationPopup] = useState<boolean>(false);
-  const [popupHiding, setPopupHiding] = useState<boolean>(false);
-
-  // Example prompts for placeholder (defined outside component or memoized to prevent recreating)
-  const examplePrompts = useMemo(() => [
-    "Is he smiling?",
-    "Are they waving?", 
-    "Is someone sleeping?",
-    "Are they standing?",
-    "Is she reading?",
-    "Are they dancing?",
-    "Is he walking?",
-    "Are they talking?",
-    "Is someone eating?",
-    "Are they sitting?"
-  ], []);
-
-  const [currentExample, setCurrentExample] = useState<string>(() => 
-    examplePrompts[Math.floor(Math.random() * examplePrompts.length)]
-  );
+  // Frame stack state - up to 3 frames with identified items
+  const [frameStack, setFrameStack] = useState<Array<{ id: string; url: string; timestamp: number; item?: string }>>([]);
+  const maxFrames = 3;
+  
 
   // SSE hook to receive AI analysis updates
   useSSE({
@@ -106,17 +86,91 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
       isAnalyzing: true,
       startTime: Date.now()
     }));
-    
-    // Shuffle example prompt when analysis starts
-    setCurrentExample(examplePrompts[Math.floor(Math.random() * examplePrompts.length)]);
-  }, [examplePrompts]);
+  }, []);
 
   // Manual capture integration
-  const { resetCapture, captureFrame } = useManualCapture({
+  const { captureFrame } = useManualCapture({
     videoElement: videoRef.current,
-    customPrompt: promptToUse,
+    customPrompt: '', // No custom prompt needed
     onAnalysisStart: handleAnalysisStart
   });
+
+  // Handle frame capture with stacking and automatic analysis
+  const handleCaptureFrame = useCallback(async () => {
+    if (!videoRef.current || frameStack.length >= maxFrames) return;
+    
+    try {
+      // Create canvas to capture current frame
+      const canvas = document.createElement('canvas');
+      const video = videoRef.current;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        // Convert to data URL for display
+        const frameDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        
+        // Add to stack with unique ID and timestamp
+        const newFrame = {
+          id: Date.now().toString(),
+          url: frameDataUrl,
+          timestamp: Date.now(),
+          item: 'analyzing...'
+        };
+        
+        setFrameStack(prev => [...prev, newFrame]);
+        
+        // Immediately analyze the captured frame
+        try {
+          const imageBase64 = frameDataUrl.replace(/^data:image\/[a-z]+;base64,/, '');
+          
+          const response = await api.generateTodos({
+            images_base64: [imageBase64],
+            context: 'Identify the main item in the center of this image'
+          });
+          
+          if (response.success && response.todos.length > 0) {
+            const identifiedItem = response.todos[0].task;
+            // Update the frame with the identified item
+            setFrameStack(prev => prev.map(frame => 
+              frame.id === newFrame.id 
+                ? { ...frame, item: identifiedItem }
+                : frame
+            ));
+          } else {
+            // Update with "unknown" if analysis failed
+            setFrameStack(prev => prev.map(frame => 
+              frame.id === newFrame.id 
+                ? { ...frame, item: 'unknown' }
+                : frame
+            ));
+          }
+        } catch (error) {
+          console.error('Error analyzing frame:', error);
+          // Update with "error" if analysis failed
+          setFrameStack(prev => prev.map(frame => 
+            frame.id === newFrame.id 
+              ? { ...frame, item: 'error' }
+              : frame
+          ));
+        }
+      }
+      
+      // Trigger the actual analysis capture
+      await captureFrame();
+    } catch (error) {
+      console.error('Error capturing frame:', error);
+    }
+  }, [captureFrame, frameStack.length, maxFrames]);
+  
+  // Remove frame from stack
+  const removeFrame = useCallback((frameId: string) => {
+    setFrameStack(prev => prev.filter(frame => frame.id !== frameId));
+  }, []);
+  
 
   const stopStream = useCallback(() => {
     if (streamRef.current) {
@@ -248,134 +302,6 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
     }
   };
 
-  // Validate if prompt is a yes/no question using rule-based approach
-  const validateYesNoPrompt = (prompt: string): { valid: boolean; reason: string } => {
-    const promptLower = prompt.toLowerCase().trim();
-    
-    // Check if it ends with a question mark (basic requirement)
-    if (!prompt.trim().endsWith('?')) {
-      return { valid: false, reason: "Not a question (missing '?')" };
-    }
-    
-    // Common yes/no question starters
-    const yesNoStarters = [
-      'is', 'are', 'was', 'were', 'will', 'would', 'should', 'could', 
-      'can', 'may', 'might', 'must', 'shall', 'do', 'does', 'did', 
-      'have', 'has', 'had', 'am'
-    ];
-    
-    // Open-ended question words that indicate NOT yes/no
-    const openEndedWords = [
-      'what', 'where', 'when', 'why', 'how', 'which', 'who', 'whose'
-    ];
-    
-    // Words that suggest explanation needed (not yes/no)
-    const explanationKeywords = [
-      'explain', 'describe', 'tell me', 'elaborate', 'discuss', 
-      'analyze', 'compare', 'list', 'name', 'identify'
-    ];
-    
-    // Get first word of the question
-    const words = promptLower.split(/\s+/);
-    const firstWord = words[0];
-    
-    // Check for open-ended question words
-    if (openEndedWords.includes(firstWord)) {
-      return { valid: false, reason: `Open-ended question starting with '${firstWord}'` };
-    }
-    
-    // Check for explanation keywords
-    for (const keyword of explanationKeywords) {
-      if (promptLower.includes(keyword)) {
-        return { valid: false, reason: `Contains explanation keyword '${keyword}'` };
-      }
-    }
-    
-    // Check if starts with yes/no indicator
-    if (yesNoStarters.includes(firstWord)) {
-      return { valid: true, reason: "Valid yes/no question format" };
-    }
-    
-    // Check for pattern like "Are you...", "Is there...", etc.
-    if (words.length >= 2) {
-      const firstTwoWords = `${words[0]} ${words[1]}`;
-      const validPatterns = [
-        /^am i/, /^are you/, /^is (he|she|it|this|that|there)/,
-        /^are (we|they|these|those|there)/, /^will (you|he|she|it|we|they)/,
-        /^would (you|he|she|it|we|they)/, /^can (i|you|he|she|it|we|they)/,
-        /^could (i|you|he|she|it|we|they)/, /^should (i|you|he|she|it|we|they)/,
-        /^do (i|you|we|they)/, /^does (he|she|it)/, /^did (i|you|he|she|it|we|they)/,
-        /^have (i|you|we|they)/, /^has (he|she|it)/, /^had (i|you|he|she|it|we|they)/
-      ];
-      
-      for (const pattern of validPatterns) {
-        if (pattern.test(firstTwoWords)) {
-          return { valid: true, reason: "Valid yes/no question pattern" };
-        }
-      }
-    }
-    
-    return { valid: false, reason: "Does not match yes/no question pattern" };
-  };
-
-  // Handle submit of custom prompt
-  const handlePromptSubmit = useCallback(() => {
-    if (customPrompt.trim() && customPrompt !== promptToUse) {
-      setValidationStatus('validating');
-      
-      // Client-side validation
-      const validation = validateYesNoPrompt(customPrompt);
-      
-      setTimeout(() => {
-        if (validation.valid) {
-          setValidationStatus('valid');
-          
-          // Reset capture to start fresh with new prompt
-          resetCapture();
-          
-          // Clear any ongoing AI analysis
-          setAnalysisState({
-            current: null,
-            isAnalyzing: false,
-            startTime: null
-          });
-          
-          setPromptToUse(customPrompt);
-          setPromptSubmitted(true);
-          
-          // Clear the input field after submission
-          setCustomPrompt('');
-          // Show feedback for 2 seconds
-          setTimeout(() => {
-            setPromptSubmitted(false);
-            setValidationStatus('idle');
-          }, 2000);
-          console.log('Custom prompt validated and updated:', customPrompt);
-        } else {
-          setValidationStatus('invalid');
-          setShowValidationPopup(true);
-          console.log('Validation failed:', validation.reason);
-          // Auto-dismiss toast after 2.5 seconds
-          setTimeout(() => {
-            handleDismissPopup();
-          }, 2500);
-          // Reset validation status
-          setTimeout(() => {
-            setValidationStatus('idle');
-          }, 300);
-        }
-      }, 300); // 300ms delay for smoother UX
-    }
-  }, [customPrompt, promptToUse, resetCapture]);
-
-  // Handle popup dismissal with animation
-  const handleDismissPopup = useCallback(() => {
-    setPopupHiding(true);
-    setTimeout(() => {
-      setShowValidationPopup(false);
-      setPopupHiding(false);
-    }, 300); // Match the CSS animation duration
-  }, []);
 
 
   // Determine detection status class
@@ -422,77 +348,78 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
         )}
 
 
-        {/* AI Analysis Overlay - Persistent */}
-        <AIAnalysisOverlay
-          analysis={analysisState.current}
-          isPersistent={true}
-          isAnalyzing={analysisState.isAnalyzing}
-        />
-
-        {/* Custom Prompt Input Overlay */}
-        <div className={styles.textBoxOverlay}>
-          <input
-            type="text"
-            className={`${styles.textInput} ${validationStatus !== 'idle' ? styles[validationStatus] : ''}`}
-            placeholder={`Try: ${currentExample}`}
-            value={customPrompt}
-            onChange={(e) => {
-              setCustomPrompt(e.target.value);
-              // Hide popup when user starts typing
-              if (showValidationPopup) {
-                handleDismissPopup();
-              }
-            }}
+        {/* AI Analysis Overlay - Only show when there's analysis */}
+        {analysisState.current && (
+          <AIAnalysisOverlay
+            analysis={analysisState.current}
+            isPersistent={false}
+            isAnalyzing={false}
           />
-          <button
-            className={`${styles.submitButton} ${promptSubmitted ? styles.submitted : ''} ${validationStatus !== 'idle' ? styles[validationStatus] : ''}`}
-            onClick={handlePromptSubmit}
-            title="Submit custom prompt"
-            disabled={!customPrompt.trim() || customPrompt === promptToUse || validationStatus === 'validating'}
-          >
-            {validationStatus === 'validating' ? '...' : 
-             validationStatus === 'valid' ? '✓' : 
-             validationStatus === 'invalid' ? '✗' : 
-             promptSubmitted ? '✓' : 'Submit'}
-          </button>
-        </div>
+        )}
 
-        {/* Combined Prompt Display & Capture Button */}
-        {promptToUse && isActive && videoState.hasPermission && (
-          <div className={styles.captureButtonOverlay}>
+        {/* Stylish Capture Button */}
+        {isActive && videoState.hasPermission && (
+          <div className={styles.simpleCaptureOverlay}>
             <button
-              className={`${styles.captureButton} ${analysisState.isAnalyzing ? styles.analyzing : ''}`}
-              onClick={captureFrame}
-              disabled={analysisState.isAnalyzing || !promptToUse}
-              title="Click to capture and analyze"
+              className={`${styles.simpleCaptureButton} ${analysisState.isAnalyzing ? styles.analyzing : ''} ${frameStack.length >= maxFrames ? styles.stackFull : ''}`}
+              onClick={handleCaptureFrame}
+              disabled={analysisState.isAnalyzing || frameStack.length >= maxFrames}
+              title={frameStack.length >= maxFrames ? `Maximum ${maxFrames} frames captured` : "Capture current frame for analysis"}
+              aria-label="Capture frame"
             >
               {analysisState.isAnalyzing ? (
-                <span className={styles.captureButtonContent}>
+                <div className={styles.captureButtonInner}>
                   <div className={styles.spinner}></div>
-                  <span className={styles.captureButtonText}>Analyzing...</span>
-                </span>
+                </div>
               ) : (
-                <span className={styles.captureButtonContent}>
-                  <span className={styles.capturePrompt}>{promptToUse}</span>
-                </span>
+                <div className={styles.captureButtonInner}>
+                  <div className={styles.cameraIcon}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="8"/>
+                      <circle cx="12" cy="12" r="2"/>
+                    </svg>
+                  </div>
+                </div>
               )}
             </button>
           </div>
         )}
+        
 
-        {/* Validation Popup */}
-        {showValidationPopup && (
-          <div 
-            className={`${styles.validationToast} ${popupHiding ? styles.hiding : ''}`}
-            style={{ 
-              top: promptToUse && isActive && videoState.hasPermission 
-                ? window.innerWidth <= 480 ? '48px' : '56px' // Adjust spacing based on screen size
-                : window.innerWidth <= 480 ? '8px' : '16px' 
-            }}
-          >
-            <span className={styles.toastMessage}>Try a yes/no question</span>
-          </div>
-        )}
+        {/* Stacked Frame Overlays */}
+        <div className={styles.frameStackContainer}>
+          {frameStack.map((frame, index) => (
+            <div 
+              key={frame.id}
+              className={`${styles.frameOverlay} ${styles[`stackPosition${index}`]}`}
+              style={{ zIndex: 25 + index }}
+            >
+              <img 
+                src={frame.url} 
+                alt={`Captured frame ${index + 1}`} 
+                className={styles.overlayImage}
+              />
+              {/* Item tag at top-left */}
+              {frame.item && (
+                <div className={styles.itemTag}>
+                  <span className={`${styles.itemTagText} ${frame.item === 'analyzing...' ? styles.analyzing : ''}`}>
+                    {frame.item}
+                  </span>
+                </div>
+              )}
+              <div className={styles.frameNumber}>{index + 1}</div>
+              <button 
+                className={styles.closeOverlay}
+                onClick={() => removeFrame(frame.id)}
+                title={`Remove frame ${index + 1}`}
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+        
+
       </div>
     </div>
   );
