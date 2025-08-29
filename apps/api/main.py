@@ -291,22 +291,18 @@ async def generate_todos_from_images(request: TodoGenerationRequest):
 
         # Create a simple prompt for item listing
         todo_prompt = f"""
-        Look at the CENTER of these {len(request.images_base64)} images and list ONLY the main items that are in focus or prominently displayed in the middle.
+        Look at the CENTER of these {len(request.images_base64)} images and identify the ONE main item that is most prominent in the middle.
 
         IMPORTANT:
-        - Only list items that are in the CENTER/MIDDLE of the image
+        - Only return ONE item that is in the CENTER/MIDDLE of the image
         - Ignore items in the background or edges
-        - Return just the item name itself (like "ball", "phone", "cup")
+        - Return just ONE WORD (like "ball", "phone", "cup")
         - Do NOT include type words like "type of", "kind of", "model"
         - Do NOT include location words like "on table", "in hand", "near window"
-        - Maximum 1-2 words per item
-        - One item per line with a dash
+        - Just one single word
         
         Example of correct output:
         - ball
-        - phone
-        - cup
-        - book
         
         Context: {request.context}
         """
@@ -335,6 +331,7 @@ async def generate_todos_from_images(request: TodoGenerationRequest):
         todo_items = []
         lines = ai_response.split('\n')
         
+        # Only look for the first valid item
         for line in lines:
             line = line.strip()
             # Look for any line that appears to be listing an item
@@ -350,8 +347,8 @@ async def generate_todos_from_images(request: TodoGenerationRequest):
                 if any(word in cleaned_line.lower() for word in skip_words):
                     continue
                 
-                # Only keep if it's a simple item name (1-2 words preferred)
-                if cleaned_line and len(cleaned_line.split()) <= 2 and len(cleaned_line) <= 20:
+                # Only keep if it's a single word
+                if cleaned_line and len(cleaned_line.split()) == 1 and len(cleaned_line) <= 15:
                     # Determine category based on the item name
                     category = "observed"
                     item_lower = cleaned_line.lower()
@@ -378,19 +375,21 @@ async def generate_todos_from_images(request: TodoGenerationRequest):
                         category=category,
                         estimated_time=None
                     ))
+                    # Stop after finding the first valid item
+                    break
 
-        # If no structured items found, try parsing as simple words
+        # If no structured items found, try parsing as simple words - but only take the first one
         if not todo_items and ai_response:
             # Split by common delimiters and extract simple item names
             words = re.split(r'[,\n;]', ai_response)
-            for word in words[:20]:  # Limit to 20 items
+            for word in words:
                 word = word.strip().rstrip('.,;:')
                 # Skip if contains location/type words
                 skip_words = ['type', 'kind', 'model', 'on', 'in', 'near', 'beside', 'next to', 'above', 'below', 'with']
                 if any(sw in word.lower() for sw in skip_words):
                     continue
                     
-                if word and len(word.split()) <= 2 and len(word) <= 20:
+                if word and len(word.split()) == 1 and len(word) <= 15:
                     # Determine category
                     category = "observed"
                     item_lower = word.lower()
@@ -408,6 +407,8 @@ async def generate_todos_from_images(request: TodoGenerationRequest):
                         priority="medium",
                         category=category
                     ))
+                    # Stop after finding the first valid item
+                    break
 
         processing_time = (datetime.now() - start_time).total_seconds()
 

@@ -2,8 +2,7 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { useManualCapture } from '../hooks/useManualCapture';
 import { useSSE, AIAnalysis } from '../hooks/useSSE';
 import { AIAnalysisOverlay } from './AIAnalysisOverlay';
-import { TodoList } from './TodoList';
-import { api, TodoItem } from '../api';
+import { api } from '../api';
 import styles from './VideoFeed.module.css';
 
 interface VideoFeedProps {
@@ -46,11 +45,10 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
   const [frameStack, setFrameStack] = useState<Array<{ id: string; url: string; timestamp: number }>>([]);
   const maxFrames = 3;
   
-  // Todo generation state
-  const [todos, setTodos] = useState<TodoItem[]>([]);
-  const [todoSummary, setTodoSummary] = useState<string>('');
-  const [showTodoList, setShowTodoList] = useState<boolean>(false);
-  const [isGeneratingTodos, setIsGeneratingTodos] = useState<boolean>(false);
+  // Item identification state
+  const [identifiedItem, setIdentifiedItem] = useState<string>('');
+  const [showItemOverlay, setShowItemOverlay] = useState<boolean>(false);
+  const [isIdentifyingItem, setIsIdentifyingItem] = useState<boolean>(false);
 
   // SSE hook to receive AI analysis updates
   useSSE({
@@ -141,12 +139,12 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
     setFrameStack(prev => prev.filter(frame => frame.id !== frameId));
   }, []);
   
-  // Generate item list from current frame stack
-  const generateTodos = useCallback(async () => {
-    if (frameStack.length === 0 || isGeneratingTodos) return;
+  // Identify single item from current frame stack
+  const identifyItem = useCallback(async () => {
+    if (frameStack.length === 0 || isIdentifyingItem) return;
     
-    setIsGeneratingTodos(true);
-    setShowTodoList(true);
+    setIsIdentifyingItem(true);
+    setShowItemOverlay(true);
     
     try {
       // Extract base64 data from frame URLs (remove data:image/jpeg;base64, prefix)
@@ -156,29 +154,27 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
       
       const response = await api.generateTodos({
         images_base64: imagesBase64,
-        context: 'List all visible items, objects, text, and elements in these images'
+        context: 'Identify the main item in the center of these images'
       });
       
-      if (response.success) {
-        setTodos(response.todos);
-        setTodoSummary(response.summary);
+      if (response.success && response.todos.length > 0) {
+        setIdentifiedItem(response.todos[0].task);
       } else {
-        console.error('Failed to list items:', response.error_message);
-        setTodos([]);
-        setTodoSummary('Failed to analyze captured frames');
+        console.error('Failed to identify item:', response.error_message);
+        setIdentifiedItem('unknown');
       }
     } catch (error) {
-      console.error('Error listing items:', error);
-      setTodos([]);
-      setTodoSummary('Error occurred while analyzing frames');
+      console.error('Error identifying item:', error);
+      setIdentifiedItem('error');
     } finally {
-      setIsGeneratingTodos(false);
+      setIsIdentifyingItem(false);
     }
-  }, [frameStack, isGeneratingTodos]);
+  }, [frameStack, isIdentifyingItem]);
   
-  // Close todo list
-  const closeTodoList = useCallback(() => {
-    setShowTodoList(false);
+  // Close item overlay
+  const closeItemOverlay = useCallback(() => {
+    setShowItemOverlay(false);
+    setIdentifiedItem('');
   }, []);
 
   const stopStream = useCallback(() => {
@@ -394,17 +390,17 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
           </div>
         )}
         
-        {/* Generate Todos Button - appears when frames are captured */}
+        {/* Identify Item Button - appears when frames are captured */}
         {isActive && videoState.hasPermission && frameStack.length > 0 && (
           <div className={styles.todoButtonOverlay}>
             <button
-              className={`${styles.todoButton} ${isGeneratingTodos ? styles.generating : ''}`}
-              onClick={generateTodos}
-              disabled={isGeneratingTodos}
-              title={`List items from ${frameStack.length} captured frame${frameStack.length > 1 ? 's' : ''}`}
-              aria-label="List visible items"
+              className={`${styles.todoButton} ${isIdentifyingItem ? styles.generating : ''}`}
+              onClick={identifyItem}
+              disabled={isIdentifyingItem}
+              title={`Identify item from ${frameStack.length} captured frame${frameStack.length > 1 ? 's' : ''}`}
+              aria-label="Identify item"
             >
-              {isGeneratingTodos ? (
+              {isIdentifyingItem ? (
                 <div className={styles.todoButtonContent}>
                   <div className={styles.spinner}></div>
                   <span>Thinking...</span>
@@ -412,7 +408,7 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
               ) : (
                 <div className={styles.todoButtonContent}>
                   <span>🤖</span>
-                  <span>List Items ({frameStack.length})</span>
+                  <span>What's this?</span>
                 </div>
               )}
             </button>
@@ -444,14 +440,30 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({
           ))}
         </div>
         
-        {/* Todo List Modal */}
-        <TodoList
-          todos={todos}
-          summary={todoSummary}
-          isVisible={showTodoList}
-          onClose={closeTodoList}
-          isGenerating={isGeneratingTodos}
-        />
+        {/* Item Identification Overlay */}
+        {showItemOverlay && (
+          <div className={styles.itemOverlay}>
+            <div className={styles.itemContent}>
+              {isIdentifyingItem ? (
+                <div className={styles.identifyingState}>
+                  <div className={styles.spinner}></div>
+                  <span>Identifying...</span>
+                </div>
+              ) : (
+                <div className={styles.identifiedItem}>
+                  <span className={styles.itemText}>{identifiedItem}</span>
+                  <button 
+                    className={styles.closeItemOverlay}
+                    onClick={closeItemOverlay}
+                    title="Close"
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
       </div>
     </div>
